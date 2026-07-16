@@ -161,17 +161,13 @@ const weightPolyline = computed(() =>
 )
 
 function removeFeed(feed: Feed) {
-  data.feeds.splice(
-    data.feeds.findIndex((item) => item.id === feed.id),
-    1,
-  )
+  const index = data.feeds.findIndex((item) => item.id === feed.id)
+  if (index !== -1) data.feeds.splice(index, 1)
 }
 
 function removeWeight(weight: Weight) {
-  data.weights.splice(
-    data.weights.findIndex((item) => item.id === weight.id),
-    1,
-  )
+  const index = data.weights.findIndex((item) => item.id === weight.id)
+  if (index !== -1) data.weights.splice(index, 1)
 }
 </script>
 

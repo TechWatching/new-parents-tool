@@ -26,5 +26,9 @@ export function loadData(storage: Pick<Storage, 'getItem'> = localStorage): AppD
 }
 
 export function saveData(data: AppData, storage: Pick<Storage, 'setItem'> = localStorage) {
-  storage.setItem(STORAGE_KEY, JSON.stringify(data))
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch (error) {
+    console.warn('Failed to save data to storage:', error)
+  }
 }

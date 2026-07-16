@@ -44,7 +44,7 @@ jobs:
           pnpm --filter bottle-feeds type-check
 
       - name: Build GitHub Pages site
-        run: pnpm --filter bottle-feeds build-only --base /new-parents-tool/
+        run: pnpm --filter bottle-feeds build-only -- --base /new-parents-tool/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
