@@ -51,6 +51,8 @@ const TIME_EXTRACTORS: Array<{
   {
     regex: /\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/i,
     toTime: (match) => {
+      // `% 12` maps 12 -> 0, so "12am" is midnight (0). For "pm", adding 12
+      // to that result gives 12 (noon) for "12pm" and 13-23 for 1-11pm.
       const hours = Number(match[1]) % 12
       return {
         hours: match[3]?.toLowerCase() === 'pm' ? hours + 12 : hours,

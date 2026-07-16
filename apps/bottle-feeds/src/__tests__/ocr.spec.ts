@@ -58,6 +58,16 @@ describe('parseFeedEntries', () => {
     expect(new Date(entries[1]!.occurredAt).getMinutes()).toBe(15)
   })
 
+  it('handles noon and midnight correctly with am/pm', () => {
+    const entries = parseFeedEntries('12pm 80\n12am 30', reference)
+
+    expect(entries[0]!.amount).toBe(80)
+    expect(new Date(entries[0]!.occurredAt).getHours()).toBe(12)
+
+    expect(entries[1]!.amount).toBe(30)
+    expect(new Date(entries[1]!.occurredAt).getHours()).toBe(0)
+  })
+
   it('ignores blank lines and lines without a usable number', () => {
     const entries = parseFeedEntries('\n8h30\nnote: fussy\n\n70', reference)
 
