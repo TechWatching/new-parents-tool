@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { messages, type Language } from './i18n'
+import { extractTextFromImage, parseFeedEntries, parseFirstNumber } from './ocr'
 import { loadData, saveData } from './storage'
 import type { Feed, Weight } from './types'
 
@@ -17,6 +18,12 @@ const dateTimeForInput = () => {
   return { date: value.slice(0, 10), time: value.slice(11) }
 }
 
+const toLocalInputValue = (date: Date) => {
+  const local = new Date(date)
+  local.setMinutes(local.getMinutes() - local.getTimezoneOffset())
+  return local.toISOString().slice(0, 16)
+}
+
 const data = reactive(loadData())
 const language = ref<Language>(
   (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
@@ -24,9 +31,19 @@ const language = ref<Language>(
 const range = ref<'24h' | '7d'>('7d')
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
+const editingFeedId = ref<string | null>(null)
+const editingWeightId = ref<string | null>(null)
+const feedScanning = ref(false)
+const feedScanError = ref(false)
+const feedScanAddedCount = ref<number | null>(null)
+const weightScanning = ref(false)
+const weightScanError = ref(false)
 
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
+const feedScanAddedMessage = computed(() =>
+  t.value.scanAdded.replace('{count}', String(feedScanAddedCount.value ?? 0)),
+)
 
 watch(data, (value) => saveData(value), { deep: true })
 watch(
@@ -49,32 +66,130 @@ function occurredAt(date: string, time: string) {
   return Number.isNaN(value.getTime()) ? null : value.toISOString()
 }
 
-function addFeed() {
-  const amount = Number(feedForm.amount)
-  const recordedAt = occurredAt(feedForm.date, feedForm.time)
-  if (!amount || amount <= 0 || !recordedAt) return
-  data.feeds.unshift({
-    id: makeId(),
-    amount,
-    occurredAt: recordedAt,
-    comment: feedForm.comment.trim(),
-  })
+function resetFeedForm() {
+  editingFeedId.value = null
   feedForm.amount = ''
   feedForm.comment = ''
   Object.assign(feedForm, dateTimeForInput())
+  feedScanAddedCount.value = null
 }
 
-function addWeight() {
+function resetWeightForm() {
+  editingWeightId.value = null
+  weightForm.kilograms = ''
+  Object.assign(weightForm, dateTimeForInput())
+}
+
+function submitFeed() {
+  const amount = Number(feedForm.amount)
+  const recordedAt = occurredAt(feedForm.date, feedForm.time)
+  if (!amount || amount <= 0 || !recordedAt) return
+  const comment = feedForm.comment.trim()
+
+  if (editingFeedId.value) {
+    const feed = data.feeds.find((item) => item.id === editingFeedId.value)
+    if (feed) {
+      feed.amount = amount
+      feed.occurredAt = recordedAt
+      feed.comment = comment
+    }
+  } else {
+    data.feeds.unshift({ id: makeId(), amount, occurredAt: recordedAt, comment })
+  }
+  resetFeedForm()
+}
+
+function submitWeight() {
   const kilograms = Number(weightForm.kilograms)
   const recordedAt = occurredAt(weightForm.date, weightForm.time)
   if (!kilograms || kilograms <= 0 || !recordedAt) return
-  data.weights.unshift({
-    id: makeId(),
-    kilograms,
-    occurredAt: recordedAt,
-  })
-  weightForm.kilograms = ''
-  Object.assign(weightForm, dateTimeForInput())
+
+  if (editingWeightId.value) {
+    const weight = data.weights.find((item) => item.id === editingWeightId.value)
+    if (weight) {
+      weight.kilograms = kilograms
+      weight.occurredAt = recordedAt
+    }
+  } else {
+    data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt })
+  }
+  resetWeightForm()
+}
+
+function editFeed(feed: Feed) {
+  editingFeedId.value = feed.id
+  feedForm.amount = String(feed.amount)
+  feedForm.comment = feed.comment
+  const localValue = toLocalInputValue(new Date(feed.occurredAt))
+  feedForm.date = localValue.slice(0, 10)
+  feedForm.time = localValue.slice(11)
+}
+
+function editWeight(weight: Weight) {
+  editingWeightId.value = weight.id
+  weightForm.kilograms = String(weight.kilograms)
+  const localValue = toLocalInputValue(new Date(weight.occurredAt))
+  weightForm.date = localValue.slice(0, 10)
+  weightForm.time = localValue.slice(11)
+}
+
+async function scanFeedPhoto(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  feedScanError.value = false
+  feedScanAddedCount.value = null
+  feedScanning.value = true
+  try {
+    const text = await extractTextFromImage(file)
+    const entries = parseFeedEntries(text)
+    const [firstEntry] = entries
+    if (entries.length === 0 || !firstEntry) {
+      feedScanError.value = true
+    } else if (entries.length === 1) {
+      feedForm.amount = String(firstEntry.amount)
+      const localValue = toLocalInputValue(new Date(firstEntry.occurredAt))
+      feedForm.date = localValue.slice(0, 10)
+      feedForm.time = localValue.slice(11)
+    } else {
+      for (const entry of entries) {
+        data.feeds.unshift({
+          id: makeId(),
+          amount: entry.amount,
+          occurredAt: entry.occurredAt,
+          comment: '',
+        })
+      }
+      feedScanAddedCount.value = entries.length
+    }
+  } catch {
+    feedScanError.value = true
+  } finally {
+    feedScanning.value = false
+    input.value = ''
+  }
+}
+
+async function scanWeightPhoto(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  weightScanError.value = false
+  weightScanning.value = true
+  try {
+    const text = await extractTextFromImage(file)
+    const kilograms = parseFirstNumber(text)
+    if (kilograms === null) {
+      weightScanError.value = true
+    } else {
+      weightForm.kilograms = String(kilograms)
+    }
+  } catch {
+    weightScanError.value = true
+  } finally {
+    weightScanning.value = false
+    input.value = ''
+  }
 }
 
 const sortedFeeds = computed(() =>
@@ -108,54 +223,45 @@ function shortDay(date: Date) {
 
 interface ChartPoint {
   label: string
-  amount: number
+  value: number
 }
 
-const intakePoints = computed<ChartPoint[]>(() => {
-  if (range.value === '24h') {
-    return Array.from({ length: 6 }, (_, index) => {
-      const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
-      const start = end - 4 * 60 * 60 * 1000
-      return {
-        label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
-        amount: data.feeds
-          .filter((feed) => {
-            const time = Date.parse(feed.occurredAt)
-            return time > start && time <= end
-          })
-          .reduce((total, feed) => total + feed.amount, 0),
-      }
-    })
+const cutoff7d = computed(() => Date.now() - 7 * 24 * 60 * 60 * 1000)
+const feeds7d = computed(() =>
+  data.feeds.filter((feed) => Date.parse(feed.occurredAt) >= cutoff7d.value),
+)
+const visibleFeeds = computed(() => (range.value === '24h' ? feeds24h.value : feeds7d.value))
+const intakePoints = computed(() => {
+  const now = Date.now()
+  const step = range.value === '24h' ? 4 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+  const length = range.value === '24h' ? 6 : 7
+  const points: ChartPoint[] = []
+  for (let i = length - 1; i >= 0; i--) {
+    const start = now - (i + 1) * step
+    const end = now - i * step
+    const value = visibleFeeds.value
+      .filter((feed) => {
+        const time = Date.parse(feed.occurredAt)
+        return time >= start && time < end
+      })
+      .reduce((total, feed) => total + feed.amount, 0)
+    const label =
+      range.value === '7d'
+        ? shortDay(new Date(end - 1000))
+        : new Intl.DateTimeFormat(locale.value, { hour: 'numeric' }).format(new Date(end))
+    points.push({ label, value })
   }
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date()
-    date.setHours(0, 0, 0, 0)
-    date.setDate(date.getDate() - (6 - index))
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    return {
-      label: shortDay(date),
-      amount: data.feeds
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time >= date.getTime() && time < next.getTime()
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
-    }
-  })
+  return points
 })
 
-const intakeMax = computed(() =>
-  Math.max(...intakePoints.value.map((point) => point.amount), dailyGuide.value || 0, 1),
+const visibleWeights = computed(() =>
+  sortedWeights.value.filter((weight) => Date.parse(weight.occurredAt) >= cutoff7d.value),
 )
 
-const visibleWeights = computed(() => {
-  const cutoff = Date.now() - (range.value === '24h' ? 24 : 7 * 24) * 60 * 60 * 1000
-  return [...data.weights]
-    .filter((weight) => Date.parse(weight.occurredAt) >= cutoff)
-    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
-})
+function barHeight(point: ChartPoint) {
+  const max = Math.max(...intakePoints.value.map((point) => point.value))
+  return max ? (point.value / max) * 100 : 0
+}
 
 function weightPosition(weight: Weight, axis: 'x' | 'y') {
   const points = visibleWeights.value
@@ -179,11 +285,13 @@ const weightPolyline = computed(() =>
 function removeFeed(feed: Feed) {
   const index = data.feeds.findIndex((item) => item.id === feed.id)
   if (index !== -1) data.feeds.splice(index, 1)
+  if (editingFeedId.value === feed.id) resetFeedForm()
 }
 
 function removeWeight(weight: Weight) {
   const index = data.weights.findIndex((item) => item.id === weight.id)
   if (index !== -1) data.weights.splice(index, 1)
+  if (editingWeightId.value === weight.id) resetWeightForm()
 }
 </script>
 
@@ -209,11 +317,19 @@ function removeWeight(weight: Weight) {
     <div class="privacy-note"><span aria-hidden="true">⌁</span> {{ t.privacy }}</div>
 
     <section class="entry-grid" aria-label="Data entry">
-      <form class="card form-card feed-card" @submit.prevent="addFeed">
+      <form class="card form-card feed-card" @submit.prevent="submitFeed">
         <div class="section-heading">
           <span class="icon coral" aria-hidden="true">＋</span>
-          <h2>{{ t.addFeed }}</h2>
+          <h2>{{ editingFeedId ? t.editFeed : t.addFeed }}</h2>
         </div>
+        <label class="scan-input">
+          {{ t.scanPhoto }}
+          <input type="file" accept="image/*" @change="scanFeedPhoto" />
+        </label>
+        <p v-if="feedScanning" class="scan-status">{{ t.scanning }}</p>
+        <p v-else-if="feedScanError" class="scan-status scan-status-error">{{ t.scanError }}</p>
+        <p v-else-if="feedScanAddedCount" class="scan-status">{{ feedScanAddedMessage }}</p>
+        <p v-else-if="feedForm.amount" class="scan-status">{{ t.scanHint }}</p>
         <div class="form-grid">
           <label>
             {{ t.amount }}
@@ -253,43 +369,75 @@ function removeWeight(weight: Weight) {
             />
           </label>
         </div>
-        <button class="primary-button" type="submit">{{ t.saveFeed }}</button>
-      </form>
-
-      <form class="card form-card weight-card" @submit.prevent="addWeight">
-        <div class="section-heading">
-          <span class="icon mint" aria-hidden="true">↗</span>
-          <h2>{{ t.addWeight }}</h2>
+        <div class="form-actions">
+          <button class="primary-button" type="submit">
+            {{ editingFeedId ? t.saveChanges : t.saveFeed }}
+          </button>
+          <button
+            v-if="editingFeedId"
+            class="primary-button"
+            type="button"
+            @click="resetFeedForm"
+          >
+            {{ t.cancel }}
+          </button>
         </div>
-        <label>
-          {{ t.weight }}
-          <input
-            v-model="weightForm.kilograms"
-            type="number"
-            min="0.1"
-            max="50"
-            step="0.01"
-            required
-            inputmode="decimal"
-          />
+      </form>
+      <form class="card form-card weight-card" @submit.prevent="submitWeight">
+        <div class="section-heading">
+          <span class="icon amber" aria-hidden="true">⚖</span>
+          <h2>{{ editingWeightId ? t.editWeight : t.addWeight }}</h2>
+        </div>
+        <label class="scan-input">
+          {{ t.scanPhoto }}
+          <input type="file" accept="image/*" @change="scanWeightPhoto" />
         </label>
-        <label>
-          {{ t.date }}
-          <input v-model="weightForm.date" type="date" required />
-        </label>
-        <label>
-          {{ t.time }}
-          <input
-            v-model="weightForm.time"
-            type="text"
-            inputmode="numeric"
-            :pattern="timePattern.source"
-            placeholder="14:30"
-            maxlength="5"
-            required
-          />
-        </label>
-        <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
+        <p v-if="weightScanning" class="scan-status">{{ t.scanning }}</p>
+        <p v-else-if="weightScanError" class="scan-status scan-status-error">{{ t.scanError }}</p>
+        <p v-else-if="weightForm.kilograms" class="scan-status">{{ t.scanHint }}</p>
+        <div class="form-grid">
+          <label>
+            {{ t.weight }}
+            <input
+              v-model="weightForm.kilograms"
+              type="number"
+              min="0.1"
+              max="25"
+              step="0.01"
+              required
+              inputmode="decimal"
+            />
+          </label>
+          <label>
+            {{ t.date }}
+            <input v-model="weightForm.date" type="date" required />
+          </label>
+          <label>
+            {{ t.time }}
+            <input
+              v-model="weightForm.time"
+              type="text"
+              inputmode="numeric"
+              :pattern="timePattern.source"
+              placeholder="14:30"
+              maxlength="5"
+              required
+            />
+          </label>
+        </div>
+        <div class="form-actions">
+          <button class="secondary-button" type="submit">
+            {{ editingWeightId ? t.saveChanges : t.saveWeight }}
+          </button>
+          <button
+            v-if="editingWeightId"
+            class="secondary-button"
+            type="button"
+            @click="resetWeightForm"
+          >
+            {{ t.cancel }}
+          </button>
+        </div>
       </form>
     </section>
 
@@ -348,86 +496,113 @@ function removeWeight(weight: Weight) {
           <h3>{{ t.intake }}</h3>
           <div class="bar-chart" role="img" :aria-label="t.intake">
             <div v-for="point in intakePoints" :key="point.label" class="bar-column">
-              <span v-if="point.amount" class="bar-value">{{ point.amount }}</span>
-              <i
-                :style="{
-                  height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
-                }"
-              ></i>
-              <small>{{ point.label }}</small>
-            </div>
-            <div
-              v-if="dailyGuide && range === '7d'"
-              class="guide-line"
-              :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }"
-            >
-              <span>{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
+              <span class="bar-fill" :style="{ height: `${barHeight(point)}%` }"></span>
+              <span class="bar-label">{{ point.label }}</span>
             </div>
           </div>
         </article>
         <article>
           <h3>{{ t.growth }}</h3>
-          <div v-if="visibleWeights.length" class="line-chart">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" :aria-label="t.growth">
-              <polyline v-if="visibleWeights.length > 1" :points="weightPolyline" />
+          <div class="line-chart" role="img" :aria-label="t.growth">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+              <polyline
+                v-if="visibleWeights.length > 1"
+                :points="weightPolyline"
+                fill="none"
+                stroke="var(--brand-amber)"
+                stroke-width="2"
+                vector-effect="non-scaling-stroke"
+              />
               <circle
                 v-for="weight in visibleWeights"
                 :key="weight.id"
                 :cx="weightPosition(weight, 'x')"
                 :cy="weightPosition(weight, 'y')"
-                r="2.4"
+                r="2"
+                fill="var(--brand-amber)"
+                vector-effect="non-scaling-stroke"
               />
             </svg>
-            <div class="weight-range">
-              <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
-              <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
-            </div>
           </div>
-          <div v-else class="chart-empty">{{ t.noChartData }}</div>
         </article>
       </div>
     </section>
 
-    <section class="history-grid">
-      <article class="card history-card">
+    <section class="card history-card">
+      <div class="section-heading">
+        <span class="icon coral" aria-hidden="true">＋</span>
         <h2>{{ t.history }}</h2>
-        <p v-if="!sortedFeeds.length" class="empty-state">{{ t.emptyHistory }}</p>
-        <ul v-else>
-          <li v-for="feed in sortedFeeds.slice(0, 8)" :key="feed.id">
-            <div>
-              <strong>{{ feed.amount }} {{ t.ml }}</strong
-              ><span>{{ formatDate(feed.occurredAt) }}</span
-              ><small v-if="feed.comment">{{ feed.comment }}</small>
-            </div>
-            <button
-              type="button"
-              :aria-label="`${t.delete} ${feed.amount} ${t.ml}`"
-              @click="removeFeed(feed)"
-            >
-              ×
-            </button>
-          </li>
-        </ul>
-      </article>
-      <article class="card history-card">
+      </div>
+      <div class="history-list">
+        <div
+          v-for="(feed, i) in sortedFeeds"
+          :key="feed.id"
+          class="history-row"
+          :class="{ editing: editingFeedId === feed.id }"
+        >
+          <span class="history-item">{{ formatDate(feed.occurredAt) }}</span>
+          <span class="history-value"
+            >{{ feed.amount }} <small>{{ t.ml }}</small></span
+          >
+          <span v-if="feed.comment" class="history-comment">{{ feed.comment }}</span>
+          <button
+            v-if="i === 0 || !editingFeedId || editingFeedId === feed.id"
+            class="edit-button"
+            type="button"
+            :aria-label="t.edit"
+            @click="editFeed(feed)"
+          >
+            ✎
+          </button>
+          <button
+            v-if="i === 0 || !editingFeedId || editingFeedId === feed.id"
+            class="delete-button"
+            type="button"
+            :aria-label="t.delete"
+            @click="removeFeed(feed)"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card history-card">
+      <div class="section-heading">
+        <span class="icon amber" aria-hidden="true">⚖</span>
         <h2>{{ t.weightHistory }}</h2>
-        <p v-if="!sortedWeights.length" class="empty-state">{{ t.emptyWeights }}</p>
-        <ul v-else>
-          <li v-for="weight in sortedWeights.slice(0, 8)" :key="weight.id">
-            <div>
-              <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong
-              ><span>{{ formatDate(weight.occurredAt) }}</span>
-            </div>
-            <button
-              type="button"
-              :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`"
-              @click="removeWeight(weight)"
-            >
-              ×
-            </button>
-          </li>
-        </ul>
-      </article>
+      </div>
+      <div class="history-list">
+        <div
+          v-for="(weight, i) in sortedWeights"
+          :key="weight.id"
+          class="history-row"
+          :class="{ editing: editingWeightId === weight.id }"
+        >
+          <span class="history-item">{{ formatDate(weight.occurredAt) }}</span>
+          <span class="history-value"
+            >{{ weight.kilograms.toLocaleString(locale) }} <small>{{ t.kg }}</small></span
+          >
+          <button
+            v-if="i === 0 || !editingWeightId || editingWeightId === weight.id"
+            class="edit-button"
+            type="button"
+            :aria-label="t.edit"
+            @click="editWeight(weight)"
+          >
+            ✎
+          </button>
+          <button
+            v-if="i === 0 || !editingWeightId || editingWeightId === weight.id"
+            class="delete-button"
+            type="button"
+            :aria-label="t.delete"
+            @click="removeWeight(weight)"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     </section>
   </main>
 </template>
