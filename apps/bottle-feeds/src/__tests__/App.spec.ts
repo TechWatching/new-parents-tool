@@ -88,7 +88,8 @@ describe('App', () => {
     await wrapper.get('.weight-card').trigger('submit')
     await flushPromises()
 
-    await wrapper.get('.history-card:nth-of-type(2) .edit-button').trigger('click')
+    const historyCards = wrapper.findAll('.history-card')
+    await historyCards[1]!.get('.edit-button').trigger('click')
     await wrapper.get('.weight-card input[type="number"]').setValue('4.5')
     await wrapper.get('.weight-card').trigger('submit')
     await flushPromises()

@@ -502,8 +502,8 @@ function removeWeight(weight: Weight) {
           </div>
         </article>
         <article>
-          <h3>{{ t.weightTrend }}</h3>
-          <div class="line-chart" role="img" :aria-label="t.weightTrend">
+          <h3>{{ t.growth }}</h3>
+          <div class="line-chart" role="img" :aria-label="t.growth">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
               <polyline
                 v-if="visibleWeights.length > 1"
