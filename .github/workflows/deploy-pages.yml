@@ -1,0 +1,61 @@
+name: Deploy GitHub Pages preview
+
+on:
+  push:
+    branches:
+      - copilot/add-baby-bottle-feed-app
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate application
+        run: |
+          pnpm lint
+          pnpm test
+          pnpm --filter bottle-feeds type-check
+
+      - name: Build GitHub Pages site
+        run: pnpm --filter bottle-feeds build-only -- --base /new-parents-tool/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/bottle-feeds/dist
+
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v5
