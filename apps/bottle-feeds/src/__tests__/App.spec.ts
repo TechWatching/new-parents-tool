@@ -4,15 +4,13 @@ import { flushPromises, mount } from '@vue/test-utils'
 import App from '../App.vue'
 import { STORAGE_KEY } from '../storage'
 
-vi.mock('../ocr', () => ({
-  extractTextFromImage: vi.fn<(image: Blob | File) => Promise<string>>(),
-  parseFirstNumber: (text: string) => {
-    const match = text.match(/\d+(?:[.,]\d+)?/)
-    if (!match) return null
-    const value = Number(match[0].replace(',', '.'))
-    return Number.isFinite(value) && value > 0 ? value : null
-  },
-}))
+vi.mock('../ocr', async () => {
+  const actual = await vi.importActual<typeof import('../ocr')>('../ocr')
+  return {
+    ...actual,
+    extractTextFromImage: vi.fn<(image: Blob | File) => Promise<string>>(),
+  }
+})
 
 describe('App', () => {
   beforeEach(() => {
@@ -117,6 +115,25 @@ describe('App', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Could not read a number from that photo')
+  })
+
+  it('adds every recognized bottle when the photo has several handwritten lines', async () => {
+    const { extractTextFromImage } = await import('../ocr')
+    vi.mocked(extractTextFromImage).mockResolvedValue('1h45 -> 40\n8:30 - 120ml\n12h 90')
+
+    const wrapper = mount(App)
+    const input = wrapper.get('.feed-card input[type="file"]')
+    const file = new File(['dummy'], 'photo.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(input.element, 'files', { value: [file] })
+    await input.trigger('change')
+    await flushPromises()
+
+    const feeds = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').feeds
+    expect(feeds).toHaveLength(3)
+    expect(
+      feeds.map((feed: { amount: number }) => feed.amount).sort((a: number, b: number) => a - b),
+    ).toEqual([40, 90, 120])
+    expect(wrapper.text()).toContain('Added 3 bottles from the photo')
   })
 })
 

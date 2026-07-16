@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { messages, type Language } from './i18n'
-import { extractTextFromImage, parseFirstNumber } from './ocr'
+import { extractTextFromImage, parseFeedEntries, parseFirstNumber } from './ocr'
 import { loadData, saveData } from './storage'
 import type { Feed, Weight } from './types'
 
@@ -24,11 +24,15 @@ const editingFeedId = ref<string | null>(null)
 const editingWeightId = ref<string | null>(null)
 const feedScanning = ref(false)
 const feedScanError = ref(false)
+const feedScanAddedCount = ref<number | null>(null)
 const weightScanning = ref(false)
 const weightScanError = ref(false)
 
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
+const feedScanAddedMessage = computed(() =>
+  t.value.scanAdded.replace('{count}', String(feedScanAddedCount.value ?? 0)),
+)
 
 watch(data, (value) => saveData(value), { deep: true })
 watch(
@@ -49,6 +53,7 @@ function resetFeedForm() {
   feedForm.amount = ''
   feedForm.comment = ''
   feedForm.occurredAt = nowForInput()
+  feedScanAddedCount.value = null
 }
 
 function resetWeightForm() {
@@ -111,14 +116,27 @@ async function scanFeedPhoto(event: Event) {
   const file = input.files?.[0]
   if (!file) return
   feedScanError.value = false
+  feedScanAddedCount.value = null
   feedScanning.value = true
   try {
     const text = await extractTextFromImage(file)
-    const amount = parseFirstNumber(text)
-    if (amount === null) {
+    const entries = parseFeedEntries(text)
+    const [firstEntry] = entries
+    if (entries.length === 0 || !firstEntry) {
       feedScanError.value = true
+    } else if (entries.length === 1) {
+      feedForm.amount = String(firstEntry.amount)
+      feedForm.occurredAt = toLocalInputValue(new Date(firstEntry.occurredAt))
     } else {
-      feedForm.amount = String(amount)
+      for (const entry of entries) {
+        data.feeds.unshift({
+          id: makeId(),
+          amount: entry.amount,
+          occurredAt: entry.occurredAt,
+          comment: '',
+        })
+      }
+      feedScanAddedCount.value = entries.length
     }
   } catch {
     feedScanError.value = true
@@ -295,6 +313,7 @@ function removeWeight(weight: Weight) {
         </label>
         <p v-if="feedScanning" class="scan-status">{{ t.scanning }}</p>
         <p v-else-if="feedScanError" class="scan-status scan-status-error">{{ t.scanError }}</p>
+        <p v-else-if="feedScanAddedCount" class="scan-status">{{ feedScanAddedMessage }}</p>
         <p v-else-if="feedForm.amount" class="scan-status">{{ t.scanHint }}</p>
         <div class="form-grid">
           <label>
