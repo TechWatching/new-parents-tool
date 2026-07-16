@@ -10,8 +10,8 @@ const nowForInput = () => {
   return date.toISOString().slice(0, 16)
 }
 
-const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d$/
-const timePattern = validTime.source.slice(1, -1)
+const timePattern = /(?:[01]\d|2[0-3]):[0-5]\d/
+const validTime = new RegExp(`^${timePattern.source}$`)
 
 const dateTimeForInput = () => {
   const value = nowForInput()
@@ -238,7 +238,7 @@ function removeWeight(weight: Weight) {
               v-model="feedForm.time"
               type="text"
               inputmode="numeric"
-              :pattern="timePattern"
+              :pattern="timePattern.source"
               placeholder="14:30"
               maxlength="5"
               required
@@ -284,7 +284,7 @@ function removeWeight(weight: Weight) {
             v-model="weightForm.time"
             type="text"
             inputmode="numeric"
-            :pattern="timePattern"
+            :pattern="timePattern.source"
             placeholder="14:30"
             maxlength="5"
             required
