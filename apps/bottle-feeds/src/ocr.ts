@@ -93,32 +93,110 @@ export interface ParsedFeedEntry {
  * Matches a line that starts with a day/month date, e.g. `14/07`, `16/07`
  * or `14/07/2024`, optionally followed by other values (such as a weight
  * measurement written on the same line). Handwritten logs often use such a
- * line as a day separator/header, not as a feed entry, so it must be
- * skipped entirely rather than mistaken for a time and/or an amount.
+ * line as a day separator/header for the entries that follow, so it must be
+ * captured (to advance the current day) rather than mistaken for a time
+ * and/or an amount. The day/month groups are restricted to plausible
+ * calendar ranges (01-31 / 01-12) to avoid matching unrelated numbers.
  */
-const DATE_LINE = /^\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/
+const DATE_LINE = /^(0?[1-9]|[12]\d|3[01])\/(0?[1-9]|1[0-2])(?:\/(\d{2,4}))?\b/
+
+/** A day/month(/year) date extracted from a handwritten date-header line. */
+interface ExtractedDate {
+  day: number
+  month: number
+  year?: number
+}
+
+/** Number of days in `month` (1-12) for `year`, accounting for leap years. */
+function daysInMonth(month: number, year: number): number {
+  return new Date(year, month, 0).getDate()
+}
+
+function extractDateHeader(line: string, referenceYear: number): ExtractedDate | null {
+  const match = DATE_LINE.exec(line)
+  if (!match) return null
+
+  const day = Number(match[1])
+  const month = Number(match[2])
+  const yearText = match[3]
+  const yearNumber = yearText ? Number(yearText) : undefined
+  // Two-digit years use the common pivot convention: 00-68 -> 2000-2068,
+  // 69-99 -> 1969-1999 (matching e.g. POSIX strptime's "%y" behavior).
+  const year =
+    yearNumber === undefined
+      ? undefined
+      : yearText!.length === 2
+        ? (yearNumber <= 68 ? 2000 : 1900) + yearNumber
+        : yearNumber
+
+  // Reject dates like "31/02" that don't exist in the given (or reference)
+  // year, rather than letting them silently roll over into the next month.
+  if (day > daysInMonth(month, year ?? referenceYear)) return null
+
+  return { day, month, year }
+}
 
 /**
  * Parses multiple handwritten lines that may each use a different style
- * (e.g. `1h45 -> 40`, `8:30 - 120ml`, `12h 90`, or just `250`). Every line is
- * handled independently: a time-of-day token is detected and removed first
- * (to avoid confusing it with the quantity), then the first remaining
- * number is taken as the amount. Lines without a usable number, and
- * date-header lines, are skipped.
+ * (e.g. `1h45 -> 40`, `8:30 - 120ml`, `12h 90`, or just `250`). Notes often
+ * span several days: a date-header line (e.g. `14/07`) sets the day for the
+ * entries that follow, until the next date header. Within a day's entries,
+ * a time that is earlier than the previous one (e.g. `23h30` followed by
+ * `1h45`) is assumed to have rolled over past midnight into the next day.
+ * Every other line is handled independently: a time-of-day token is
+ * detected and removed first (to avoid confusing it with the quantity),
+ * then the first remaining number is taken as the amount. Lines without a
+ * usable number are skipped.
  */
 export function parseFeedEntries(text: string, referenceDate = new Date()): ParsedFeedEntry[] {
   const entries: ParsedFeedEntry[] = []
 
+  const currentDate = new Date(referenceDate)
+  currentDate.setHours(0, 0, 0, 0)
+  let previousMinutesOfDay: number | null = null
+
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim()
-    if (!line || DATE_LINE.test(line)) continue
+    if (!line) continue
+
+    const dateHeader = extractDateHeader(line, currentDate.getFullYear())
+    if (dateHeader) {
+      if (dateHeader.year !== undefined) {
+        // Setting year, month and day together avoids ever passing through
+        // an invalid intermediate date. For example, calling `setMonth(1, 29)`
+        // first while `currentDate` is still in a leap year, then calling
+        // `setFullYear` to a non-leap year, would silently normalize "Feb 29"
+        // to "Mar 1" instead of landing on the intended date.
+        currentDate.setFullYear(dateHeader.year, dateHeader.month - 1, dateHeader.day)
+      } else {
+        // No explicit year: keep the current one, unless that would move
+        // the date backwards (e.g. a "31/12" header followed by "01/01"
+        // with no year), in which case the log has crossed into next year.
+        const candidate = new Date(currentDate)
+        candidate.setMonth(dateHeader.month - 1, dateHeader.day)
+        if (candidate.getTime() < currentDate.getTime()) {
+          candidate.setFullYear(candidate.getFullYear() + 1)
+        }
+        currentDate.setTime(candidate.getTime())
+      }
+      previousMinutesOfDay = null
+      continue
+    }
 
     const time = extractTime(line)
     const remainder = time ? line.slice(0, time.start) + ' ' + line.slice(time.end) : line
     const amount = parseFirstNumber(remainder)
     if (amount === null) continue
 
-    const occurredAt = new Date(referenceDate)
+    if (time) {
+      const minutesOfDay = time.hours * 60 + time.minutes
+      if (previousMinutesOfDay !== null && minutesOfDay < previousMinutesOfDay) {
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      previousMinutesOfDay = minutesOfDay
+    }
+
+    const occurredAt = new Date(currentDate)
     if (time) {
       occurredAt.setHours(time.hours, time.minutes, 0, 0)
     }
