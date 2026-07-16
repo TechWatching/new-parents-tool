@@ -1,11 +1,16 @@
 import Tesseract from 'tesseract.js'
+// Bundled locally (instead of relying on Tesseract's jsDelivr CDN default) so
+// scanning still works when the CDN is unreachable or blocked (offline, ad
+// blockers, restrictive CSPs, etc.), which was causing the photo scan to
+// always fail for some users.
+import workerPath from 'tesseract.js/dist/worker.min.js?url'
 
 /**
  * Runs on-device text recognition on an image (e.g. a photo of a handwritten
  * note or a bottle/scale display) and returns the recognized text.
  */
 export async function extractTextFromImage(image: Blob | File): Promise<string> {
-  const { data } = await Tesseract.recognize(image, 'eng')
+  const { data } = await Tesseract.recognize(image, 'eng', { workerPath })
   return data.text
 }
 
