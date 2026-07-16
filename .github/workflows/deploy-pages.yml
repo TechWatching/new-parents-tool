@@ -25,26 +25,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@v1.15.0
         with:
           node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          cache: true
 
       - name: Validate application
         run: |
-          pnpm lint
-          pnpm test
-          pnpm --filter bottle-feeds type-check
+          vp run --recursive lint
+          vp run --filter bottle-feeds test:unit -- --run
+          vp run --filter bottle-feeds type-check
 
       - name: Build GitHub Pages site
-        run: pnpm --filter bottle-feeds build-only -- --base /new-parents-tool/
+        run: vp run --filter bottle-feeds build-only -- --base /new-parents-tool/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
