@@ -51,7 +51,7 @@ describe('App', () => {
 
     for (const input of wrapper.findAll('input[inputmode="numeric"]')) {
       expect(input.attributes('type')).toBe('text')
-      expect(input.attributes('pattern')).toBe('(?:[01]\\d|2[0-3]):[0-5]\\d')
+      expect(input.attributes('pattern')).toBe('^(?:[01]\\d|2[0-3]):[0-5]\\d$')
       expect(input.attributes('placeholder')).toBe('14:30')
     }
   })

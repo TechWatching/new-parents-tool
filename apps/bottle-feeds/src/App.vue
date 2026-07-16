@@ -10,8 +10,7 @@ const nowForInput = () => {
   return date.toISOString().slice(0, 16)
 }
 
-const timePattern = /(?:[01]\d|2[0-3]):[0-5]\d/
-const validTime = new RegExp(`^${timePattern.source}$`)
+const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
 const dateTimeForInput = () => {
   const value = nowForInput()
@@ -44,7 +43,7 @@ function makeId() {
 }
 
 function occurredAt(date: string, time: string) {
-  if (!validTime.test(time)) return null
+  if (!timePattern.test(time)) return null
 
   const value = new Date(`${date}T${time}`)
   return Number.isNaN(value.getTime()) ? null : value.toISOString()
