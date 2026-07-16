@@ -107,7 +107,8 @@ function editWeight(weight: Weight) {
 }
 
 async function scanFeedPhoto(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
   feedScanError.value = false
   feedScanning.value = true
@@ -123,12 +124,13 @@ async function scanFeedPhoto(event: Event) {
     feedScanError.value = true
   } finally {
     feedScanning.value = false
-    ;(event.target as HTMLInputElement).value = ''
+    input.value = ''
   }
 }
 
 async function scanWeightPhoto(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
   weightScanError.value = false
   weightScanning.value = true
@@ -144,7 +146,7 @@ async function scanWeightPhoto(event: Event) {
     weightScanError.value = true
   } finally {
     weightScanning.value = false
-    ;(event.target as HTMLInputElement).value = ''
+    input.value = ''
   }
 }
 
