@@ -10,13 +10,20 @@ const nowForInput = () => {
   return date.toISOString().slice(0, 16)
 }
 
+const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+
+const dateTimeForInput = () => {
+  const value = nowForInput()
+  return { date: value.slice(0, 10), time: value.slice(11) }
+}
+
 const data = reactive(loadData())
 const language = ref<Language>(
   (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
 )
 const range = ref<'24h' | '7d'>('7d')
-const feedForm = reactive({ amount: '', occurredAt: nowForInput(), comment: '' })
-const weightForm = reactive({ kilograms: '', occurredAt: nowForInput() })
+const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
+const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
 
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
@@ -35,30 +42,39 @@ function makeId() {
   return crypto.randomUUID()
 }
 
+function occurredAt(date: string, time: string) {
+  if (!timePattern.test(time)) return null
+
+  const value = new Date(`${date}T${time}`)
+  return Number.isNaN(value.getTime()) ? null : value.toISOString()
+}
+
 function addFeed() {
   const amount = Number(feedForm.amount)
-  if (!amount || amount <= 0 || !feedForm.occurredAt) return
+  const recordedAt = occurredAt(feedForm.date, feedForm.time)
+  if (!amount || amount <= 0 || !recordedAt) return
   data.feeds.unshift({
     id: makeId(),
     amount,
-    occurredAt: new Date(feedForm.occurredAt).toISOString(),
+    occurredAt: recordedAt,
     comment: feedForm.comment.trim(),
   })
   feedForm.amount = ''
   feedForm.comment = ''
-  feedForm.occurredAt = nowForInput()
+  Object.assign(feedForm, dateTimeForInput())
 }
 
 function addWeight() {
   const kilograms = Number(weightForm.kilograms)
-  if (!kilograms || kilograms <= 0 || !weightForm.occurredAt) return
+  const recordedAt = occurredAt(weightForm.date, weightForm.time)
+  if (!kilograms || kilograms <= 0 || !recordedAt) return
   data.weights.unshift({
     id: makeId(),
     kilograms,
-    occurredAt: new Date(weightForm.occurredAt).toISOString(),
+    occurredAt: recordedAt,
   })
   weightForm.kilograms = ''
-  weightForm.occurredAt = nowForInput()
+  Object.assign(weightForm, dateTimeForInput())
 }
 
 const sortedFeeds = computed(() =>
@@ -212,8 +228,20 @@ function removeWeight(weight: Weight) {
             />
           </label>
           <label>
-            {{ t.dateTime }}
-            <input v-model="feedForm.occurredAt" type="datetime-local" required />
+            {{ t.date }}
+            <input v-model="feedForm.date" type="date" required />
+          </label>
+          <label>
+            {{ t.time }}
+            <input
+              v-model="feedForm.time"
+              type="text"
+              inputmode="numeric"
+              :pattern="timePattern.source"
+              placeholder="14:30"
+              maxlength="5"
+              required
+            />
           </label>
           <label class="full-width">
             {{ t.comment }}
@@ -246,8 +274,20 @@ function removeWeight(weight: Weight) {
           />
         </label>
         <label>
-          {{ t.dateTime }}
-          <input v-model="weightForm.occurredAt" type="datetime-local" required />
+          {{ t.date }}
+          <input v-model="weightForm.date" type="date" required />
+        </label>
+        <label>
+          {{ t.time }}
+          <input
+            v-model="weightForm.time"
+            type="text"
+            inputmode="numeric"
+            :pattern="timePattern.source"
+            placeholder="14:30"
+            maxlength="5"
+            required
+          />
         </label>
         <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
       </form>
