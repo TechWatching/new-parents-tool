@@ -16,6 +16,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "tesseract.js": "^7.0.0",
     "vue": "^3.5.38"
   },
   "devDependencies": {

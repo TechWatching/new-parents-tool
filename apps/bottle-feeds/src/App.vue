@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { messages, type Language } from './i18n'
+import { extractTextFromImage, parseFirstNumber } from './ocr'
 import { loadData, saveData } from './storage'
 import type { Feed, Weight } from './types'
 
-const nowForInput = () => {
-  const date = new Date()
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-  return date.toISOString().slice(0, 16)
+const toLocalInputValue = (date: Date) => {
+  const local = new Date(date)
+  local.setMinutes(local.getMinutes() - local.getTimezoneOffset())
+  return local.toISOString().slice(0, 16)
 }
+
+const nowForInput = () => toLocalInputValue(new Date())
 
 const data = reactive(loadData())
 const language = ref<Language>(
@@ -17,6 +20,12 @@ const language = ref<Language>(
 const range = ref<'24h' | '7d'>('7d')
 const feedForm = reactive({ amount: '', occurredAt: nowForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', occurredAt: nowForInput() })
+const editingFeedId = ref<string | null>(null)
+const editingWeightId = ref<string | null>(null)
+const feedScanning = ref(false)
+const feedScanError = ref(false)
+const weightScanning = ref(false)
+const weightScanError = ref(false)
 
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
@@ -35,30 +44,108 @@ function makeId() {
   return crypto.randomUUID()
 }
 
-function addFeed() {
-  const amount = Number(feedForm.amount)
-  if (!amount || amount <= 0 || !feedForm.occurredAt) return
-  data.feeds.unshift({
-    id: makeId(),
-    amount,
-    occurredAt: new Date(feedForm.occurredAt).toISOString(),
-    comment: feedForm.comment.trim(),
-  })
+function resetFeedForm() {
+  editingFeedId.value = null
   feedForm.amount = ''
   feedForm.comment = ''
   feedForm.occurredAt = nowForInput()
 }
 
-function addWeight() {
-  const kilograms = Number(weightForm.kilograms)
-  if (!kilograms || kilograms <= 0 || !weightForm.occurredAt) return
-  data.weights.unshift({
-    id: makeId(),
-    kilograms,
-    occurredAt: new Date(weightForm.occurredAt).toISOString(),
-  })
+function resetWeightForm() {
+  editingWeightId.value = null
   weightForm.kilograms = ''
   weightForm.occurredAt = nowForInput()
+}
+
+function submitFeed() {
+  const amount = Number(feedForm.amount)
+  if (!amount || amount <= 0 || !feedForm.occurredAt) return
+  const occurredAt = new Date(feedForm.occurredAt).toISOString()
+  const comment = feedForm.comment.trim()
+
+  if (editingFeedId.value) {
+    const feed = data.feeds.find((item) => item.id === editingFeedId.value)
+    if (feed) {
+      feed.amount = amount
+      feed.occurredAt = occurredAt
+      feed.comment = comment
+    }
+  } else {
+    data.feeds.unshift({ id: makeId(), amount, occurredAt, comment })
+  }
+  resetFeedForm()
+}
+
+function submitWeight() {
+  const kilograms = Number(weightForm.kilograms)
+  if (!kilograms || kilograms <= 0 || !weightForm.occurredAt) return
+  const occurredAt = new Date(weightForm.occurredAt).toISOString()
+
+  if (editingWeightId.value) {
+    const weight = data.weights.find((item) => item.id === editingWeightId.value)
+    if (weight) {
+      weight.kilograms = kilograms
+      weight.occurredAt = occurredAt
+    }
+  } else {
+    data.weights.unshift({ id: makeId(), kilograms, occurredAt })
+  }
+  resetWeightForm()
+}
+
+function editFeed(feed: Feed) {
+  editingFeedId.value = feed.id
+  feedForm.amount = String(feed.amount)
+  feedForm.comment = feed.comment
+  feedForm.occurredAt = toLocalInputValue(new Date(feed.occurredAt))
+}
+
+function editWeight(weight: Weight) {
+  editingWeightId.value = weight.id
+  weightForm.kilograms = String(weight.kilograms)
+  weightForm.occurredAt = toLocalInputValue(new Date(weight.occurredAt))
+}
+
+async function scanFeedPhoto(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  feedScanError.value = false
+  feedScanning.value = true
+  try {
+    const text = await extractTextFromImage(file)
+    const amount = parseFirstNumber(text)
+    if (amount === null) {
+      feedScanError.value = true
+    } else {
+      feedForm.amount = String(amount)
+    }
+  } catch {
+    feedScanError.value = true
+  } finally {
+    feedScanning.value = false
+    ;(event.target as HTMLInputElement).value = ''
+  }
+}
+
+async function scanWeightPhoto(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  weightScanError.value = false
+  weightScanning.value = true
+  try {
+    const text = await extractTextFromImage(file)
+    const kilograms = parseFirstNumber(text)
+    if (kilograms === null) {
+      weightScanError.value = true
+    } else {
+      weightForm.kilograms = String(kilograms)
+    }
+  } catch {
+    weightScanError.value = true
+  } finally {
+    weightScanning.value = false
+    ;(event.target as HTMLInputElement).value = ''
+  }
 }
 
 const sortedFeeds = computed(() =>
@@ -163,11 +250,13 @@ const weightPolyline = computed(() =>
 function removeFeed(feed: Feed) {
   const index = data.feeds.findIndex((item) => item.id === feed.id)
   if (index !== -1) data.feeds.splice(index, 1)
+  if (editingFeedId.value === feed.id) resetFeedForm()
 }
 
 function removeWeight(weight: Weight) {
   const index = data.weights.findIndex((item) => item.id === weight.id)
   if (index !== -1) data.weights.splice(index, 1)
+  if (editingWeightId.value === weight.id) resetWeightForm()
 }
 </script>
 
@@ -193,11 +282,18 @@ function removeWeight(weight: Weight) {
     <div class="privacy-note"><span aria-hidden="true">⌁</span> {{ t.privacy }}</div>
 
     <section class="entry-grid" aria-label="Data entry">
-      <form class="card form-card feed-card" @submit.prevent="addFeed">
+      <form class="card form-card feed-card" @submit.prevent="submitFeed">
         <div class="section-heading">
           <span class="icon coral" aria-hidden="true">＋</span>
-          <h2>{{ t.addFeed }}</h2>
+          <h2>{{ editingFeedId ? t.editFeed : t.addFeed }}</h2>
         </div>
+        <label class="scan-input">
+          {{ t.scanPhoto }}
+          <input type="file" accept="image/*" capture="environment" @change="scanFeedPhoto" />
+        </label>
+        <p v-if="feedScanning" class="scan-status">{{ t.scanning }}</p>
+        <p v-else-if="feedScanError" class="scan-status scan-status-error">{{ t.scanError }}</p>
+        <p v-else-if="feedForm.amount" class="scan-status">{{ t.scanHint }}</p>
         <div class="form-grid">
           <label>
             {{ t.amount }}
@@ -225,14 +321,33 @@ function removeWeight(weight: Weight) {
             />
           </label>
         </div>
-        <button class="primary-button" type="submit">{{ t.saveFeed }}</button>
+        <div class="form-actions">
+          <button class="primary-button" type="submit">
+            {{ editingFeedId ? t.saveChanges : t.saveFeed }}
+          </button>
+          <button
+            v-if="editingFeedId"
+            class="secondary-button"
+            type="button"
+            @click="resetFeedForm"
+          >
+            {{ t.cancel }}
+          </button>
+        </div>
       </form>
 
-      <form class="card form-card weight-card" @submit.prevent="addWeight">
+      <form class="card form-card weight-card" @submit.prevent="submitWeight">
         <div class="section-heading">
           <span class="icon mint" aria-hidden="true">↗</span>
-          <h2>{{ t.addWeight }}</h2>
+          <h2>{{ editingWeightId ? t.editWeight : t.addWeight }}</h2>
         </div>
+        <label class="scan-input">
+          {{ t.scanPhoto }}
+          <input type="file" accept="image/*" capture="environment" @change="scanWeightPhoto" />
+        </label>
+        <p v-if="weightScanning" class="scan-status">{{ t.scanning }}</p>
+        <p v-else-if="weightScanError" class="scan-status scan-status-error">{{ t.scanError }}</p>
+        <p v-else-if="weightForm.kilograms" class="scan-status">{{ t.scanHint }}</p>
         <label>
           {{ t.weight }}
           <input
@@ -249,7 +364,19 @@ function removeWeight(weight: Weight) {
           {{ t.dateTime }}
           <input v-model="weightForm.occurredAt" type="datetime-local" required />
         </label>
-        <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
+        <div class="form-actions">
+          <button class="secondary-button" type="submit">
+            {{ editingWeightId ? t.saveChanges : t.saveWeight }}
+          </button>
+          <button
+            v-if="editingWeightId"
+            class="secondary-button"
+            type="button"
+            @click="resetWeightForm"
+          >
+            {{ t.cancel }}
+          </button>
+        </div>
       </form>
     </section>
 
@@ -359,13 +486,23 @@ function removeWeight(weight: Weight) {
               ><span>{{ formatDate(feed.occurredAt) }}</span
               ><small v-if="feed.comment">{{ feed.comment }}</small>
             </div>
-            <button
-              type="button"
-              :aria-label="`${t.delete} ${feed.amount} ${t.ml}`"
-              @click="removeFeed(feed)"
-            >
-              ×
-            </button>
+            <div class="history-actions">
+              <button
+                type="button"
+                class="edit-button"
+                :aria-label="`${t.edit} ${feed.amount} ${t.ml}`"
+                @click="editFeed(feed)"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                :aria-label="`${t.delete} ${feed.amount} ${t.ml}`"
+                @click="removeFeed(feed)"
+              >
+                ×
+              </button>
+            </div>
           </li>
         </ul>
       </article>
@@ -378,13 +515,23 @@ function removeWeight(weight: Weight) {
               <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong
               ><span>{{ formatDate(weight.occurredAt) }}</span>
             </div>
-            <button
-              type="button"
-              :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`"
-              @click="removeWeight(weight)"
-            >
-              ×
-            </button>
+            <div class="history-actions">
+              <button
+                type="button"
+                class="edit-button"
+                :aria-label="`${t.edit} ${weight.kilograms} ${t.kg}`"
+                @click="editWeight(weight)"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`"
+                @click="removeWeight(weight)"
+              >
+                ×
+              </button>
+            </div>
           </li>
         </ul>
       </article>

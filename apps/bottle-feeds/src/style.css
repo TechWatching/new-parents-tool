@@ -185,6 +185,33 @@ input:focus {
 .secondary-button:hover {
   background: #488a75;
 }
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+.form-actions .primary-button,
+.form-actions .secondary-button {
+  flex: 1;
+}
+.scan-input {
+  border: 1px dashed #d9e1dd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.scan-input input {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.scan-status {
+  margin: 8px 0 0;
+  color: #56635f;
+  font-size: 12px;
+}
+.scan-status-error {
+  color: #c9574f;
+}
 
 .summary-grid {
   display: grid;
@@ -430,6 +457,17 @@ h3 {
 .history-card li button:hover {
   color: #c9574f;
   background: #fff0ed;
+}
+.history-actions {
+  display: flex;
+  gap: 4px;
+}
+.edit-button {
+  font-size: 15px !important;
+}
+.edit-button:hover {
+  color: #478e79 !important;
+  background: #e9f6f1 !important;
 }
 .empty-state {
   margin: 28px 0 12px;
