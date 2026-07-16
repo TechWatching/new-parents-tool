@@ -10,6 +10,9 @@ const nowForInput = () => {
   return date.toISOString().slice(0, 16)
 }
 
+const timePattern = '(?:[01]\\d|2[0-3]):[0-5]\\d'
+const validTime = new RegExp(`^${timePattern}$`)
+
 const dateTimeForInput = () => {
   const value = nowForInput()
   return { date: value.slice(0, 10), time: value.slice(11) }
@@ -41,7 +44,7 @@ function makeId() {
 }
 
 function occurredAt(date: string, time: string) {
-  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) return null
+  if (!validTime.test(time)) return null
 
   const value = new Date(`${date}T${time}`)
   return Number.isNaN(value.getTime()) ? null : value.toISOString()
@@ -235,7 +238,7 @@ function removeWeight(weight: Weight) {
               v-model="feedForm.time"
               type="text"
               inputmode="numeric"
-              pattern="(?:[01]\d|2[0-3]):[0-5]\d"
+              :pattern="timePattern"
               placeholder="14:30"
               maxlength="5"
               required
@@ -281,7 +284,7 @@ function removeWeight(weight: Weight) {
             v-model="weightForm.time"
             type="text"
             inputmode="numeric"
-            pattern="(?:[01]\d|2[0-3]):[0-5]\d"
+            :pattern="timePattern"
             placeholder="14:30"
             maxlength="5"
             required
