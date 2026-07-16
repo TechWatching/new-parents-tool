@@ -78,4 +78,25 @@ describe('parseFeedEntries', () => {
   it('returns an empty array when nothing is readable', () => {
     expect(parseFeedEntries('no digits here', reference)).toEqual([])
   })
+
+  it('ignores date-header lines so they are not mistaken for entries', () => {
+    const text = [
+      '14/07 3,480',
+      '19h45 -> 40',
+      '21h45 -> 10',
+      '',
+      '16/07',
+      '',
+      '3h15 -> 35',
+      '9h05 -> 50',
+    ].join('\n')
+
+    const entries = parseFeedEntries(text, reference)
+
+    expect(entries).toHaveLength(4)
+    expect(entries[0]!.amount).toBe(40)
+    expect(entries[1]!.amount).toBe(10)
+    expect(entries[2]!.amount).toBe(35)
+    expect(entries[3]!.amount).toBe(50)
+  })
 })

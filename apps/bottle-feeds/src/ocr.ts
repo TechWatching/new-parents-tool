@@ -85,18 +85,28 @@ export interface ParsedFeedEntry {
 }
 
 /**
+ * Matches a line that starts with a day/month date, e.g. `14/07`, `16/07`
+ * or `14/07/2024`, optionally followed by other values (such as a weight
+ * measurement written on the same line). Handwritten logs often use such a
+ * line as a day separator/header, not as a feed entry, so it must be
+ * skipped entirely rather than mistaken for a time and/or an amount.
+ */
+const DATE_LINE = /^\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/
+
+/**
  * Parses multiple handwritten lines that may each use a different style
  * (e.g. `1h45 -> 40`, `8:30 - 120ml`, `12h 90`, or just `250`). Every line is
  * handled independently: a time-of-day token is detected and removed first
  * (to avoid confusing it with the quantity), then the first remaining
- * number is taken as the amount. Lines without a usable number are skipped.
+ * number is taken as the amount. Lines without a usable number, and
+ * date-header lines, are skipped.
  */
 export function parseFeedEntries(text: string, referenceDate = new Date()): ParsedFeedEntry[] {
   const entries: ParsedFeedEntry[] = []
 
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim()
-    if (!line) continue
+    if (!line || DATE_LINE.test(line)) continue
 
     const time = extractTime(line)
     const remainder = time ? line.slice(0, time.start) + ' ' + line.slice(time.end) : line
