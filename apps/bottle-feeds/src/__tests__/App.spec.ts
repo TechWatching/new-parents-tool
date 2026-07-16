@@ -8,7 +8,9 @@ vi.mock('../ocr', () => ({
   extractTextFromImage: vi.fn<(image: Blob | File) => Promise<string>>(),
   parseFirstNumber: (text: string) => {
     const match = text.match(/\d+(?:[.,]\d+)?/)
-    return match ? Number(match[0].replace(',', '.')) : null
+    if (!match) return null
+    const value = Number(match[0].replace(',', '.'))
+    return Number.isFinite(value) && value > 0 ? value : null
   },
 }))
 
