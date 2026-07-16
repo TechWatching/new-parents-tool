@@ -11,7 +11,9 @@ const nowForInput = () => {
 }
 
 const data = reactive(loadData())
-const language = ref<Language>((localStorage.getItem('new-parents-tool:language') as Language) || 'en')
+const language = ref<Language>(
+  (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
+)
 const range = ref<'24h' | '7d'>('7d')
 const feedForm = reactive({ amount: '', occurredAt: nowForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', occurredAt: nowForInput() })
@@ -20,7 +22,14 @@ const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
 
 watch(data, (value) => saveData(value), { deep: true })
-watch(language, (value) => localStorage.setItem('new-parents-tool:language', value))
+watch(
+  language,
+  (value) => {
+    localStorage.setItem('new-parents-tool:language', value)
+    document.documentElement.lang = value
+  },
+  { immediate: true },
+)
 
 function makeId() {
   return crypto.randomUUID()
@@ -146,7 +155,9 @@ function weightPosition(weight: Weight, axis: 'x' | 'y') {
 }
 
 const weightPolyline = computed(() =>
-  visibleWeights.value.map((weight) => `${weightPosition(weight, 'x')},${weightPosition(weight, 'y')}`).join(' '),
+  visibleWeights.value
+    .map((weight) => `${weightPosition(weight, 'x')},${weightPosition(weight, 'y')}`)
+    .join(' '),
 )
 
 function removeFeed(feed: Feed) {
@@ -173,7 +184,11 @@ function removeWeight(weight: Weight) {
       </a>
       <p>{{ t.tagline }}</p>
     </div>
-    <button class="language-button" type="button" @click="language = language === 'en' ? 'fr' : 'en'">
+    <button
+      class="language-button"
+      type="button"
+      @click="language = language === 'en' ? 'fr' : 'en'"
+    >
       {{ t.language }}
     </button>
   </header>
@@ -190,7 +205,15 @@ function removeWeight(weight: Weight) {
         <div class="form-grid">
           <label>
             {{ t.amount }}
-            <input v-model="feedForm.amount" type="number" min="1" max="2000" step="1" required inputmode="decimal" />
+            <input
+              v-model="feedForm.amount"
+              type="number"
+              min="1"
+              max="2000"
+              step="1"
+              required
+              inputmode="decimal"
+            />
           </label>
           <label>
             {{ t.dateTime }}
@@ -198,7 +221,12 @@ function removeWeight(weight: Weight) {
           </label>
           <label class="full-width">
             {{ t.comment }}
-            <input v-model="feedForm.comment" type="text" maxlength="160" :placeholder="t.commentPlaceholder" />
+            <input
+              v-model="feedForm.comment"
+              type="text"
+              maxlength="160"
+              :placeholder="t.commentPlaceholder"
+            />
           </label>
         </div>
         <button class="primary-button" type="submit">{{ t.saveFeed }}</button>
@@ -211,7 +239,15 @@ function removeWeight(weight: Weight) {
         </div>
         <label>
           {{ t.weight }}
-          <input v-model="weightForm.kilograms" type="number" min="0.1" max="50" step="0.01" required inputmode="decimal" />
+          <input
+            v-model="weightForm.kilograms"
+            type="number"
+            min="0.1"
+            max="50"
+            step="0.01"
+            required
+            inputmode="decimal"
+          />
         </label>
         <label>
           {{ t.dateTime }}
@@ -229,17 +265,26 @@ function removeWeight(weight: Weight) {
       </article>
       <article class="metric-card">
         <span>{{ t.total }}</span>
-        <strong>{{ total24h }} <small>{{ t.ml }}</small></strong>
-        <div v-if="dailyGuide" class="progress"><i :style="{ width: `${Math.min((total24h / dailyGuide) * 100, 100)}%` }"></i></div>
+        <strong
+          >{{ total24h }} <small>{{ t.ml }}</small></strong
+        >
+        <div v-if="dailyGuide" class="progress">
+          <i :style="{ width: `${Math.min((total24h / dailyGuide) * 100, 100)}%` }"></i>
+        </div>
       </article>
       <article class="metric-card">
         <span>{{ t.latestWeight }}</span>
-        <strong>{{ latestWeight ? latestWeight.kilograms.toLocaleString(locale) : '—' }} <small>{{ t.kg }}</small></strong>
+        <strong
+          >{{ latestWeight ? latestWeight.kilograms.toLocaleString(locale) : '—' }}
+          <small>{{ t.kg }}</small></strong
+        >
         <small v-if="latestWeight">{{ formatDate(latestWeight.occurredAt) }}</small>
       </article>
       <article class="metric-card guide-card">
         <span>{{ t.dailyGuide }}</span>
-        <strong>{{ dailyGuide ?? '—' }} <small v-if="dailyGuide">{{ t.ml }}</small></strong>
+        <strong
+          >{{ dailyGuide ?? '—' }} <small v-if="dailyGuide">{{ t.ml }}</small></strong
+        >
         <small>{{ dailyGuide ? t.guideDetail : t.noWeight }}</small>
       </article>
     </section>
@@ -253,8 +298,12 @@ function removeWeight(weight: Weight) {
           <h2>{{ t.overview }}</h2>
         </div>
         <div class="range-toggle">
-          <button type="button" :class="{ active: range === '24h' }" @click="range = '24h'">{{ t.twentyFourHours }}</button>
-          <button type="button" :class="{ active: range === '7d' }" @click="range = '7d'">{{ t.sevenDays }}</button>
+          <button type="button" :class="{ active: range === '24h' }" @click="range = '24h'">
+            {{ t.twentyFourHours }}
+          </button>
+          <button type="button" :class="{ active: range === '7d' }" @click="range = '7d'">
+            {{ t.sevenDays }}
+          </button>
         </div>
       </div>
 
@@ -264,10 +313,18 @@ function removeWeight(weight: Weight) {
           <div class="bar-chart" role="img" :aria-label="t.intake">
             <div v-for="point in intakePoints" :key="point.label" class="bar-column">
               <span v-if="point.amount" class="bar-value">{{ point.amount }}</span>
-              <i :style="{ height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%` }"></i>
+              <i
+                :style="{
+                  height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
+                }"
+              ></i>
               <small>{{ point.label }}</small>
             </div>
-            <div v-if="dailyGuide && range === '7d'" class="guide-line" :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }">
+            <div
+              v-if="dailyGuide && range === '7d'"
+              class="guide-line"
+              :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }"
+            >
               <span>{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
             </div>
           </div>
@@ -287,7 +344,7 @@ function removeWeight(weight: Weight) {
             </svg>
             <div class="weight-range">
               <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
-              <span>{{ visibleWeights.at(-1)?.kilograms }} {{ t.kg }}</span>
+              <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
             </div>
           </div>
           <div v-else class="chart-empty">{{ t.noChartData }}</div>
@@ -301,8 +358,18 @@ function removeWeight(weight: Weight) {
         <p v-if="!sortedFeeds.length" class="empty-state">{{ t.emptyHistory }}</p>
         <ul v-else>
           <li v-for="feed in sortedFeeds.slice(0, 8)" :key="feed.id">
-            <div><strong>{{ feed.amount }} {{ t.ml }}</strong><span>{{ formatDate(feed.occurredAt) }}</span><small v-if="feed.comment">{{ feed.comment }}</small></div>
-            <button type="button" :aria-label="`${t.delete} ${feed.amount} ${t.ml}`" @click="removeFeed(feed)">×</button>
+            <div>
+              <strong>{{ feed.amount }} {{ t.ml }}</strong
+              ><span>{{ formatDate(feed.occurredAt) }}</span
+              ><small v-if="feed.comment">{{ feed.comment }}</small>
+            </div>
+            <button
+              type="button"
+              :aria-label="`${t.delete} ${feed.amount} ${t.ml}`"
+              @click="removeFeed(feed)"
+            >
+              ×
+            </button>
           </li>
         </ul>
       </article>
@@ -311,8 +378,17 @@ function removeWeight(weight: Weight) {
         <p v-if="!sortedWeights.length" class="empty-state">{{ t.emptyWeights }}</p>
         <ul v-else>
           <li v-for="weight in sortedWeights.slice(0, 8)" :key="weight.id">
-            <div><strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong><span>{{ formatDate(weight.occurredAt) }}</span></div>
-            <button type="button" :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`" @click="removeWeight(weight)">×</button>
+            <div>
+              <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong
+              ><span>{{ formatDate(weight.occurredAt) }}</span>
+            </div>
+            <button
+              type="button"
+              :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`"
+              @click="removeWeight(weight)"
+            >
+              ×
+            </button>
           </li>
         </ul>
       </article>
