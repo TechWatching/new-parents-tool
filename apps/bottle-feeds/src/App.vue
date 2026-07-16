@@ -10,8 +10,8 @@ const nowForInput = () => {
   return date.toISOString().slice(0, 16)
 }
 
-const timePattern = '(?:[01]\\d|2[0-3]):[0-5]\\d'
-const validTime = new RegExp(`^${timePattern}$`)
+const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+const timePattern = validTime.source.slice(1, -1)
 
 const dateTimeForInput = () => {
   const value = nowForInput()
