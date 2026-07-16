@@ -1,0 +1,10 @@
+{
+  "name": "new-parents-tool",
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "scripts": {
+    "build": "pnpm --recursive build",
+    "lint": "pnpm --recursive lint",
+    "test": "pnpm --recursive test:unit --run"
+  }
+}
