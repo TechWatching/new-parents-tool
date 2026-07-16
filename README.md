@@ -2,6 +2,10 @@
 
 A pnpm monorepo for simple, privacy-first tools that help new parents track baby health.
 
+## Preview
+
+The latest version of the bottle feed tracker is deployed to [GitHub Pages](https://techwatching.github.io/new-parents-tool/). The repository's Pages source must be set to **GitHub Actions** for the first deployment.
+
 ## Bottle feed tracker
 
 The Vue app in `apps/bottle-feeds` records bottle quantities, dates, optional comments, and baby weights. It provides English and French interfaces, 24-hour summaries, seven-day trends, and a weight-based daily intake estimate.
