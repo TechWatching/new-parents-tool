@@ -19,14 +19,14 @@ The intake estimate uses 150 ml per kilogram over 24 hours as general guidance. 
 Requires Node.js 22.18 or newer and pnpm.
 
 ```sh
-pnpm install
-pnpm dev --filter bottle-feeds
+vp install
+vp run --filter bottle-feeds dev
 ```
 
 From the repository root:
 
 ```sh
-pnpm lint
-pnpm test
-pnpm build
+vp run --recursive lint
+vp run --filter bottle-feeds test:unit -- --run
+vp run --recursive build
 ```

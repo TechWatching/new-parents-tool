@@ -5,7 +5,7 @@ Vue 3 and TypeScript app for recording bottle feeds and baby weights. Data is re
 Run commands from the monorepo root:
 
 ```sh
-pnpm dev --filter bottle-feeds
-pnpm test --filter bottle-feeds
-pnpm build --filter bottle-feeds
+vp run --filter bottle-feeds dev
+vp run --filter bottle-feeds test:unit -- --run
+vp run --filter bottle-feeds build
 ```

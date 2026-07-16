@@ -6,5 +6,10 @@
     "build": "pnpm --recursive build",
     "lint": "pnpm --recursive lint",
     "test": "pnpm --recursive run test:unit -- --run"
+  },
+  "devDependencies": {
+    "@voidzero-dev/vite-plus-core": "0.2.4",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }
