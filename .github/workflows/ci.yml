@@ -27,5 +27,8 @@ jobs:
       - name: Test
         run: vp run --filter bottle-feeds test:unit -- --run
 
+      - name: Type check
+        run: vp run --filter bottle-feeds type-check
+
       - name: Build
         run: vp run --recursive build
