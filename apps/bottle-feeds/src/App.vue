@@ -451,21 +451,21 @@ function removeWeight(weight: Weight) {
           <template v-if="editingFeedId === feed.id">
             <form @submit.prevent="saveFeed(feed)">
               <div class="measure-fields">
-                <label>
+                <label for="edit-feed-amount">
                   {{ t.amount }}
-                  <input v-model="editingFeed.amount" type="number" min="1" max="2000" required />
+                  <input id="edit-feed-amount" v-model="editingFeed.amount" type="number" min="1" max="2000" required />
                 </label>
-                <label>
+                <label for="edit-feed-date">
                   {{ t.date }}
-                  <input v-model="editingFeed.date" type="date" required />
+                  <input id="edit-feed-date" v-model="editingFeed.date" type="date" required />
                 </label>
-                <label>
+                <label for="edit-feed-time">
                   {{ t.time }}
-                  <input v-model="editingFeed.time" type="text" :pattern="timePattern.source" required />
+                  <input id="edit-feed-time" v-model="editingFeed.time" type="text" :pattern="timePattern.source" required />
                 </label>
-                <label>
+                <label for="edit-feed-comment">
                   {{ t.comment }}
-                  <input v-model="editingFeed.comment" type="text" maxlength="160" />
+                  <input id="edit-feed-comment" v-model="editingFeed.comment" type="text" maxlength="160" />
                 </label>
               </div>
               <div class="measure-actions">
@@ -497,17 +497,17 @@ function removeWeight(weight: Weight) {
           <template v-if="editingWeightId === weight.id">
             <form @submit.prevent="saveWeight(weight)">
               <div class="measure-fields">
-                <label>
+                <label for="edit-weight-kilograms">
                   {{ t.weight }}
-                  <input v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
+                  <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
                 </label>
-                <label>
+                <label for="edit-weight-date">
                   {{ t.date }}
-                  <input v-model="editingWeight.date" type="date" required />
+                  <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
                 </label>
-                <label>
+                <label for="edit-weight-time">
                   {{ t.time }}
-                  <input v-model="editingWeight.time" type="text" :pattern="timePattern.source" required />
+                  <input id="edit-weight-time" v-model="editingWeight.time" type="text" :pattern="timePattern.source" required />
                 </label>
               </div>
               <div class="measure-actions">
