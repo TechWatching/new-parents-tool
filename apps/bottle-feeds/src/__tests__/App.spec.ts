@@ -84,6 +84,10 @@ describe('App', () => {
 
     expect(wrapper.findAll('.measure-list li')).toHaveLength(2)
     await wrapper.get('.measure-list button').trigger('click')
+    expect(wrapper.get('.measure-list form').text()).toContain('Quantity (ml)')
+    expect(wrapper.get('.measure-list form').text()).toContain('Date')
+    expect(wrapper.get('.measure-list form').text()).toContain('Time (24h)')
+    expect(wrapper.get('.measure-list form').text()).toContain('Comment (optional)')
     await wrapper.get('.measure-list input[type="number"]').setValue('150')
     await wrapper.get('.measure-list form').trigger('submit')
 

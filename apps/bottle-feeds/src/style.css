@@ -478,12 +478,24 @@ h3 {
 }
 .measure-list form {
   display: grid;
-  grid-template-columns: 90px 1fr 80px 1.4fr auto;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
+}
+.measure-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+.measure-fields label {
+  margin: 0;
 }
 .measure-list form input {
   padding: 8px;
+}
+.measure-actions {
+  display: flex;
+  gap: 8px;
 }
 .measure-list button {
   border: 0;
@@ -508,7 +520,13 @@ h3 {
   }
   .measure-list form {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+  }
+  .measure-fields {
+    grid-template-columns: 1fr;
+  }
+  .measure-actions {
+    justify-content: flex-end;
   }
 }
 

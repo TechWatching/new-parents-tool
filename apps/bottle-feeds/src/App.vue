@@ -450,14 +450,30 @@ function removeWeight(weight: Weight) {
         <li v-for="feed in sortedFeeds" :key="feed.id">
           <template v-if="editingFeedId === feed.id">
             <form @submit.prevent="saveFeed(feed)">
-              <input v-model="editingFeed.amount" :aria-label="t.amount" type="number" min="1" max="2000" required />
-              <input v-model="editingFeed.date" :aria-label="t.date" type="date" required />
-              <input v-model="editingFeed.time" :aria-label="t.time" type="text" :pattern="timePattern.source" required />
-              <input v-model="editingFeed.comment" :aria-label="t.comment" type="text" maxlength="160" />
-              <UButton type="submit" size="xs">{{ t.save }}</UButton>
-              <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
-                {{ t.cancel }}
-              </UButton>
+              <div class="measure-fields">
+                <label>
+                  {{ t.amount }}
+                  <input v-model="editingFeed.amount" type="number" min="1" max="2000" required />
+                </label>
+                <label>
+                  {{ t.date }}
+                  <input v-model="editingFeed.date" type="date" required />
+                </label>
+                <label>
+                  {{ t.time }}
+                  <input v-model="editingFeed.time" type="text" :pattern="timePattern.source" required />
+                </label>
+                <label>
+                  {{ t.comment }}
+                  <input v-model="editingFeed.comment" type="text" maxlength="160" />
+                </label>
+              </div>
+              <div class="measure-actions">
+                <UButton type="submit" size="xs">{{ t.save }}</UButton>
+                <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
+                  {{ t.cancel }}
+                </UButton>
+              </div>
             </form>
           </template>
           <template v-else>
@@ -480,13 +496,26 @@ function removeWeight(weight: Weight) {
         <li v-for="weight in sortedWeights" :key="weight.id">
           <template v-if="editingWeightId === weight.id">
             <form @submit.prevent="saveWeight(weight)">
-              <input v-model="editingWeight.kilograms" :aria-label="t.weight" type="number" min="0.1" max="50" step="0.01" required />
-              <input v-model="editingWeight.date" :aria-label="t.date" type="date" required />
-              <input v-model="editingWeight.time" :aria-label="t.time" type="text" :pattern="timePattern.source" required />
-              <UButton type="submit" size="xs">{{ t.save }}</UButton>
-              <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
-                {{ t.cancel }}
-              </UButton>
+              <div class="measure-fields">
+                <label>
+                  {{ t.weight }}
+                  <input v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
+                </label>
+                <label>
+                  {{ t.date }}
+                  <input v-model="editingWeight.date" type="date" required />
+                </label>
+                <label>
+                  {{ t.time }}
+                  <input v-model="editingWeight.time" type="text" :pattern="timePattern.source" required />
+                </label>
+              </div>
+              <div class="measure-actions">
+                <UButton type="submit" size="xs">{{ t.save }}</UButton>
+                <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
+                  {{ t.cancel }}
+                </UButton>
+              </div>
             </form>
           </template>
           <template v-else>
