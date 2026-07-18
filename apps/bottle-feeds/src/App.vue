@@ -426,7 +426,7 @@ const rolling24hPolyline = computed(() =>
   rolling24hPoints.value
     .map((point, i) => ({ point, i }))
     .filter(({ point }) => point.amount > 0)
-    .map(({ point, i }) => `${6 + (i / 6) * 88},${88 - (point.amount / rolling24hMax.value) * 76}`)
+    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rolling24hMax.value) * 76}`)
     .join(' '),
 )
 
@@ -856,31 +856,29 @@ const syncLabel = computed(() => {
           </article>
           <article v-if="range === '7d'" class="full-width">
             <h3>{{ t.rollingIntake }}</h3>
-            <div v-if="rolling24hPoints.some((p) => p.amount > 0)" class="line-chart">
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
-                <line
-                  v-if="dailyGuide"
-                  x1="0"
-                  x2="100"
-                  :y1="88 - (dailyGuide / rolling24hMax) * 76"
-                  :y2="88 - (dailyGuide / rolling24hMax) * 76"
-                  stroke="#d8a260"
-                  stroke-width="0.8"
-                  stroke-dasharray="2 2"
-                  vector-effect="non-scaling-stroke"
-                />
+            <div v-if="rolling24hPoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
                 <polyline v-if="rolling24hPolyline" :points="rolling24hPolyline" />
                 <template v-for="(point, i) in rolling24hPoints" :key="i">
                   <circle
                     v-if="point.amount > 0"
-                    :cx="6 + (i / 6) * 88"
+                    :cx="15 + (i / 6) * 270"
                     :cy="88 - (point.amount / rolling24hMax) * 76"
-                    r="2.4"
                   />
                 </template>
               </svg>
+              <div
+                v-if="dailyGuide"
+                class="guide-line"
+                :style="{ bottom: `${Math.round(50 + (dailyGuide / rolling24hMax) * 129)}px` }"
+              >
+                <span>{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
+              </div>
               <div class="rolling-intake-labels">
-                <span v-for="point in rolling24hPoints" :key="point.label">{{ point.label }}</span>
+                <div v-for="(point, i) in rolling24hPoints" :key="i" class="rolling-intake-col">
+                  <span class="rolling-intake-amount">{{ point.amount || '' }}</span>
+                  <span>{{ point.label }}</span>
+                </div>
               </div>
             </div>
             <div v-else class="chart-empty">{{ t.noChartData }}</div>

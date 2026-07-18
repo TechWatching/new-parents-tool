@@ -139,8 +139,10 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     expect(wrapper.text()).toContain('Quantity fed (rolling 24h)')
-    expect(wrapper.find('.full-width .line-chart').exists()).toBe(true)
+    expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
+    // Value labels and day labels are rendered in .rolling-intake-col children
+    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(7)
   })
 })
