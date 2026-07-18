@@ -673,7 +673,7 @@ const syncLabel = computed(() => {
               <input
                 v-model="feedForm.time"
                 type="text"
-                inputmode="numeric"
+                inputmode="text"
                 :pattern="timePattern.source"
                 placeholder="14:30"
                 maxlength="5"
@@ -719,7 +719,7 @@ const syncLabel = computed(() => {
             <input
               v-model="weightForm.time"
               type="text"
-              inputmode="numeric"
+              inputmode="text"
               :pattern="timePattern.source"
               placeholder="14:30"
               maxlength="5"
