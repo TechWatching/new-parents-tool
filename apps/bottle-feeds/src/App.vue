@@ -33,8 +33,7 @@ const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
 function maskTimeValue(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 4)
-  if (digits.length < 2) return digits
-  if (digits.length === 2) return digits
+  if (digits.length <= 2) return digits
   return `${digits.slice(0, 2)}:${digits.slice(2)}`
 }
 
@@ -64,7 +63,7 @@ const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeight = reactive({ kilograms: '', date: '', time: '' })
 
 function bindTimeMask(form: { time: string }) {
-  watch(
+  return watch(
     () => form.time,
     (value) => {
       const masked = maskTimeValue(value)
@@ -73,10 +72,12 @@ function bindTimeMask(form: { time: string }) {
   )
 }
 
-bindTimeMask(feedForm)
-bindTimeMask(weightForm)
-bindTimeMask(editingFeed)
-bindTimeMask(editingWeight)
+const stopTimeMasks = [
+  bindTimeMask(feedForm),
+  bindTimeMask(weightForm),
+  bindTimeMask(editingFeed),
+  bindTimeMask(editingWeight),
+]
 
 // Auth form
 const emailInput = ref('')
@@ -209,6 +210,7 @@ const handleOnline = () => {
 
 onMounted(() => window.addEventListener('online', handleOnline))
 onUnmounted(() => window.removeEventListener('online', handleOnline))
+onUnmounted(() => stopTimeMasks.forEach((stop) => stop()))
 
 // ---------------------------------------------------------------------------
 // CRUD helpers
