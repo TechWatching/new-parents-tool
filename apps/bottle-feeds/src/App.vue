@@ -133,7 +133,7 @@ const feeds24h = computed(() =>
 const total24h = computed(() => feeds24h.value.reduce((total, feed) => total + feed.amount, 0))
 const latestWeight = computed(() => sortedWeights.value[0])
 const dailyGuide = computed(() =>
-  latestWeight.value ? Math.round(latestWeight.value.kilograms * 150) : null,
+  latestWeight.value ? Math.round((latestWeight.value.kilograms * 1000) / 10 + 200) : null,
 )
 
 function formatDate(value: string) {
