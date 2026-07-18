@@ -31,6 +31,13 @@ const nowForInput = () => {
 
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
+function maskTimeValue(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 4)
+  if (digits.length < 2) return digits
+  if (digits.length === 2) return `${digits}:`
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`
+}
+
 const dateTimeForInput = () => {
   const value = nowForInput()
   return { date: value.slice(0, 10), time: value.slice(11) }
@@ -207,6 +214,11 @@ function dateTimeFromOccurredAt(value: string) {
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
   const localValue = date.toISOString().slice(0, 16)
   return { date: localValue.slice(0, 10), time: localValue.slice(11) }
+}
+
+function applyTimeMask(event: Event, form: { time: string }) {
+  if (!(event.target instanceof HTMLInputElement)) return
+  form.time = maskTimeValue(event.target.value)
 }
 
 function addFeed() {
@@ -673,10 +685,11 @@ const syncLabel = computed(() => {
               <input
                 v-model="feedForm.time"
                 type="text"
-                inputmode="text"
+                inputmode="numeric"
                 :pattern="timePattern.source"
                 placeholder="14:30"
                 maxlength="5"
+                @input="applyTimeMask($event, feedForm)"
                 required
               />
             </label>
@@ -719,10 +732,11 @@ const syncLabel = computed(() => {
             <input
               v-model="weightForm.time"
               type="text"
-              inputmode="text"
+              inputmode="numeric"
               :pattern="timePattern.source"
               placeholder="14:30"
               maxlength="5"
+              @input="applyTimeMask($event, weightForm)"
               required
             />
           </label>
@@ -855,7 +869,17 @@ const syncLabel = computed(() => {
                   </label>
                   <label for="edit-feed-time">
                     {{ t.time }}
-                    <input id="edit-feed-time" v-model="editingFeed.time" type="text" :pattern="timePattern.source" required />
+                    <input
+                      id="edit-feed-time"
+                      v-model="editingFeed.time"
+                      type="text"
+                      inputmode="numeric"
+                      :pattern="timePattern.source"
+                      placeholder="14:30"
+                      maxlength="5"
+                      @input="applyTimeMask($event, editingFeed)"
+                      required
+                    />
                   </label>
                   <label for="edit-feed-comment">
                     {{ t.comment }}
@@ -901,7 +925,17 @@ const syncLabel = computed(() => {
                   </label>
                   <label for="edit-weight-time">
                     {{ t.time }}
-                    <input id="edit-weight-time" v-model="editingWeight.time" type="text" :pattern="timePattern.source" required />
+                    <input
+                      id="edit-weight-time"
+                      v-model="editingWeight.time"
+                      type="text"
+                      inputmode="numeric"
+                      :pattern="timePattern.source"
+                      placeholder="14:30"
+                      maxlength="5"
+                      @input="applyTimeMask($event, editingWeight)"
+                      required
+                    />
                   </label>
                 </div>
                 <div class="measure-actions">
