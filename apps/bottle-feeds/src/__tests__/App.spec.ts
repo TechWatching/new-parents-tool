@@ -4,7 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
 import App from '../App.vue'
-import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE, STORAGE_KEY } from '../storage'
+import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
 
 // Silence storage-related console warnings in tests
@@ -123,8 +123,5 @@ describe('App', () => {
     expect(weightTab).toBeDefined()
     await weightTab!.trigger('click')
     expect(wrapper.text()).toContain('4.2 kg')
-
-    // Suppress STORAGE_KEY usage warning: it's only for legacy reference
-    void STORAGE_KEY
   })
 })

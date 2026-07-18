@@ -4,7 +4,6 @@ import memoryDriver from 'unstorage/drivers/memory'
 import {
   loadData,
   saveData,
-  STORAGE_KEY,
   GUEST_NAMESPACE,
   DATA_KEY,
   _setTestDriver,
@@ -76,56 +75,6 @@ describe('async IndexedDB-backed storage (memory driver)', () => {
     const result = await loadData(GUEST_NAMESPACE)
     expect(result).toEqual({ feeds: [], weights: [] })
     void storage
-  })
-
-  it('migrates legacy localStorage data on first load', async () => {
-    // Populate localStorage with legacy data
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        feeds: [{ id: 'legacy-1', amount: 80, occurredAt: '2026-01-01T10:00:00.000Z', comment: '' }],
-        weights: [],
-      }),
-    )
-
-    const result = await loadData(GUEST_NAMESPACE)
-
-    expect(result.feeds[0]!.id).toBe('legacy-1')
-    expect(result.feeds[0]!.amount).toBe(80)
-    // updatedAt should be backfilled from occurredAt
-    expect(result.feeds[0]!.updatedAt).toBe('2026-01-01T10:00:00.000Z')
-
-    localStorage.removeItem(STORAGE_KEY)
-  })
-
-  it('does not re-migrate if migration flag is already set', async () => {
-    // Put legacy data in localStorage
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        feeds: [{ id: 'old', amount: 50, occurredAt: '2026-01-01T10:00:00.000Z', comment: '' }],
-        weights: [],
-      }),
-    )
-
-    // First load: triggers migration (sets the flag and persists to IndexedDB)
-    const first = await loadData(GUEST_NAMESPACE)
-    expect(first.feeds[0]!.id).toBe('old')
-
-    // Replace localStorage with different data — second load must NOT re-migrate
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        feeds: [{ id: 'replaced', amount: 999, occurredAt: '2026-01-02T10:00:00.000Z', comment: '' }],
-        weights: [],
-      }),
-    )
-
-    // Second load: should return the IndexedDB data, not re-read localStorage
-    const second = await loadData(GUEST_NAMESPACE)
-    expect(second.feeds[0]!.id).toBe('old')
-
-    localStorage.removeItem(STORAGE_KEY)
     void DATA_KEY
   })
 

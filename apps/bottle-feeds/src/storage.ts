@@ -5,12 +5,8 @@ import type { AppData, Feed, Weight } from './types'
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Legacy localStorage key – kept for backwards-compat and migration. */
-export const STORAGE_KEY = 'new-parents-tool:bottle-feeds:v1'
-
 export const GUEST_NAMESPACE = 'guest'
 export const DATA_KEY = 'data'
-export const MIGRATION_FLAG_KEY = 'migrated-from-v1'
 export const SYNC_DIRTY_KEY = 'sync-dirty'
 
 export type Namespace = typeof GUEST_NAMESPACE | `user-${string}`
@@ -71,7 +67,7 @@ async function getStorage(namespace: Namespace) {
 }
 
 // ---------------------------------------------------------------------------
-// Validation & metadata helpers (exported so migration.ts can reuse them)
+// Validation & metadata helpers
 // ---------------------------------------------------------------------------
 
 export function isValidAppData(value: unknown): value is AppData {
@@ -101,8 +97,6 @@ export function addMissingMetadata(data: AppData): AppData {
  * Load app data for the given namespace.
  * - If IndexedDB contains valid data it is returned (with missing metadata
  *   backfilled).
- * - If there is no IndexedDB data yet and this is the guest namespace,
- *   attempts a one-time migration from the legacy localStorage key.
  * - Returns empty collections on failure or corrupt data.
  */
 export async function loadData(namespace: Namespace = GUEST_NAMESPACE): Promise<AppData> {
@@ -112,23 +106,6 @@ export async function loadData(namespace: Namespace = GUEST_NAMESPACE): Promise<
 
     if (stored !== null && isValidAppData(stored)) {
       return addMissingMetadata(stored as AppData)
-    }
-
-    // No valid IndexedDB data – attempt legacy migration for guest namespace only.
-    if (namespace === GUEST_NAMESPACE) {
-      const alreadyMigrated = await storage.getItem<boolean>(MIGRATION_FLAG_KEY)
-      if (!alreadyMigrated) {
-        const legacyData = readLegacyLocalStorage()
-        if (legacyData && isValidAppData(legacyData)) {
-          const withMeta = addMissingMetadata(legacyData)
-          // Persist to IndexedDB FIRST; only then mark as migrated.
-          await storage.setItem(DATA_KEY, withMeta)
-          await storage.setItem(MIGRATION_FLAG_KEY, true)
-          return withMeta
-        }
-        // Nothing to migrate – just record that we checked.
-        await storage.setItem(MIGRATION_FLAG_KEY, true)
-      }
     }
   } catch (error) {
     console.warn('[storage] loadData failed:', error)
@@ -183,21 +160,5 @@ export async function isDirty(namespace: Namespace): Promise<boolean> {
     return Boolean(await storage.getItem<boolean>(SYNC_DIRTY_KEY))
   } catch {
     return false
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Internal: read legacy localStorage (only used during migration)
-// ---------------------------------------------------------------------------
-
-function readLegacyLocalStorage(): AppData | null {
-  try {
-    if (typeof localStorage === 'undefined') return null
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed: unknown = JSON.parse(raw)
-    return isValidAppData(parsed) ? (parsed as AppData) : null
-  } catch {
-    return null
   }
 }

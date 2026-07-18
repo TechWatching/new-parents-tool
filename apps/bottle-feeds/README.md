@@ -12,12 +12,6 @@ Nothing is sent to any server unless you explicitly enable cloud sync.
 > ⚠️ Clearing your browser's site data will erase all local records.
 > Use *Export data* regularly as a backup, or enable cloud sync.
 
-### Legacy migration
-
-If you used the app before this version, your `localStorage` records are
-automatically migrated to IndexedDB on first load. The old key is preserved
-until the migration succeeds.
-
 ## Cloud sync (optional)
 
 Cloud sync is powered by [Supabase](https://supabase.com/) and is completely
