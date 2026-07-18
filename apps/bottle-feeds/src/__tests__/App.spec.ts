@@ -46,8 +46,8 @@ describe('App', () => {
     await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
     await wrapper.get('.weight-card').trigger('submit')
 
-    expect(wrapper.text()).toContain('630')
-    expect(wrapper.text()).toContain('Estimated daily maximum')
+    expect(wrapper.text()).toContain('620')
+    expect(wrapper.text()).toContain('Estimated theoretical daily quantity')
   })
 
   it('switches all content to French', async () => {
