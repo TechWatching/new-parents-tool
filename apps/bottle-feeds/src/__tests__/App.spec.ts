@@ -81,10 +81,18 @@ describe('App', () => {
     expect(document.documentElement.lang).toBe('fr')
   })
 
-  it('auto-inserts the colon for 24-hour time inputs', async () => {
+  it('auto-inserts the colon once minutes start for 24-hour time inputs', async () => {
     const wrapper = await mountApp()
 
     for (const input of wrapper.findAll('input[inputmode="numeric"]')) {
+      await input.setValue('14')
+      await flushPromises()
+      expect((input.element as HTMLInputElement).value).toBe('14')
+
+      await input.setValue('143')
+      await flushPromises()
+      expect((input.element as HTMLInputElement).value).toBe('14:3')
+
       await input.setValue('1430')
       await flushPromises()
 

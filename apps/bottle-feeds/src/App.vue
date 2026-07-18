@@ -34,7 +34,7 @@ const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 function maskTimeValue(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 4)
   if (digits.length < 2) return digits
-  if (digits.length === 2) return `${digits}:`
+  if (digits.length === 2) return digits
   return `${digits.slice(0, 2)}:${digits.slice(2)}`
 }
 
@@ -62,6 +62,21 @@ const editingFeedId = ref<string | null>(null)
 const editingWeightId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeight = reactive({ kilograms: '', date: '', time: '' })
+
+function bindTimeMask(form: { time: string }) {
+  watch(
+    () => form.time,
+    (value) => {
+      const masked = maskTimeValue(value)
+      if (value !== masked) form.time = masked
+    },
+  )
+}
+
+bindTimeMask(feedForm)
+bindTimeMask(weightForm)
+bindTimeMask(editingFeed)
+bindTimeMask(editingWeight)
 
 // Auth form
 const emailInput = ref('')
@@ -214,11 +229,6 @@ function dateTimeFromOccurredAt(value: string) {
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
   const localValue = date.toISOString().slice(0, 16)
   return { date: localValue.slice(0, 10), time: localValue.slice(11) }
-}
-
-function applyTimeMask(event: Event, form: { time: string }) {
-  if (!(event.target instanceof HTMLInputElement)) return
-  form.time = maskTimeValue(event.target.value)
 }
 
 function addFeed() {
@@ -689,7 +699,6 @@ const syncLabel = computed(() => {
                 :pattern="timePattern.source"
                 placeholder="14:30"
                 maxlength="5"
-                @input="applyTimeMask($event, feedForm)"
                 required
               />
             </label>
@@ -736,7 +745,6 @@ const syncLabel = computed(() => {
               :pattern="timePattern.source"
               placeholder="14:30"
               maxlength="5"
-              @input="applyTimeMask($event, weightForm)"
               required
             />
           </label>
@@ -877,7 +885,6 @@ const syncLabel = computed(() => {
                       :pattern="timePattern.source"
                       placeholder="14:30"
                       maxlength="5"
-                      @input="applyTimeMask($event, editingFeed)"
                       required
                     />
                   </label>
@@ -933,7 +940,6 @@ const syncLabel = computed(() => {
                       :pattern="timePattern.source"
                       placeholder="14:30"
                       maxlength="5"
-                      @input="applyTimeMask($event, editingWeight)"
                       required
                     />
                   </label>
