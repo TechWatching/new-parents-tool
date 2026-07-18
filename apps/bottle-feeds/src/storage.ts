@@ -46,6 +46,8 @@ async function getStorage(namespace: Namespace) {
     driver = _testDriver
   } else {
     try {
+      // Note: unstorage ships the IndexedDB driver as 'indexedb' (one 'd').
+      // This is the correct import path in the package — not a typo.
       const { default: indexedbDriver } = await import('unstorage/drivers/indexedb')
       driver = indexedbDriver({
         dbName: 'new-parents-tool',

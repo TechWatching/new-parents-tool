@@ -539,7 +539,12 @@ const syncLabel = computed(() => {
     </header>
 
     <main>
-      <!-- Local-only warning -->
+      <!--
+        When Supabase is configured we show the more detailed 'localOnly' message
+        which explicitly mentions "Enable cloud sync to back them up."
+        When Supabase is NOT configured we show the simpler 'privacy' note (no
+        mention of cloud sync since there is no cloud option available).
+      -->
       <div class="privacy-note local-only-note">
         <span aria-hidden="true">⌁</span>
         {{ isSupabaseConfigured ? t.localOnly : t.privacy }}
