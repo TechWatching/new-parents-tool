@@ -138,7 +138,7 @@ describe('App', () => {
     await saveData(preloaded, GUEST_NAMESPACE)
     const wrapper = await mountApp()
 
-    expect(wrapper.text()).toContain('Quantity fed (rolling 24 h)')
+    expect(wrapper.text()).toContain('Quantity fed (rolling 24h)')
     expect(wrapper.find('.full-width .line-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
