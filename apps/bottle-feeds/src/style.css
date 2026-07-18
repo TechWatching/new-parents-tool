@@ -1,3 +1,6 @@
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
 :root {
   color: #24332f;
   background: #f8faf7;
@@ -436,6 +439,95 @@ h3 {
   color: #919b97;
   font-size: 13px;
   text-align: center;
+}
+
+.measure-card {
+  margin-top: 18px;
+  padding: 22px;
+}
+.measure-tabs {
+  margin-top: 16px;
+}
+.measure-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.measure-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #edf0ee;
+}
+.measure-list li:first-child {
+  border-top: 0;
+}
+.measure-list div {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.measure-list span,
+.measure-list small {
+  color: #83908b;
+  font-size: 11px;
+}
+.measure-list form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.measure-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+.measure-fields label {
+  margin: 0;
+}
+.measure-list form input {
+  padding: 8px;
+}
+.measure-actions {
+  display: flex;
+  gap: 8px;
+}
+.measure-list button {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: #45534f;
+  background: #f0f3f1;
+  font-size: 12px;
+  font-weight: 700;
+}
+.measure-list .delete-button {
+  color: #c9574f;
+  background: #fff0ed;
+}
+
+@media (max-width: 800px) {
+  .measure-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .measure-list .delete-button {
+    grid-column: 2;
+  }
+  .measure-list form {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+  }
+  .measure-fields {
+    grid-template-columns: 1fr;
+  }
+  .measure-actions {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 800px) {

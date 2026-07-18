@@ -37,3 +37,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Nuxt UI
+auto-imports.d.ts
+components.d.ts

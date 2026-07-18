@@ -2,6 +2,8 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { configDefaults, defineConfig } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+import ui from '@nuxt/ui/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
@@ -13,7 +15,7 @@ export default defineConfig({
     sortPackageJson: false,
     ignorePatterns: [],
   },
-  plugins: [vue(), vueDevTools()],
+  plugins: [tailwindcss(), ui(), vue(), vueDevTools()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
