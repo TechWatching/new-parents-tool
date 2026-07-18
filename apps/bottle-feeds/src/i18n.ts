@@ -5,6 +5,8 @@ export const messages = {
     appName: 'Little Sips',
     tagline: 'Bottle and growth tracker',
     privacy: 'Private by design — everything stays in this browser.',
+    localOnly:
+      'Records are stored in this browser only. Clearing site data will erase them. Enable cloud sync to back them up.',
     language: 'Français',
     addFeed: 'Record a bottle',
     amount: 'Quantity (ml)',
@@ -46,16 +48,44 @@ export const messages = {
     edit: 'Edit',
     save: 'Save',
     cancel: 'Cancel',
+    // Export / Import
+    exportData: 'Export data',
+    importData: 'Import data',
+    importSuccess: 'Data imported successfully.',
+    importError: 'Could not import: invalid file format.',
+    // Auth
+    cloudSync: 'Cloud sync',
+    emailLabel: 'Email address',
+    sendMagicLink: 'Send sign-in link',
+    checkEmail: 'Check your email — a sign-in link is on the way.',
+    signedInAs: 'Signed in as',
+    signOut: 'Sign out',
+    authError: 'Sign-in failed',
+    // Sync status
+    syncing: 'Syncing…',
+    syncPending: 'Changes pending sync',
+    syncError: 'Sync failed',
+    syncRetry: 'Retry',
+    syncedAt: 'Synced',
+    // Guest merge prompt
+    guestMergeTitle: 'Merge local records?',
+    guestMergeBody:
+      'You have local records from before signing in. Would you like to upload them to your account?',
+    guestMergeYes: 'Upload and merge',
+    guestMergeNo: 'Keep separate',
+    loading: 'Loading…',
   },
   fr: {
     appName: 'Petites Gorgées',
     tagline: 'Suivi des biberons et de la croissance',
     privacy: 'Vos données restent privées dans ce navigateur.',
+    localOnly:
+      'Les enregistrements sont stockés uniquement dans ce navigateur. Effacer les données du site les supprimera. Activez la synchronisation cloud pour les sauvegarder.',
     language: 'English',
     addFeed: 'Noter un biberon',
     amount: 'Quantité (ml)',
     date: 'Date',
-    time: 'Heure (24 h)',
+    time: 'Heure (24 h)',
     comment: 'Commentaire (facultatif)',
     commentPlaceholder: 'ex. A bu lentement',
     saveFeed: 'Enregistrer',
@@ -92,5 +122,31 @@ export const messages = {
     edit: 'Modifier',
     save: 'Enregistrer',
     cancel: 'Annuler',
+    // Export / Import
+    exportData: 'Exporter les données',
+    importData: 'Importer des données',
+    importSuccess: 'Données importées avec succès.',
+    importError: "Impossible d’importer : format de fichier invalide.",
+    // Auth
+    cloudSync: 'Synchronisation cloud',
+    emailLabel: 'Adresse e-mail',
+    sendMagicLink: 'Envoyer le lien de connexion',
+    checkEmail: 'Vérifiez votre e-mail — un lien de connexion est en route.',
+    signedInAs: 'Connecté en tant que',
+    signOut: 'Se déconnecter',
+    authError: 'Connexion échouée',
+    // Sync status
+    syncing: 'Synchronisation…',
+    syncPending: 'Modifications en attente de sync',
+    syncError: 'Synchronisation échouée',
+    syncRetry: 'Réessayer',
+    syncedAt: 'Synchronisé',
+    // Guest merge prompt
+    guestMergeTitle: 'Fusionner les enregistrements locaux ?',
+    guestMergeBody:
+      "Vous avez des enregistrements locaux d’avant la connexion. Voulez-vous les téléverser sur votre compte ?",
+    guestMergeYes: 'Téléverser et fusionner',
+    guestMergeNo: 'Conserver séparément',
+    loading: 'Chargement…',
   },
 } as const

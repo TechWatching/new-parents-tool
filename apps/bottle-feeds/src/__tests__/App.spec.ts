@@ -1,18 +1,34 @@
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
+import memoryDriver from 'unstorage/drivers/memory'
 
 import App from '../App.vue'
-import { STORAGE_KEY } from '../storage'
+import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
+import type { AppData } from '../types'
+
+// Silence storage-related console warnings in tests
+beforeEach(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('App', () => {
   beforeEach(() => {
+    _setTestDriver(memoryDriver())
     localStorage.clear()
     vi.stubGlobal('crypto', { randomUUID: () => 'test-id' })
   })
 
-  const mountApp = () =>
-    mount(App, {
+  afterEach(() => {
+    _setTestDriver(null)
+  })
+
+  const mountApp = async () => {
+    const wrapper = mount(App, {
       global: {
         plugins: [
           createRouter({
@@ -22,9 +38,13 @@ describe('App', () => {
         ],
       },
     })
+    // Wait for onMounted async initialization (loadData + initAuth)
+    await flushPromises()
+    return wrapper
+  }
 
   it('records a bottle and persists it locally', async () => {
-    const wrapper = mountApp()
+    const wrapper = await mountApp()
 
     await wrapper.get('.feed-card input[type="number"]').setValue('120')
     await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
@@ -35,13 +55,15 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('120 ml')
     expect(wrapper.text()).toContain('Drank well')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').feeds[0]).toMatchObject({
+
+    const stored = await loadData(GUEST_NAMESPACE)
+    expect(stored.feeds[0]).toMatchObject({
       occurredAt: '2026-07-14T14:30:00.000Z',
     })
   })
 
   it('calculates the daily estimate from the latest weight', async () => {
-    const wrapper = mountApp()
+    const wrapper = await mountApp()
 
     await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
     await wrapper.get('.weight-card').trigger('submit')
@@ -51,7 +73,7 @@ describe('App', () => {
   })
 
   it('switches all content to French', async () => {
-    const wrapper = mountApp()
+    const wrapper = await mountApp()
 
     await wrapper.get('.language-button').trigger('click')
 
@@ -59,8 +81,8 @@ describe('App', () => {
     expect(document.documentElement.lang).toBe('fr')
   })
 
-  it('uses keyboard-friendly 24-hour time inputs', () => {
-    const wrapper = mountApp()
+  it('uses keyboard-friendly 24-hour time inputs', async () => {
+    const wrapper = await mountApp()
 
     for (const input of wrapper.findAll('input[inputmode="numeric"]')) {
       expect(input.attributes('type')).toBe('text')
@@ -70,17 +92,15 @@ describe('App', () => {
   })
 
   it('lists every measure in tabs and saves quick edits', async () => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        feeds: [
-          { id: 'feed-1', amount: 120, occurredAt: '2026-07-14T14:30:00.000Z', comment: '' },
-          { id: 'feed-2', amount: 90, occurredAt: '2026-07-13T14:30:00.000Z', comment: '' },
-        ],
-        weights: [{ id: 'weight-1', kilograms: 4.2, occurredAt: '2026-07-14T14:30:00.000Z' }],
-      }),
-    )
-    const wrapper = mountApp()
+    const preloaded: AppData = {
+      feeds: [
+        { id: 'feed-1', amount: 120, occurredAt: '2026-07-14T14:30:00.000Z', comment: '', updatedAt: '2026-07-14T14:30:00.000Z' },
+        { id: 'feed-2', amount: 90, occurredAt: '2026-07-13T14:30:00.000Z', comment: '', updatedAt: '2026-07-13T14:30:00.000Z' },
+      ],
+      weights: [{ id: 'weight-1', kilograms: 4.2, occurredAt: '2026-07-14T14:30:00.000Z', updatedAt: '2026-07-14T14:30:00.000Z' }],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
 
     expect(wrapper.findAll('.measure-list li')).toHaveLength(2)
     await wrapper.get('.measure-list button').trigger('click')
@@ -90,9 +110,14 @@ describe('App', () => {
     expect(wrapper.get('.measure-list form').text()).toContain('Comment (optional)')
     await wrapper.get('.measure-list input[type="number"]').setValue('150')
     await wrapper.get('.measure-list form').trigger('submit')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('150 ml')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').feeds[0].amount).toBe(150)
+
+    const stored = await loadData(GUEST_NAMESPACE)
+    // The edited feed should be updated (feed-1 is sorted first by date desc)
+    const editedFeed = stored.feeds.find((f) => f.id === 'feed-1')
+    expect(editedFeed!.amount).toBe(150)
 
     const weightTab = wrapper.findAll('[role="tab"]')[1]
     expect(weightTab).toBeDefined()
