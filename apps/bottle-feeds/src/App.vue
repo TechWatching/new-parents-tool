@@ -31,6 +31,12 @@ const nowForInput = () => {
 
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
+function maskTimeValue(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 4)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`
+}
+
 const dateTimeForInput = () => {
   const value = nowForInput()
   return { date: value.slice(0, 10), time: value.slice(11) }
@@ -55,6 +61,20 @@ const editingFeedId = ref<string | null>(null)
 const editingWeightId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeight = reactive({ kilograms: '', date: '', time: '' })
+
+function timeModel(form: { time: string }) {
+  return computed({
+    get: () => form.time,
+    set: (value: string) => {
+      form.time = maskTimeValue(value)
+    },
+  })
+}
+
+const feedTimeModel = timeModel(feedForm)
+const weightTimeModel = timeModel(weightForm)
+const editingFeedTimeModel = timeModel(editingFeed)
+const editingWeightTimeModel = timeModel(editingWeight)
 
 // Auth form
 const emailInput = ref('')
@@ -671,7 +691,7 @@ const syncLabel = computed(() => {
             <label>
               {{ t.time }}
               <input
-                v-model="feedForm.time"
+                v-model="feedTimeModel"
                 type="text"
                 inputmode="numeric"
                 :pattern="timePattern.source"
@@ -717,7 +737,7 @@ const syncLabel = computed(() => {
           <label>
             {{ t.time }}
             <input
-              v-model="weightForm.time"
+              v-model="weightTimeModel"
               type="text"
               inputmode="numeric"
               :pattern="timePattern.source"
@@ -855,7 +875,16 @@ const syncLabel = computed(() => {
                   </label>
                   <label for="edit-feed-time">
                     {{ t.time }}
-                    <input id="edit-feed-time" v-model="editingFeed.time" type="text" :pattern="timePattern.source" required />
+                    <input
+                      id="edit-feed-time"
+                      v-model="editingFeedTimeModel"
+                      type="text"
+                      inputmode="numeric"
+                      :pattern="timePattern.source"
+                      placeholder="14:30"
+                      maxlength="5"
+                      required
+                    />
                   </label>
                   <label for="edit-feed-comment">
                     {{ t.comment }}
@@ -901,7 +930,16 @@ const syncLabel = computed(() => {
                   </label>
                   <label for="edit-weight-time">
                     {{ t.time }}
-                    <input id="edit-weight-time" v-model="editingWeight.time" type="text" :pattern="timePattern.source" required />
+                    <input
+                      id="edit-weight-time"
+                      v-model="editingWeightTimeModel"
+                      type="text"
+                      inputmode="numeric"
+                      :pattern="timePattern.source"
+                      placeholder="14:30"
+                      maxlength="5"
+                      required
+                    />
                   </label>
                 </div>
                 <div class="measure-actions">
