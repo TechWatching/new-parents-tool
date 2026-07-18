@@ -124,4 +124,23 @@ describe('App', () => {
     await weightTab!.trigger('click')
     expect(wrapper.text()).toContain('4.2 kg')
   })
+
+  it('shows the rolling 24h intake line chart in the 7-day trends view', async () => {
+    const now = Date.now()
+    const preloaded: AppData = {
+      feeds: [
+        { id: 'feed-today-1', amount: 120, occurredAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+        { id: 'feed-today-2', amount: 80, occurredAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+        { id: 'feed-yesterday', amount: 150, occurredAt: new Date(now - 26 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Quantity fed (rolling 24 h)')
+    expect(wrapper.find('.full-width .line-chart').exists()).toBe(true)
+    expect(wrapper.find('.full-width svg').exists()).toBe(true)
+    expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
+  })
 })

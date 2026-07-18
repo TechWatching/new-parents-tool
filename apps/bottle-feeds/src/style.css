@@ -283,6 +283,16 @@ input:focus {
   gap: 42px;
   margin-top: 22px;
 }
+.charts-grid .full-width {
+  grid-column: 1 / -1;
+}
+.rolling-intake-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #74817d;
+  font-size: 10px;
+  margin-top: 4px;
+}
 h3 {
   margin: 0 0 14px;
   color: #63706c;

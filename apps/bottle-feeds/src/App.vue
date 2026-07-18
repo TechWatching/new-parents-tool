@@ -399,6 +399,38 @@ const weightPolyline = computed(() =>
 )
 
 // ---------------------------------------------------------------------------
+// Rolling 24-hour intake chart
+// ---------------------------------------------------------------------------
+
+const rolling24hPoints = computed<ChartPoint[]>(() =>
+  Array.from({ length: 7 }, (_, index) => {
+    const end = Date.now() - (6 - index) * 24 * 60 * 60 * 1000
+    const start = end - 24 * 60 * 60 * 1000
+    return {
+      label: shortDay(new Date(end)),
+      amount: activeFeeds.value
+        .filter((feed) => {
+          const time = Date.parse(feed.occurredAt)
+          return time > start && time <= end
+        })
+        .reduce((total, feed) => total + feed.amount, 0),
+    }
+  }),
+)
+
+const rolling24hMax = computed(() =>
+  Math.max(...rolling24hPoints.value.map((p) => p.amount), dailyGuide.value || 0, 1),
+)
+
+const rolling24hPolyline = computed(() =>
+  rolling24hPoints.value
+    .map((point, i) => ({ point, i }))
+    .filter(({ point }) => point.amount > 0)
+    .map(({ point, i }) => `${6 + (i / 6) * 88},${88 - (point.amount / rolling24hMax.value) * 76}`)
+    .join(' '),
+)
+
+// ---------------------------------------------------------------------------
 // Export / Import
 // ---------------------------------------------------------------------------
 
@@ -818,6 +850,37 @@ const syncLabel = computed(() => {
               <div class="weight-range">
                 <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
                 <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
+              </div>
+            </div>
+            <div v-else class="chart-empty">{{ t.noChartData }}</div>
+          </article>
+          <article v-if="range === '7d'" class="full-width">
+            <h3>{{ t.rollingIntake }}</h3>
+            <div v-if="rolling24hPoints.some((p) => p.amount > 0)" class="line-chart">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
+                <line
+                  v-if="dailyGuide"
+                  x1="0"
+                  x2="100"
+                  :y1="88 - (dailyGuide / rolling24hMax) * 76"
+                  :y2="88 - (dailyGuide / rolling24hMax) * 76"
+                  stroke="#d8a260"
+                  stroke-width="0.8"
+                  stroke-dasharray="2 2"
+                  vector-effect="non-scaling-stroke"
+                />
+                <polyline v-if="rolling24hPolyline" :points="rolling24hPolyline" />
+                <template v-for="(point, i) in rolling24hPoints" :key="i">
+                  <circle
+                    v-if="point.amount > 0"
+                    :cx="6 + (i / 6) * 88"
+                    :cy="88 - (point.amount / rolling24hMax) * 76"
+                    r="2.4"
+                  />
+                </template>
+              </svg>
+              <div class="rolling-intake-labels">
+                <span v-for="point in rolling24hPoints" :key="point.label">{{ point.label }}</span>
               </div>
             </div>
             <div v-else class="chart-empty">{{ t.noChartData }}</div>
