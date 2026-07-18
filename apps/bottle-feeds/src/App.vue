@@ -62,22 +62,19 @@ const editingWeightId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeight = reactive({ kilograms: '', date: '', time: '' })
 
-function bindTimeMask(form: { time: string }) {
-  return watch(
-    () => form.time,
-    (value) => {
-      const masked = maskTimeValue(value)
-      if (value !== masked) form.time = masked
+function timeModel(form: { time: string }) {
+  return computed({
+    get: () => form.time,
+    set: (value: string) => {
+      form.time = maskTimeValue(value)
     },
-  )
+  })
 }
 
-const stopTimeMasks = [
-  bindTimeMask(feedForm),
-  bindTimeMask(weightForm),
-  bindTimeMask(editingFeed),
-  bindTimeMask(editingWeight),
-]
+const feedTimeModel = timeModel(feedForm)
+const weightTimeModel = timeModel(weightForm)
+const editingFeedTimeModel = timeModel(editingFeed)
+const editingWeightTimeModel = timeModel(editingWeight)
 
 // Auth form
 const emailInput = ref('')
@@ -210,7 +207,6 @@ const handleOnline = () => {
 
 onMounted(() => window.addEventListener('online', handleOnline))
 onUnmounted(() => window.removeEventListener('online', handleOnline))
-onUnmounted(() => stopTimeMasks.forEach((stop) => stop()))
 
 // ---------------------------------------------------------------------------
 // CRUD helpers
@@ -695,7 +691,7 @@ const syncLabel = computed(() => {
             <label>
               {{ t.time }}
               <input
-                v-model="feedForm.time"
+                v-model="feedTimeModel"
                 type="text"
                 inputmode="numeric"
                 :pattern="timePattern.source"
@@ -741,7 +737,7 @@ const syncLabel = computed(() => {
           <label>
             {{ t.time }}
             <input
-              v-model="weightForm.time"
+              v-model="weightTimeModel"
               type="text"
               inputmode="numeric"
               :pattern="timePattern.source"
@@ -881,7 +877,7 @@ const syncLabel = computed(() => {
                     {{ t.time }}
                     <input
                       id="edit-feed-time"
-                      v-model="editingFeed.time"
+                      v-model="editingFeedTimeModel"
                       type="text"
                       inputmode="numeric"
                       :pattern="timePattern.source"
@@ -936,7 +932,7 @@ const syncLabel = computed(() => {
                     {{ t.time }}
                     <input
                       id="edit-weight-time"
-                      v-model="editingWeight.time"
+                      v-model="editingWeightTimeModel"
                       type="text"
                       inputmode="numeric"
                       :pattern="timePattern.source"
