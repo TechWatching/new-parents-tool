@@ -862,6 +862,7 @@ const syncLabel = computed(() => {
                 <template v-for="(point, i) in rolling24hPoints" :key="i">
                   <circle
                     v-if="point.amount > 0"
+                    r="3"
                     :cx="15 + (i / 6) * 270"
                     :cy="88 - (point.amount / rolling24hMax) * 76"
                   />
@@ -876,7 +877,7 @@ const syncLabel = computed(() => {
               </div>
               <div class="rolling-intake-labels">
                 <div v-for="(point, i) in rolling24hPoints" :key="i" class="rolling-intake-col">
-                  <span class="rolling-intake-amount">{{ point.amount || '' }}</span>
+                  <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
                   <span>{{ point.label }}</span>
                 </div>
               </div>
