@@ -200,14 +200,19 @@ function defaultToEntryDate(recordedAt: string, duration = LATEST_ENTRY_DATE_DUR
 function defaultToRecentEntryDate() {
   clearTimeout(resetEntryDateTimer)
   defaultToCurrentDateTime()
-  const latestEntry = [...data.feeds, ...data.weights]
-    .filter((entry) => !entry.deletedAt && !Number.isNaN(Date.parse(entry.updatedAt)))
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0]
+  const latestEntry = [...data.feeds, ...data.weights].reduce<{ entry: Feed | Weight; updatedAt: number } | undefined>(
+    (latest, entry) => {
+      const updatedAt = Date.parse(entry.updatedAt)
+      if (entry.deletedAt || Number.isNaN(updatedAt) || (latest && latest.updatedAt >= updatedAt)) return latest
+      return { entry, updatedAt }
+    },
+    undefined,
+  )
   if (!latestEntry) return
 
-  const duration = Date.parse(latestEntry.updatedAt) + LATEST_ENTRY_DATE_DURATION - Date.now()
+  const duration = latestEntry.updatedAt + LATEST_ENTRY_DATE_DURATION - Date.now()
   if (duration <= 0) return
-  defaultToEntryDate(latestEntry.occurredAt, duration)
+  defaultToEntryDate(latestEntry.entry.occurredAt, duration)
 }
 
 function addFeed() {

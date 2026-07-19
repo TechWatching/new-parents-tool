@@ -65,11 +65,11 @@ describe('App', () => {
 
   it('keeps the latest entry date as the default for five minutes', async () => {
     const wrapper = await mountApp()
-    let resetToCurrentDateTime: (() => void) | undefined
+    let capturedResetHandler: (() => void) | undefined
     const originalSetTimeout = globalThis.setTimeout
     vi.spyOn(globalThis, 'setTimeout').mockImplementation((handler, timeout, ...args) => {
       if (timeout === 5 * 60 * 1000) {
-        resetToCurrentDateTime = () => {
+        capturedResetHandler = () => {
           if (typeof handler === 'function') handler(...args)
         }
         return 0 as unknown as ReturnType<typeof setTimeout>
@@ -88,9 +88,9 @@ describe('App', () => {
       expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
     }
 
-    expect(resetToCurrentDateTime).toBeDefined()
-    if (!resetToCurrentDateTime) throw new Error('Expected latest entry date reset timer')
-    resetToCurrentDateTime()
+    expect(capturedResetHandler).toBeDefined()
+    if (!capturedResetHandler) throw new Error('Expected latest entry date reset timer')
+    capturedResetHandler()
     await flushPromises()
 
     for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
