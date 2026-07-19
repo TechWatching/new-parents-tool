@@ -1,9 +1,16 @@
 import type { Messages } from '../i18n'
+import type { Feed, Weight } from '../types'
 import type { ReportSnapshot } from './logic'
 
 const PAGE_MARGIN = 40
 const PAGE_FOOTER = 28
 const TABLE_MARGIN_BOTTOM = 36
+
+type AutoTableDoc = {
+  lastAutoTable?: {
+    finalY?: number
+  }
+}
 
 function formatDateTime(value: Date | string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
@@ -22,13 +29,11 @@ function formatNumber(value: number, locale: string, maximumFractionDigits = 0) 
 
 function coveredRangeLabel(snapshot: ReportSnapshot, t: Messages, locale: string) {
   if (snapshot.period.range === 'all') {
-    const firstEntry = [snapshot.feeds[0], snapshot.weights[0]]
-      .filter((entry): entry is { occurredAt: string } => Boolean(entry))
-      .sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt))[0]
-    const lastEntry = [snapshot.feeds.at(-1), snapshot.weights.at(-1)]
-      .filter((entry): entry is { occurredAt: string } => Boolean(entry))
+    const boundaryEntries = [snapshot.feeds[0], snapshot.weights[0], snapshot.feeds.at(-1), snapshot.weights.at(-1)]
+      .filter((entry): entry is Feed | Weight => entry !== undefined)
       .sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt))
-      .at(-1)
+    const firstEntry = boundaryEntries[0]
+    const lastEntry = boundaryEntries.at(-1)
 
     if (!firstEntry || !lastEntry) return t.reportAllRecordedData
     return `${t.reportAllRecordedData} — ${formatDateTime(firstEntry.occurredAt, locale)} → ${formatDateTime(lastEntry.occurredAt, locale)}`
@@ -117,7 +122,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   }
   if (summaryRows.length === 0) summaryRows.push([t.reportNoDataHeading, t.reportNoDataInRange])
 
-  const summaryTable = autoTable(doc, {
+  autoTable(doc, {
     startY: cursorY,
     theme: 'grid',
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_MARGIN_BOTTOM },
@@ -132,7 +137,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       0: { fontStyle: 'bold', fillColor: [248, 250, 247] },
     },
   })
-  cursorY = summaryTable.finalY + 24
+  cursorY = ((doc as typeof doc & AutoTableDoc).lastAutoTable?.finalY ?? cursorY) + 24
 
   const sectionTitle = (title: string) => {
     doc.setFont('helvetica', 'bold')
@@ -145,7 +150,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   if (snapshot.config.includeFeeds) {
     sectionTitle(t.reportFeedsSectionTitle)
     if (snapshot.feeds.length > 0) {
-      const feedsTable = autoTable(doc, {
+      autoTable(doc, {
         startY: cursorY,
         theme: 'grid',
         margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_MARGIN_BOTTOM },
@@ -164,7 +169,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
           fillColor: [236, 121, 108],
         },
       })
-      cursorY = feedsTable.finalY + 24
+      cursorY = ((doc as typeof doc & AutoTableDoc).lastAutoTable?.finalY ?? cursorY) + 24
     } else {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(10)
@@ -177,7 +182,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   if (snapshot.config.includeWeights) {
     sectionTitle(t.reportWeightsSectionTitle)
     if (snapshot.weights.length > 0) {
-      const weightsTable = autoTable(doc, {
+      autoTable(doc, {
         startY: cursorY,
         theme: 'grid',
         margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_MARGIN_BOTTOM },
@@ -195,7 +200,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
           fillColor: [90, 156, 135],
         },
       })
-      cursorY = weightsTable.finalY + 24
+      cursorY = ((doc as typeof doc & AutoTableDoc).lastAutoTable?.finalY ?? cursorY) + 24
     } else {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(10)

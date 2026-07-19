@@ -4,6 +4,13 @@ import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
+const reportPdfSpies = vi.hoisted(() => ({
+  generateReportPdfBlob: vi.fn(async () => new Blob(['pdf'], { type: 'application/pdf' })),
+  downloadPdf: vi.fn(),
+}))
+
+vi.mock('../report/pdf', () => reportPdfSpies)
+
 import AppRoot from '../AppRoot.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
@@ -25,6 +32,8 @@ describe('App', () => {
     _setTestDriver(memoryDriver())
     localStorage.clear()
     vi.stubGlobal('crypto', { randomUUID: () => 'test-id' })
+    reportPdfSpies.generateReportPdfBlob.mockClear()
+    reportPdfSpies.downloadPdf.mockClear()
   })
 
   afterEach(() => {
@@ -332,4 +341,59 @@ describe('App', () => {
 
     expect(wrapper.find('.bar-value').text()).toBe('120')
   })
+  it('opens report options and downloads a PDF report', async () => {
+    const preloaded: AppData = {
+      feeds: [
+        { id: 'feed-1', amount: 120, occurredAt: '2026-07-19T08:00:00.000Z', comment: 'Drank well', updatedAt: '2026-07-19T08:00:00.000Z' },
+      ],
+      weights: [
+        { id: 'weight-1', kilograms: 4.2, occurredAt: '2026-07-19T07:30:00.000Z', updatedAt: '2026-07-19T07:30:00.000Z' },
+      ],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Export data')
+    expect(wrapper.text()).toContain('Import data')
+    expect(wrapper.text()).toContain('Generate report')
+
+    const reportButton = wrapper.findAll('button').find((button) => button.text() === 'Generate report')
+    await reportButton!.trigger('click')
+
+    expect(wrapper.text()).toContain('Report options')
+
+    const downloadButton = wrapper.findAll('button').find((button) => button.text() === 'Download PDF')
+    await downloadButton!.trigger('click')
+    await flushPromises()
+
+    expect(reportPdfSpies.generateReportPdfBlob).toHaveBeenCalledTimes(1)
+    expect(reportPdfSpies.downloadPdf).toHaveBeenCalledTimes(1)
+    expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[0]).toBeInstanceOf(Blob)
+    expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[1]).toMatch(/^little-sips-report-\d{4}-\d{2}-\d{2}\.pdf$/)
+  })
+
+  it('validates report settings before generating a PDF', async () => {
+    const wrapper = await mountApp()
+    const reportButton = wrapper.findAll('button').find((button) => button.text() === 'Generate report')
+    await reportButton!.trigger('click')
+
+    await wrapper.get('input[value="custom"]').setValue()
+    const customDates = wrapper.findAll('.report-custom-range input[type="date"]')
+    await customDates[0]!.setValue('2026-07-20')
+    await customDates[1]!.setValue('2026-07-19')
+
+    const categoryCheckboxes = wrapper.findAll('.report-fieldset input[type="checkbox"]')
+    await categoryCheckboxes[0]!.setValue(false)
+    await categoryCheckboxes[1]!.setValue(false)
+
+    const downloadButton = wrapper.findAll('button').find((button) => button.text() === 'Download PDF')
+    await downloadButton!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Select bottle feeds or weight measurements to include.')
+    expect(wrapper.text()).toContain('The start date must be on or before the end date.')
+    expect(reportPdfSpies.generateReportPdfBlob).not.toHaveBeenCalled()
+    expect(reportPdfSpies.downloadPdf).not.toHaveBeenCalled()
+  })
+
 })

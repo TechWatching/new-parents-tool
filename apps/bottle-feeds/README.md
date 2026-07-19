@@ -45,11 +45,15 @@ that the Supabase client handles client-side.
 - Conflict strategy: newest `updatedAt` wins. Tombstone deletions propagate
   so stale clients cannot resurrect deleted records.
 
-## Export & import
+## Export, import, and reports
 
 Use the *Export data* and *Import data* buttons in the toolbar to back up and
 restore data as JSON. Imports merge records by stable ID rather than replacing
 all existing data.
+
+Use *Generate report* to create a clinician-readable PDF in the browser for a
+selected date range. Report generation stays local to the device and does not
+upload data to a server.
 
 ## Development
 
