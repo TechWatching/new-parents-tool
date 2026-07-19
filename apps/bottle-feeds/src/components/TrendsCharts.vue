@@ -22,7 +22,7 @@ interface ChartPoint {
   amount: number
 }
 
-function chartDayLabel(date: Date) {
+function chartDateLabel(date: Date) {
   return new Intl.DateTimeFormat(props.locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
 }
 
@@ -86,7 +86,7 @@ const intakePoints = computed<ChartPoint[]>(() => {
     const next = new Date(date)
     next.setDate(next.getDate() + 1)
     points.push({
-      label: range.value === '7d' ? shortDay(date, props.locale) : chartDayLabel(date),
+      label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
       amount: props.feeds
         .filter((feed) => {
           const time = Date.parse(feed.occurredAt)
