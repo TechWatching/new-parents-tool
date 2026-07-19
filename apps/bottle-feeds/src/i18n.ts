@@ -152,3 +152,6 @@ export const messages = {
     loading: 'Chargement…',
   },
 } as const
+
+/** Shape of a single language's translation table, used by presentational components. */
+export type Messages = { [K in keyof typeof messages.en]: string }
