@@ -418,12 +418,20 @@ const rollingIntakePoints = computed<ChartPoint[]>(() =>
   }),
 )
 
+const rollingIntakeCumulativePoints = computed<ChartPoint[]>(() => {
+  let running = 0
+  return rollingIntakePoints.value.map((p) => {
+    running += p.amount
+    return { label: p.label, amount: running }
+  })
+})
+
 const rollingIntakeMax = computed(() =>
-  Math.max(...rollingIntakePoints.value.map((p) => p.amount), 1),
+  Math.max(...rollingIntakeCumulativePoints.value.map((p) => p.amount), 1),
 )
 
 const rollingIntakePolyline = computed(() =>
-  rollingIntakePoints.value
+  rollingIntakeCumulativePoints.value
     .map((point, i) => ({ point, i }))
     .filter(({ point }) => point.amount > 0)
     .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
@@ -859,7 +867,7 @@ const syncLabel = computed(() => {
             <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
               <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
                 <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
-                <template v-for="(point, i) in rollingIntakePoints" :key="i">
+                <template v-for="(point, i) in rollingIntakeCumulativePoints" :key="i">
                   <circle
                     v-if="point.amount > 0"
                     r="3"
@@ -869,7 +877,7 @@ const syncLabel = computed(() => {
                 </template>
               </svg>
               <div class="rolling-intake-labels">
-                <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col">
+                <div v-for="(point, i) in rollingIntakeCumulativePoints" :key="i" class="rolling-intake-col">
                   <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
                   <span>{{ point.label }}</span>
                 </div>
