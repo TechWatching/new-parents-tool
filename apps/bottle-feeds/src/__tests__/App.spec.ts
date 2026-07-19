@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
-import App from '../App.vue'
+import Root from '../Root.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
 
@@ -17,6 +17,8 @@ afterEach(() => {
 })
 
 describe('App', () => {
+  let wrapper: ReturnType<typeof mount> | null = null
+
   beforeEach(() => {
     _setTestDriver(memoryDriver())
     localStorage.clear()
@@ -24,12 +26,14 @@ describe('App', () => {
   })
 
   afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
     _setTestDriver(null)
     document.body.innerHTML = ''
   })
 
   const mountApp = async () => {
-    const wrapper = mount(App, {
+    wrapper = mount(Root, {
       attachTo: document.body,
       global: {
         plugins: [

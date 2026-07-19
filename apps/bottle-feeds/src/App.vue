@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import UApp from '@nuxt/ui/components/App.vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
@@ -381,7 +380,6 @@ const syncLabel = computed(() => {
 </script>
 
 <template>
-  <UApp>
   <!-- Loading overlay -->
   <div v-if="loading" class="loading-overlay" role="status" :aria-label="t.loading">
     <span class="loading-spinner" aria-hidden="true">◒</span>
@@ -561,5 +559,4 @@ const syncLabel = computed(() => {
       />
     </main>
   </template>
-  </UApp>
 </template>
