@@ -280,7 +280,7 @@ const rollingIntakePolyline = computed(() =>
             <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
           </div>
         </div>
-        <div v-else class="chart-empty">{{ t.noChartData }}        </div>
+        <div v-else class="chart-empty">{{ t.noChartData }}</div>
       </article>
       <article>
         <h3>{{ t.bottlesPerDay }}</h3>
