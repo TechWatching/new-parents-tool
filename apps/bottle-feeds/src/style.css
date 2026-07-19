@@ -591,6 +591,9 @@ h3 {
 }
 
 @media (max-width: 500px) {
+  .toolbar-actions {
+    grid-template-columns: 1fr;
+  }
   .report-panel-header,
   .report-panel-actions {
     flex-direction: column;
@@ -707,6 +710,26 @@ h3 {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+.toolbar-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.toolbar-actions .data-actions {
+  margin-bottom: 0;
+}
+
+.toolbar-actions .report-generator {
+  display: contents;
+}
+
+.toolbar-actions .report-panel {
+  grid-column: 1 / -1;
 }
 
 .action-button {

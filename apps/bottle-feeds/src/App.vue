@@ -496,31 +496,33 @@ const syncLabel = computed(() => {
       </div>
 
       <!-- Export / Import -->
-      <div class="data-actions">
-        <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
-        <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
-        <input
-          ref="importFileRef"
-          type="file"
-          accept="application/json,.json"
-          class="sr-only"
-          :aria-label="t.importData"
-          @change="handleImportFile"
-        />
-        <span v-if="importFeedback === 'success'" class="import-feedback import-feedback--ok">
-          {{ t.importSuccess }}
-        </span>
-        <span v-else-if="importFeedback === 'error'" class="import-feedback import-feedback--err">
-          {{ t.importError }}
-        </span>
-      </div>
+      <div class="toolbar-actions">
+        <div class="data-actions">
+          <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
+          <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
+          <input
+            ref="importFileRef"
+            type="file"
+            accept="application/json,.json"
+            class="sr-only"
+            :aria-label="t.importData"
+            @change="handleImportFile"
+          />
+          <span v-if="importFeedback === 'success'" class="import-feedback import-feedback--ok">
+            {{ t.importSuccess }}
+          </span>
+          <span v-else-if="importFeedback === 'error'" class="import-feedback import-feedback--err">
+            {{ t.importError }}
+          </span>
+        </div>
 
-      <ReportGenerator
-        :feeds="activeFeeds"
-        :weights="activeWeights"
-        :t="t"
-        :locale="locale"
-      />
+        <ReportGenerator
+          :feeds="activeFeeds"
+          :weights="activeWeights"
+          :t="t"
+          :locale="locale"
+        />
+      </div>
 
       <!-- Cloud sync / Auth section -->
       <section v-if="isSupabaseConfigured" class="card auth-card" :aria-label="t.cloudSync">
