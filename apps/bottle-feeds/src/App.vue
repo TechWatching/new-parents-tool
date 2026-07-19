@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
-import UTabs from '@nuxt/ui/components/Tabs.vue'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
 import { isSupabaseConfigured } from './supabase'
@@ -18,29 +17,13 @@ import {
 import { syncNow, onLocalMutation, syncStatus, syncError, lastSyncedAt } from './sync'
 import { mergeAppData } from './merge'
 import type { AppData, Feed, Weight } from './types'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const nowForInput = () => {
-  const date = new Date()
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-  return date.toISOString().slice(0, 16)
-}
-
-const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
-
-function maskTimeValue(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 4)
-  if (digits.length <= 2) return digits
-  return `${digits.slice(0, 2)}:${digits.slice(2)}`
-}
-
-const dateTimeForInput = () => {
-  const value = nowForInput()
-  return { date: value.slice(0, 10), time: value.slice(11) }
-}
+import { dateTimeForInput, occurredAt } from './utils/time'
+import { formatDate } from './utils/format'
+import FeedForm from './components/FeedForm.vue'
+import WeightForm from './components/WeightForm.vue'
+import SummaryMetrics from './components/SummaryMetrics.vue'
+import TrendsCharts from './components/TrendsCharts.vue'
+import MeasureHistory from './components/MeasureHistory.vue'
 
 // ---------------------------------------------------------------------------
 // State
@@ -53,28 +36,8 @@ const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 const language = ref<Language>(
   (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
 )
-const range = ref<'24h' | '7d'>('7d')
-const measureTab = ref<'feeds' | 'weights'>('feeds')
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
-const editingFeedId = ref<string | null>(null)
-const editingWeightId = ref<string | null>(null)
-const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
-const editingWeight = reactive({ kilograms: '', date: '', time: '' })
-
-function timeModel(form: { time: string }) {
-  return computed({
-    get: () => form.time,
-    set: (value: string) => {
-      form.time = maskTimeValue(value)
-    },
-  })
-}
-
-const feedTimeModel = timeModel(feedForm)
-const weightTimeModel = timeModel(weightForm)
-const editingFeedTimeModel = timeModel(editingFeed)
-const editingWeightTimeModel = timeModel(editingWeight)
 
 // Auth form
 const emailInput = ref('')
@@ -216,19 +179,6 @@ function makeId() {
   return crypto.randomUUID()
 }
 
-function occurredAt(date: string, time: string) {
-  if (!timePattern.test(time)) return null
-  const value = new Date(`${date}T${time}`)
-  return Number.isNaN(value.getTime()) ? null : value.toISOString()
-}
-
-function dateTimeFromOccurredAt(value: string) {
-  const date = new Date(value)
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-  const localValue = date.toISOString().slice(0, 16)
-  return { date: localValue.slice(0, 10), time: localValue.slice(11) }
-}
-
 function addFeed() {
   const amount = Number(feedForm.amount)
   const recordedAt = occurredAt(feedForm.date, feedForm.time)
@@ -250,58 +200,37 @@ function addWeight() {
   Object.assign(weightForm, dateTimeForInput())
 }
 
-function editFeed(feed: Feed) {
-  editingFeedId.value = feed.id
-  Object.assign(editingFeed, {
-    amount: String(feed.amount),
-    ...dateTimeFromOccurredAt(feed.occurredAt),
-    comment: feed.comment,
-  })
-}
-
-function saveFeed(feed: Feed) {
-  const amount = Number(editingFeed.amount)
-  const recordedAt = occurredAt(editingFeed.date, editingFeed.time)
-  if (!amount || amount <= 0 || !recordedAt) return
-  Object.assign(feed, {
-    amount,
-    occurredAt: recordedAt,
-    comment: editingFeed.comment.trim(),
+function saveFeed(payload: { id: string; amount: number; occurredAt: string; comment: string }) {
+  const target = data.feeds.find((f) => f.id === payload.id)
+  if (!target) return
+  Object.assign(target, {
+    amount: payload.amount,
+    occurredAt: payload.occurredAt,
+    comment: payload.comment,
     updatedAt: new Date().toISOString(),
   })
-  editingFeedId.value = null
 }
 
-function editWeight(weight: Weight) {
-  editingWeightId.value = weight.id
-  Object.assign(editingWeight, {
-    kilograms: String(weight.kilograms),
-    ...dateTimeFromOccurredAt(weight.occurredAt),
-  })
-}
-
-function saveWeight(weight: Weight) {
-  const kilograms = Number(editingWeight.kilograms)
-  const recordedAt = occurredAt(editingWeight.date, editingWeight.time)
-  if (!kilograms || kilograms <= 0 || !recordedAt) return
-  Object.assign(weight, {
-    kilograms,
-    occurredAt: recordedAt,
+function saveWeight(payload: { id: string; kilograms: number; occurredAt: string }) {
+  const target = data.weights.find((w) => w.id === payload.id)
+  if (!target) return
+  Object.assign(target, {
+    kilograms: payload.kilograms,
+    occurredAt: payload.occurredAt,
     updatedAt: new Date().toISOString(),
   })
-  editingWeightId.value = null
 }
 
-function removeFeed(feed: Feed) {
-  const target = data.feeds.find((f) => f.id === feed.id)
+function removeFeed(id: string) {
+  const target = data.feeds.find((f) => f.id === id)
   if (target) {
     target.deletedAt = new Date().toISOString()
     target.updatedAt = new Date().toISOString()
   }
 }
 
-function removeWeight(weight: Weight) {
-  const target = data.weights.find((w) => w.id === weight.id)
+function removeWeight(id: string) {
+  const target = data.weights.find((w) => w.id === id)
   if (target) {
     target.deletedAt = new Date().toISOString()
     target.updatedAt = new Date().toISOString()
@@ -316,7 +245,7 @@ const activeFeeds = computed(() => data.feeds.filter((f) => !f.deletedAt))
 const activeWeights = computed(() => data.weights.filter((w) => !w.deletedAt))
 
 // ---------------------------------------------------------------------------
-// Computed display data (unchanged logic, now uses active records)
+// Computed display data shared across the presentational components below
 // ---------------------------------------------------------------------------
 
 const sortedFeeds = computed(() =>
@@ -325,137 +254,9 @@ const sortedFeeds = computed(() =>
 const sortedWeights = computed(() =>
   [...activeWeights.value].sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt)),
 )
-const cutoff24h = computed(() => Date.now() - 24 * 60 * 60 * 1000)
-const feeds24h = computed(() =>
-  activeFeeds.value.filter((feed) => Date.parse(feed.occurredAt) >= cutoff24h.value),
-)
-const total24h = computed(() => feeds24h.value.reduce((total, feed) => total + feed.amount, 0))
 const latestWeight = computed(() => sortedWeights.value[0])
 const dailyGuide = computed(() =>
   latestWeight.value ? Math.round((latestWeight.value.kilograms * 1000) / 10 + 200) : null,
-)
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(locale.value, {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
-}
-
-function shortDay(date: Date) {
-  return new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(date)
-}
-
-interface ChartPoint {
-  label: string
-  amount: number
-}
-
-const intakePoints = computed<ChartPoint[]>(() => {
-  if (range.value === '24h') {
-    return Array.from({ length: 6 }, (_, index) => {
-      const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
-      const start = end - 4 * 60 * 60 * 1000
-      return {
-        label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
-        amount: activeFeeds.value
-          .filter((feed) => {
-            const time = Date.parse(feed.occurredAt)
-            return time > start && time <= end
-          })
-          .reduce((total, feed) => total + feed.amount, 0),
-      }
-    })
-  }
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date()
-    date.setHours(0, 0, 0, 0)
-    date.setDate(date.getDate() - (6 - index))
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    return {
-      label: shortDay(date),
-      amount: activeFeeds.value
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time >= date.getTime() && time < next.getTime()
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
-    }
-  })
-})
-
-const intakeMax = computed(() =>
-  Math.max(...intakePoints.value.map((point) => point.amount), dailyGuide.value || 0, 1),
-)
-
-const visibleWeights = computed(() => {
-  const cutoff = Date.now() - (range.value === '24h' ? 24 : 7 * 24) * 60 * 60 * 1000
-  return [...activeWeights.value]
-    .filter((weight) => Date.parse(weight.occurredAt) >= cutoff)
-    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
-})
-
-function weightPosition(weight: Weight, axis: 'x' | 'y') {
-  const points = visibleWeights.value
-  if (axis === 'x') {
-    if (points.length <= 1) return 50
-    return 6 + (points.indexOf(weight) / (points.length - 1)) * 88
-  }
-  const values = points.map((point) => point.kilograms)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  if (min === max) return 50
-  return 88 - ((weight.kilograms - min) / (max - min)) * 76
-}
-
-const weightPolyline = computed(() =>
-  visibleWeights.value
-    .map((weight) => `${weightPosition(weight, 'x')},${weightPosition(weight, 'y')}`)
-    .join(' '),
-)
-
-// ---------------------------------------------------------------------------
-// Rolling intake chart (7 × 4-hour windows = last 28 hours)
-// ---------------------------------------------------------------------------
-
-const rollingIntakePoints = computed<ChartPoint[]>(() =>
-  Array.from({ length: 7 }, (_, index) => {
-    const end = Date.now() - (6 - index) * 4 * 60 * 60 * 1000
-    const start = end - 4 * 60 * 60 * 1000
-    return {
-      label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
-      amount: activeFeeds.value
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time > start && time <= end
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
-    }
-  }),
-)
-
-const rollingIntakeCumulativePoints = computed<ChartPoint[]>(() => {
-  let running = 0
-  return rollingIntakePoints.value.map((p) => {
-    running += p.amount
-    return { label: p.label, amount: running }
-  })
-})
-
-const rollingIntakeMax = computed(() =>
-  Math.max(...rollingIntakeCumulativePoints.value.map((p) => p.amount), 1),
-)
-
-const rollingIntakePolyline = computed(() =>
-  rollingIntakeCumulativePoints.value
-    .map((point, i) => ({ point, i }))
-    .filter(({ point }) => point.amount > 0)
-    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
-    .join(' '),
 )
 
 // ---------------------------------------------------------------------------
@@ -566,7 +367,7 @@ const syncLabel = computed(() => {
     case 'pending': return t.value.syncPending
     case 'error': return t.value.syncError
     case 'synced': return lastSyncedAt.value
-      ? `${t.value.syncedAt} ${formatDate(lastSyncedAt.value.toISOString())}`
+      ? `${t.value.syncedAt} ${formatDate(lastSyncedAt.value.toISOString(), locale.value)}`
       : t.value.syncedAt
     default: return null
   }
@@ -706,328 +507,51 @@ const syncLabel = computed(() => {
       </div>
 
       <section class="entry-grid" aria-label="Data entry">
-        <form class="card form-card feed-card" @submit.prevent="addFeed">
-          <div class="section-heading">
-            <span class="icon coral" aria-hidden="true">＋</span>
-            <h2>{{ t.addFeed }}</h2>
-          </div>
-          <div class="form-grid">
-            <label>
-              {{ t.amount }}
-              <input
-                v-model="feedForm.amount"
-                type="number"
-                min="1"
-                max="2000"
-                step="1"
-                required
-                inputmode="decimal"
-              />
-            </label>
-            <label>
-              {{ t.date }}
-              <input v-model="feedForm.date" type="date" required />
-            </label>
-            <label>
-              {{ t.time }}
-              <input
-                v-model="feedTimeModel"
-                type="text"
-                inputmode="numeric"
-                :pattern="timePattern.source"
-                placeholder="14:30"
-                maxlength="5"
-                required
-              />
-            </label>
-            <label class="full-width">
-              {{ t.comment }}
-              <input
-                v-model="feedForm.comment"
-                type="text"
-                maxlength="160"
-                :placeholder="t.commentPlaceholder"
-              />
-            </label>
-          </div>
-          <button class="primary-button" type="submit">{{ t.saveFeed }}</button>
-        </form>
-
-        <form class="card form-card weight-card" @submit.prevent="addWeight">
-          <div class="section-heading">
-            <span class="icon mint" aria-hidden="true">↗</span>
-            <h2>{{ t.addWeight }}</h2>
-          </div>
-          <label>
-            {{ t.weight }}
-            <input
-              v-model="weightForm.kilograms"
-              type="number"
-              min="0.1"
-              max="50"
-              step="0.01"
-              required
-              inputmode="decimal"
-            />
-          </label>
-          <label>
-            {{ t.date }}
-            <input v-model="weightForm.date" type="date" required />
-          </label>
-          <label>
-            {{ t.time }}
-            <input
-              v-model="weightTimeModel"
-              type="text"
-              inputmode="numeric"
-              :pattern="timePattern.source"
-              placeholder="14:30"
-              maxlength="5"
-              required
-            />
-          </label>
-          <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
-        </form>
+        <FeedForm
+          v-model:amount="feedForm.amount"
+          v-model:date="feedForm.date"
+          v-model:time="feedForm.time"
+          v-model:comment="feedForm.comment"
+          :t="t"
+          @submit="addFeed"
+        />
+        <WeightForm
+          v-model:kilograms="weightForm.kilograms"
+          v-model:date="weightForm.date"
+          v-model:time="weightForm.time"
+          :t="t"
+          @submit="addWeight"
+        />
       </section>
 
-      <section class="summary-grid" :aria-label="t.today">
-        <article class="metric-card">
-          <span>{{ t.today }}</span>
-          <strong>{{ feeds24h.length }}</strong>
-          <small>{{ t.bottles }}</small>
-        </article>
-        <article class="metric-card">
-          <span>{{ t.total }}</span>
-          <strong
-            >{{ total24h }} <small>{{ t.ml }}</small></strong
-          >
-          <div v-if="dailyGuide" class="progress">
-            <i :style="{ width: `${Math.min((total24h / dailyGuide) * 100, 100)}%` }"></i>
-          </div>
-        </article>
-        <article class="metric-card">
-          <span>{{ t.latestWeight }}</span>
-          <strong
-            >{{ latestWeight ? latestWeight.kilograms.toLocaleString(locale) : '—' }}
-            <small>{{ t.kg }}</small></strong
-          >
-          <small v-if="latestWeight">{{ formatDate(latestWeight.occurredAt) }}</small>
-        </article>
-        <article class="metric-card guide-card">
-          <span>{{ t.dailyGuide }}</span>
-          <strong
-            >{{ dailyGuide ?? '—' }} <small v-if="dailyGuide">{{ t.ml }}</small></strong
-          >
-          <small>{{ dailyGuide ? t.guideDetail : t.noWeight }}</small>
-        </article>
-      </section>
+      <SummaryMetrics
+        :feeds="activeFeeds"
+        :latest-weight="latestWeight"
+        :daily-guide="dailyGuide"
+        :t="t"
+        :locale="locale"
+      />
 
       <p class="disclaimer">{{ t.disclaimer }}</p>
 
-      <section class="card trends">
-        <div class="trends-header">
-          <div class="section-heading">
-            <span class="icon blue" aria-hidden="true">⌁</span>
-            <h2>{{ t.overview }}</h2>
-          </div>
-          <div class="range-toggle">
-            <button type="button" :class="{ active: range === '24h' }" @click="range = '24h'">
-              {{ t.twentyFourHours }}
-            </button>
-            <button type="button" :class="{ active: range === '7d' }" @click="range = '7d'">
-              {{ t.sevenDays }}
-            </button>
-          </div>
-        </div>
+      <TrendsCharts
+        :feeds="activeFeeds"
+        :weights="activeWeights"
+        :daily-guide="dailyGuide"
+        :t="t"
+        :locale="locale"
+      />
 
-        <div class="charts-grid">
-          <article>
-            <h3>{{ t.intake }}</h3>
-            <div class="bar-chart" role="img" :aria-label="t.intake">
-              <div v-for="point in intakePoints" :key="point.label" class="bar-column">
-                <span v-if="point.amount" class="bar-value">{{ point.amount }}</span>
-                <i
-                  :style="{
-                    height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
-                  }"
-                ></i>
-                <small>{{ point.label }}</small>
-              </div>
-              <div
-                v-if="dailyGuide && range === '7d'"
-                class="guide-line"
-                :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }"
-              >
-                <span>{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
-              </div>
-            </div>
-          </article>
-          <article>
-            <h3>{{ t.growth }}</h3>
-            <div v-if="visibleWeights.length" class="line-chart">
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" :aria-label="t.growth">
-                <polyline v-if="visibleWeights.length > 1" :points="weightPolyline" />
-                <circle
-                  v-for="weight in visibleWeights"
-                  :key="weight.id"
-                  :cx="weightPosition(weight, 'x')"
-                  :cy="weightPosition(weight, 'y')"
-                  r="2.4"
-                />
-              </svg>
-              <div class="weight-range">
-                <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
-                <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
-              </div>
-            </div>
-            <div v-else class="chart-empty">{{ t.noChartData }}</div>
-          </article>
-          <article v-if="range === '7d'" class="full-width">
-            <h3>{{ t.rollingIntake }}</h3>
-            <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
-              <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
-                <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
-                <template v-for="(point, i) in rollingIntakeCumulativePoints" :key="i">
-                  <circle
-                    v-if="point.amount > 0"
-                    r="3"
-                    :cx="15 + (i / 6) * 270"
-                    :cy="88 - (point.amount / rollingIntakeMax) * 76"
-                  />
-                </template>
-              </svg>
-              <div class="rolling-intake-labels">
-                <div v-for="(point, i) in rollingIntakeCumulativePoints" :key="i" class="rolling-intake-col">
-                  <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
-                  <span>{{ point.label }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="chart-empty">{{ t.noChartData }}</div>
-          </article>
-        </div>
-      </section>
-
-      <section class="card measure-card" :aria-label="t.measures">
-        <h2>{{ t.measures }}</h2>
-        <UTabs
-          v-model="measureTab"
-          class="measure-tabs"
-          :items="[
-            { label: t.quantities, value: 'feeds' },
-            { label: t.weights, value: 'weights' },
-          ]"
-          :content="false"
-        />
-
-        <p v-if="measureTab === 'feeds' && !sortedFeeds.length" class="empty-state">
-          {{ t.emptyHistory }}
-        </p>
-        <ul v-else-if="measureTab === 'feeds'" class="measure-list">
-          <li v-for="feed in sortedFeeds" :key="feed.id">
-            <template v-if="editingFeedId === feed.id">
-              <form @submit.prevent="saveFeed(feed)">
-                <div class="measure-fields">
-                  <label for="edit-feed-amount">
-                    {{ t.amount }}
-                    <input id="edit-feed-amount" v-model="editingFeed.amount" type="number" min="1" max="2000" required />
-                  </label>
-                  <label for="edit-feed-date">
-                    {{ t.date }}
-                    <input id="edit-feed-date" v-model="editingFeed.date" type="date" required />
-                  </label>
-                  <label for="edit-feed-time">
-                    {{ t.time }}
-                    <input
-                      id="edit-feed-time"
-                      v-model="editingFeedTimeModel"
-                      type="text"
-                      inputmode="numeric"
-                      :pattern="timePattern.source"
-                      placeholder="14:30"
-                      maxlength="5"
-                      required
-                    />
-                  </label>
-                  <label for="edit-feed-comment">
-                    {{ t.comment }}
-                    <input id="edit-feed-comment" v-model="editingFeed.comment" type="text" maxlength="160" />
-                  </label>
-                </div>
-                <div class="measure-actions">
-                  <UButton type="submit" size="xs">{{ t.save }}</UButton>
-                  <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
-                    {{ t.cancel }}
-                  </UButton>
-                </div>
-              </form>
-            </template>
-            <template v-else>
-              <div>
-                <strong>{{ feed.amount }} {{ t.ml }}</strong><span>{{ formatDate(feed.occurredAt) }}</span
-                ><small v-if="feed.comment">{{ feed.comment }}</small>
-              </div>
-              <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(feed)">
-                {{ t.edit }}
-              </UButton>
-              <button class="delete-button" type="button" :aria-label="`${t.delete} ${feed.amount} ${t.ml}`" @click="removeFeed(feed)">
-                ×
-              </button>
-            </template>
-          </li>
-        </ul>
-
-        <p v-else-if="!sortedWeights.length" class="empty-state">{{ t.emptyWeights }}</p>
-        <ul v-else class="measure-list">
-          <li v-for="weight in sortedWeights" :key="weight.id">
-            <template v-if="editingWeightId === weight.id">
-              <form @submit.prevent="saveWeight(weight)">
-                <div class="measure-fields">
-                  <label for="edit-weight-kilograms">
-                    {{ t.weight }}
-                    <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
-                  </label>
-                  <label for="edit-weight-date">
-                    {{ t.date }}
-                    <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
-                  </label>
-                  <label for="edit-weight-time">
-                    {{ t.time }}
-                    <input
-                      id="edit-weight-time"
-                      v-model="editingWeightTimeModel"
-                      type="text"
-                      inputmode="numeric"
-                      :pattern="timePattern.source"
-                      placeholder="14:30"
-                      maxlength="5"
-                      required
-                    />
-                  </label>
-                </div>
-                <div class="measure-actions">
-                  <UButton type="submit" size="xs">{{ t.save }}</UButton>
-                  <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
-                    {{ t.cancel }}
-                  </UButton>
-                </div>
-              </form>
-            </template>
-            <template v-else>
-              <div>
-                <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong
-                ><span>{{ formatDate(weight.occurredAt) }}</span>
-              </div>
-              <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(weight)">
-                {{ t.edit }}
-              </UButton>
-              <button class="delete-button" type="button" :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`" @click="removeWeight(weight)">
-                ×
-              </button>
-            </template>
-          </li>
-        </ul>
-      </section>
+      <MeasureHistory
+        :feeds="sortedFeeds"
+        :weights="sortedWeights"
+        :t="t"
+        :locale="locale"
+        @save-feed="saveFeed"
+        @remove-feed="removeFeed"
+        @save-weight="saveWeight"
+        @remove-weight="removeWeight"
+      />
     </main>
   </template>
 </template>
