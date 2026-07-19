@@ -307,7 +307,7 @@ input:focus {
   grid-column: 1 / -1;
 }
 .rolling-intake-chart circle {
-  r: 3px;
+  r: 1.5px;
 }
 .rolling-intake-labels {
   display: flex;
