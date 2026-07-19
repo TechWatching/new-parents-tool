@@ -107,6 +107,36 @@ describe('App', () => {
     expect(document.documentElement.lang).toBe('fr')
   })
 
+  it('defaults to French when browser language is French', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['fr-CA'])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-CA')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('falls back to navigator.language when preferred languages are empty', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('prefers saved language over browser language', async () => {
+    localStorage.setItem('new-parents-tool:language', 'en')
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Record a bottle')
+    expect(document.documentElement.lang).toBe('en')
+  })
+
   it('auto-inserts the colon once minutes start for 24-hour time inputs', async () => {
     const wrapper = await mountApp()
 
@@ -183,7 +213,7 @@ describe('App', () => {
     expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
-    // Value labels and hour labels are rendered in .rolling-intake-col children
+    // TrendsCharts renders six 4-hour buckets to cover the last 24 hours.
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 })

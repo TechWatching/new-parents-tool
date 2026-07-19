@@ -34,9 +34,17 @@ const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 
-const language = ref<Language>(
-  (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
-)
+function resolveInitialLanguage(): Language {
+  const stored = localStorage.getItem('new-parents-tool:language')
+  if (stored === 'en' || stored === 'fr') return stored
+  const browserLanguage =
+    Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages[0]
+      : navigator.language ?? 'en'
+  return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+}
+
+const language = ref<Language>(resolveInitialLanguage())
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
 
