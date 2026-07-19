@@ -88,7 +88,9 @@ describe('App', () => {
       expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
     }
 
-    resetToCurrentDateTime!()
+    expect(resetToCurrentDateTime).toBeDefined()
+    if (!resetToCurrentDateTime) throw new Error('Expected latest entry date reset timer')
+    resetToCurrentDateTime()
     await flushPromises()
 
     for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {

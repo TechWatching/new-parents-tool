@@ -206,7 +206,8 @@ function defaultToRecentEntryDate() {
   if (!latestEntry) return
 
   const duration = Date.parse(latestEntry.updatedAt) + LATEST_ENTRY_DATE_DURATION - Date.now()
-  if (duration > 0) defaultToEntryDate(latestEntry.occurredAt, duration)
+  if (duration <= 0) return
+  defaultToEntryDate(latestEntry.occurredAt, duration)
 }
 
 function addFeed() {
