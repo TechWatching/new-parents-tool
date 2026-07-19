@@ -38,7 +38,7 @@ const preferredLanguages = usePreferredLanguages()
 function resolveInitialLanguage(): Language {
   const stored = localStorage.getItem('new-parents-tool:language')
   if (stored === 'en' || stored === 'fr') return stored
-  const browserLanguage = preferredLanguages.value[0] ?? navigator.language ?? 'en'
+  const browserLanguage = preferredLanguages.value?.[0] ?? navigator.language ?? 'en'
   return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
 }
 
