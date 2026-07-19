@@ -194,7 +194,7 @@ const { start: startEntryDateTimeout, stop: stopEntryDateTimeout } = useTimeoutF
   { immediate: false },
 )
 
-function defaultToEntryDate(recordedAt: string, duration = LATEST_ENTRY_DATE_DURATION) {
+function applyEntryDateWithReset(recordedAt: string, duration = LATEST_ENTRY_DATE_DURATION) {
   const { date } = dateTimeFromOccurredAt(recordedAt)
   feedForm.date = date
   weightForm.date = date
@@ -218,7 +218,7 @@ function defaultToRecentEntryDate() {
 
   const duration = latestEntry.updatedAt + LATEST_ENTRY_DATE_DURATION - Date.now()
   if (duration <= 0) return
-  defaultToEntryDate(latestEntry.entry.occurredAt, duration)
+  applyEntryDateWithReset(latestEntry.entry.occurredAt, duration)
 }
 
 function addFeed() {
@@ -229,7 +229,7 @@ function addFeed() {
   data.feeds.unshift({ id: makeId(), amount, occurredAt: recordedAt, comment: feedForm.comment.trim(), updatedAt: now })
   feedForm.amount = ''
   feedForm.comment = ''
-  defaultToEntryDate(recordedAt)
+  applyEntryDateWithReset(recordedAt)
 }
 
 function addWeight() {
@@ -239,7 +239,7 @@ function addWeight() {
   const now = new Date().toISOString()
   data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
   weightForm.kilograms = ''
-  defaultToEntryDate(recordedAt)
+  applyEntryDateWithReset(recordedAt)
 }
 
 function saveFeed(payload: { id: string; amount: number; occurredAt: string; comment: string }) {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
@@ -65,36 +66,26 @@ describe('App', () => {
 
   it('keeps the latest entry date as the default for five minutes', async () => {
     const wrapper = await mountApp()
-    let capturedResetHandler: (() => void) | undefined
-    const originalSetTimeout = globalThis.setTimeout
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation((handler, timeout, ...args) => {
-      if (timeout === 5 * 60 * 1000) {
-        capturedResetHandler = () => {
-          if (typeof handler === 'function') handler(...args)
-        }
-        return 0 as unknown as ReturnType<typeof setTimeout>
+    vi.useFakeTimers()
+    try {
+      await wrapper.get('.feed-card input[type="number"]').setValue('120')
+      await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+      await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+      await wrapper.get('.feed-card').trigger('submit')
+      await nextTick()
+
+      expect(wrapper.text()).toContain('120 ml')
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
       }
-      return originalSetTimeout(handler, timeout, ...args)
-    })
 
-    await wrapper.get('.feed-card input[type="number"]').setValue('120')
-    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
-    await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
-    await wrapper.get('.feed-card').trigger('submit')
-    await flushPromises()
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000)
 
-    expect(wrapper.text()).toContain('120 ml')
-    for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-      expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
-    }
-
-    expect(capturedResetHandler).toBeDefined()
-    if (!capturedResetHandler) throw new Error('Expected latest entry date reset timer')
-    capturedResetHandler()
-    await flushPromises()
-
-    for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-      expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
     }
   })
 
