@@ -112,7 +112,8 @@ const bottleCountPoints = computed<ChartPoint[]>(() => {
   if (!period) return []
 
   const points: ChartPoint[] = []
-  for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
+  let date = new Date(period.start)
+  while (date < period.end) {
     const next = new Date(date)
     next.setDate(next.getDate() + 1)
     points.push({
@@ -122,6 +123,7 @@ const bottleCountPoints = computed<ChartPoint[]>(() => {
         return time >= date.getTime() && time < next.getTime()
       }).length,
     })
+    date = next
   }
   return points
 })
