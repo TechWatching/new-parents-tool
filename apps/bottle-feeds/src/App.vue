@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
@@ -18,7 +19,7 @@ import {
 import { syncNow, onLocalMutation, syncStatus, syncError, lastSyncedAt } from './sync'
 import { mergeAppData } from './merge'
 import type { AppData, Feed, Weight } from './types'
-import { dateTimeForInput, occurredAt } from './utils/time'
+import { dateTimeForInput, dateTimeFromOccurredAt, LATEST_ENTRY_DATE_DURATION, occurredAt } from './utils/time'
 import { formatDate } from './utils/format'
 import FeedForm from './components/FeedForm.vue'
 import WeightForm from './components/WeightForm.vue'
@@ -47,6 +48,7 @@ function resolveInitialLanguage(): Language {
 const language = ref<Language>(resolveInitialLanguage())
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
+const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
 
 // Auth form
 const emailInput = ref('')
@@ -95,6 +97,7 @@ async function loadNamespace(ns: Namespace) {
     data.feeds = loaded.feeds
     data.weights = loaded.weights
     currentNamespace.value = ns
+    defaultToRecentEntryDate()
   } finally {
     _suppressSave = false
     loading.value = false
@@ -190,6 +193,46 @@ function makeId() {
   return crypto.randomUUID()
 }
 
+function defaultToCurrentDateTime() {
+  const currentDateTime = dateTimeForInput()
+  Object.assign(feedForm, currentDateTime)
+  Object.assign(weightForm, currentDateTime)
+}
+
+const { start: startEntryDateTimeout, stop: stopEntryDateTimeout } = useTimeoutFn(
+  defaultToCurrentDateTime,
+  entryDateTimeoutDuration,
+  { immediate: false },
+)
+
+function applyEntryDateWithReset(recordedAt: string, duration = LATEST_ENTRY_DATE_DURATION) {
+  const { date } = dateTimeFromOccurredAt(recordedAt)
+  feedForm.date = date
+  weightForm.date = date
+  stopEntryDateTimeout()
+  entryDateTimeoutDuration.value = duration
+  startEntryDateTimeout()
+}
+
+function defaultToRecentEntryDate() {
+  stopEntryDateTimeout()
+  defaultToCurrentDateTime()
+  const latestEntry = [...data.feeds, ...data.weights].reduce<{ entry: Feed | Weight; updatedAt: number } | undefined>(
+    (latest, entry) => {
+      const updatedAt = Date.parse(entry.updatedAt)
+      if (entry.deletedAt || Number.isNaN(updatedAt) || (latest && latest.updatedAt >= updatedAt)) return latest
+      return { entry, updatedAt }
+    },
+    undefined,
+  )
+  if (!latestEntry) return
+
+  const expiresAt = latestEntry.updatedAt + LATEST_ENTRY_DATE_DURATION
+  const now = Date.now()
+  if (expiresAt <= now) return
+  applyEntryDateWithReset(latestEntry.entry.occurredAt, expiresAt - now)
+}
+
 function addFeed() {
   const amount = Number(feedForm.amount)
   const recordedAt = occurredAt(feedForm.date, feedForm.time)
@@ -198,7 +241,7 @@ function addFeed() {
   data.feeds.unshift({ id: makeId(), amount, occurredAt: recordedAt, comment: feedForm.comment.trim(), updatedAt: now })
   feedForm.amount = ''
   feedForm.comment = ''
-  Object.assign(feedForm, dateTimeForInput())
+  applyEntryDateWithReset(recordedAt)
   toast.add({ title: t.value.feedAdded, color: 'success' })
 }
 
@@ -209,7 +252,7 @@ function addWeight() {
   const now = new Date().toISOString()
   data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
   weightForm.kilograms = ''
-  Object.assign(weightForm, dateTimeForInput())
+  applyEntryDateWithReset(recordedAt)
   toast.add({ title: t.value.weightAdded, color: 'success' })
 }
 

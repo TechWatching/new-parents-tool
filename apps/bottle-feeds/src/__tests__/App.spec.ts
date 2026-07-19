@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
 import AppRoot from '../AppRoot.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
+import { dateTimeForInput, LATEST_ENTRY_DATE_DURATION } from '../utils/time'
 
 // Silence storage-related console warnings in tests
 beforeEach(() => {
@@ -68,6 +70,91 @@ describe('App', () => {
     })
   })
 
+  it('keeps the latest entry date as the default for five minutes', async () => {
+    const wrapper = await mountApp()
+    vi.useFakeTimers()
+    try {
+      await wrapper.get('.feed-card input[type="number"]').setValue('120')
+      await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+      await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+      await wrapper.get('.feed-card').trigger('submit')
+      await nextTick()
+
+      expect(wrapper.text()).toContain('120 ml')
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      }
+
+      await vi.advanceTimersByTimeAsync(LATEST_ENTRY_DATE_DURATION)
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('restores the latest entry date on reload while its five-minute window is still active', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-recent',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T09:58:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      }
+
+      await vi.advanceTimersByTimeAsync(3 * 60 * 1000)
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not restore stale entry dates on reload after the five-minute window expires', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-stale',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T09:54:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows a confirmation notification after recording a bottle', async () => {
     const wrapper = await mountApp()
 
@@ -84,7 +171,6 @@ describe('App', () => {
     await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
     await wrapper.get('.weight-card').trigger('submit')
     await flushPromises()
-
     expect(document.body.textContent).toContain('Weight recorded')
   })
 
@@ -213,7 +299,6 @@ describe('App', () => {
     expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
-    // TrendsCharts renders six 4-hour buckets to cover the last 24 hours.
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 })

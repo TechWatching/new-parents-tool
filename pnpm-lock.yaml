@@ -32,6 +32,9 @@ importers:
       '@tailwindcss/vite':
         specifier: 4.3.3
         version: 4.3.3(@voidzero-dev/vite-plus-core@0.2.4(@types/node@24.13.3)(esbuild@0.27.7)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))
+      '@vueuse/core':
+        specifier: 14.3.0
+        version: 14.3.0(vue@3.5.39(typescript@6.0.3))
       idb-keyval:
         specifier: ^6.3.0
         version: 6.3.0
