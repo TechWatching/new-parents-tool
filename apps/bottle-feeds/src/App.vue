@@ -183,8 +183,9 @@ function makeId() {
 }
 
 function defaultToCurrentDateTime() {
-  Object.assign(feedForm, dateTimeForInput())
-  Object.assign(weightForm, dateTimeForInput())
+  const currentDateTime = dateTimeForInput()
+  Object.assign(feedForm, currentDateTime)
+  Object.assign(weightForm, currentDateTime)
 }
 
 const { start: startEntryDateTimeout, stop: stopEntryDateTimeout } = useTimeoutFn(

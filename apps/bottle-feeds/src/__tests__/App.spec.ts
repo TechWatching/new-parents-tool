@@ -89,6 +89,66 @@ describe('App', () => {
     }
   })
 
+  it('restores the latest entry date on reload while its five-minute window is still active', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-recent',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T09:58:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      }
+
+      await vi.advanceTimersByTimeAsync(3 * 60 * 1000)
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not restore stale entry dates on reload after the five-minute window expires', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-stale',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T09:54:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('calculates the daily estimate from the latest weight', async () => {
     const wrapper = await mountApp()
 
