@@ -44,8 +44,6 @@ function resolveInitialLanguage(): Language {
 }
 
 const language = ref<Language>(resolveInitialLanguage())
-const range = ref<'24h' | '7d'>('7d')
-const measureTab = ref<'feeds' | 'weights'>('feeds')
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
 
