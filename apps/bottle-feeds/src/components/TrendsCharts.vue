@@ -306,7 +306,7 @@ const rollingIntakePolyline = computed(() =>
               :key="weight.id"
               :cx="weightPosition(weight, 'x')"
               :cy="weightPosition(weight, 'y')"
-              r="2.4"
+              r="1.2"
             />
           </svg>
           <div class="weight-range">
@@ -338,7 +338,6 @@ const rollingIntakePolyline = computed(() =>
             <template v-for="(point, i) in rollingIntakePoints" :key="i">
               <circle
                 v-if="point.amount > 0"
-                r="3"
                 :cx="rollingIntakeX(i)"
                 :cy="rollingIntakeY(point.amount)"
               />
