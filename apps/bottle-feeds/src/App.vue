@@ -215,9 +215,10 @@ function defaultToRecentEntryDate() {
   )
   if (!latestEntry) return
 
-  const duration = latestEntry.updatedAt + LATEST_ENTRY_DATE_DURATION - Date.now()
-  if (duration <= 0) return
-  applyEntryDateWithReset(latestEntry.entry.occurredAt, duration)
+  const expiresAt = latestEntry.updatedAt + LATEST_ENTRY_DATE_DURATION
+  const now = Date.now()
+  if (expiresAt <= now) return
+  applyEntryDateWithReset(latestEntry.entry.occurredAt, expiresAt - now)
 }
 
 function addFeed() {
