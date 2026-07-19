@@ -53,7 +53,10 @@ const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 const language = ref<Language>(
   (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
 )
-const range = ref<'24h' | '7d'>('7d')
+type TrendRange = '24h' | '7d' | 'all' | 'custom'
+
+const range = ref<TrendRange>('7d')
+const customRange = reactive({ start: '', end: '' })
 const measureTab = ref<'feeds' | 'weights'>('feeds')
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
@@ -348,10 +351,47 @@ function shortDay(date: Date) {
   return new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(date)
 }
 
+function chartDayLabel(date: Date) {
+  return new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short' }).format(date)
+}
+
 interface ChartPoint {
   label: string
   amount: number
 }
+
+const chartPeriod = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (range.value === '7d') {
+    const start = new Date(today)
+    start.setDate(start.getDate() - 6)
+    const end = new Date(today)
+    end.setDate(end.getDate() + 1)
+    return { start, end }
+  }
+
+  if (range.value === 'custom') {
+    let start = customRange.start ? new Date(`${customRange.start}T00:00`) : null
+    let end = customRange.end ? new Date(`${customRange.end}T00:00`) : null
+    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
+    if (start > end) [start, end] = [end, start]
+    end.setDate(end.getDate() + 1)
+    return { start, end }
+  }
+
+  const earliestRecord = [...activeFeeds.value, ...activeWeights.value]
+    .map((record) => Date.parse(record.occurredAt))
+    .filter(Number.isFinite)
+    .reduce((earliest, time) => Math.min(earliest, time), Infinity)
+  if (!Number.isFinite(earliestRecord)) return null
+  const start = new Date(earliestRecord)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(today)
+  end.setDate(end.getDate() + 1)
+  return { start, end }
+})
 
 const intakePoints = computed<ChartPoint[]>(() => {
   if (range.value === '24h') {
@@ -370,22 +410,23 @@ const intakePoints = computed<ChartPoint[]>(() => {
     })
   }
 
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date()
-    date.setHours(0, 0, 0, 0)
-    date.setDate(date.getDate() - (6 - index))
+  const period = chartPeriod.value
+  if (!period) return []
+  const points: ChartPoint[] = []
+  for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
     const next = new Date(date)
     next.setDate(next.getDate() + 1)
-    return {
-      label: shortDay(date),
+    points.push({
+      label: range.value === '7d' ? shortDay(date) : chartDayLabel(date),
       amount: activeFeeds.value
         .filter((feed) => {
           const time = Date.parse(feed.occurredAt)
           return time >= date.getTime() && time < next.getTime()
         })
         .reduce((total, feed) => total + feed.amount, 0),
-    }
-  })
+    })
+  }
+  return points
 })
 
 const intakeMax = computed(() =>
@@ -393,9 +434,14 @@ const intakeMax = computed(() =>
 )
 
 const visibleWeights = computed(() => {
-  const cutoff = Date.now() - (range.value === '24h' ? 24 : 7 * 24) * 60 * 60 * 1000
+  const period = chartPeriod.value
+  const cutoff = range.value === '24h' ? Date.now() - 24 * 60 * 60 * 1000 : period?.start.getTime()
+  const end = period?.end.getTime()
   return [...activeWeights.value]
-    .filter((weight) => Date.parse(weight.occurredAt) >= cutoff)
+    .filter((weight) => {
+      const time = Date.parse(weight.occurredAt)
+      return cutoff !== undefined && time >= cutoff && (end === undefined || time < end)
+    })
     .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
 })
 
@@ -837,7 +883,23 @@ const syncLabel = computed(() => {
             <button type="button" :class="{ active: range === '7d' }" @click="range = '7d'">
               {{ t.sevenDays }}
             </button>
+            <button type="button" :class="{ active: range === 'all' }" @click="range = 'all'">
+              {{ t.allTime }}
+            </button>
+            <button type="button" :class="{ active: range === 'custom' }" @click="range = 'custom'">
+              {{ t.customRange }}
+            </button>
           </div>
+        </div>
+        <div v-if="range === 'custom'" class="custom-range">
+          <label>
+            {{ t.startDate }}
+            <input v-model="customRange.start" type="date" :max="customRange.end || undefined" />
+          </label>
+          <label>
+            {{ t.endDate }}
+            <input v-model="customRange.end" type="date" :min="customRange.start || undefined" />
+          </label>
         </div>
 
         <div class="charts-grid">

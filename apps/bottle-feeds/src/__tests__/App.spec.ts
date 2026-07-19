@@ -160,4 +160,26 @@ describe('App', () => {
     // Value labels and hour labels are rendered in .rolling-intake-col children
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(7)
   })
+
+  it('shows older bottles when all-time trends are selected', async () => {
+    const preloaded: AppData = {
+      feeds: [
+        {
+          id: 'older-feed',
+          amount: 120,
+          occurredAt: '2026-01-01T12:00:00.000Z',
+          comment: '',
+          updatedAt: '2026-01-01T12:00:00.000Z',
+        },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    expect(wrapper.find('.bar-value').exists()).toBe(false)
+    await wrapper.get('.range-toggle button:nth-child(3)').trigger('click')
+
+    expect(wrapper.find('.bar-value').text()).toBe('120')
+  })
 })
