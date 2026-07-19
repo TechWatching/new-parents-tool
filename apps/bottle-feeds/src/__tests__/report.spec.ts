@@ -87,7 +87,7 @@ describe('report logic', () => {
     ).toEqual(['dateOrder'])
   })
 
-  it('filters and summarizes the selected period chronologically', () => {
+  it('filters and summarizes the selected period with newest entries first', () => {
     const snapshot = createReportSnapshot(
       feeds,
       weights,
@@ -102,7 +102,8 @@ describe('report logic', () => {
       new Date('2026-07-19T10:15:00.000Z'),
     )
 
-    expect(snapshot.feeds.map((feed) => feed.id)).toEqual(['feed-recent', 'feed-latest'])
+    expect(snapshot.feeds.map((feed) => feed.id)).toEqual(['feed-latest', 'feed-recent'])
+    expect(snapshot.weights.map((weight) => weight.id)).toEqual(['weight-latest'])
     expect(snapshot.feedSummary).toEqual({ count: 2, totalAmount: 210, averageAmount: 105 })
     expect(snapshot.latestWeight?.id).toBe('weight-latest')
   })
@@ -122,7 +123,7 @@ describe('report logic', () => {
       new Date('2026-07-19T10:15:00.000Z'),
     )
 
-    expect(snapshot.feeds.map((feed) => feed.id)).toEqual(['feed-older', 'feed-recent'])
+    expect(snapshot.feeds.map((feed) => feed.id)).toEqual(['feed-recent', 'feed-older'])
     expect(snapshot.weights).toEqual([])
     expect(snapshot.config.includeComments).toBe(false)
   })

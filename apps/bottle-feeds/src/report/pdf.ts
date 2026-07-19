@@ -4,7 +4,9 @@ import type { ReportSnapshot } from './logic'
 
 const PAGE_MARGIN = 40
 const PAGE_FOOTER = 28
-const TABLE_MARGIN_BOTTOM = 36
+const TABLE_BOTTOM_MARGIN = 36
+const META_VALUE_OFFSET = 14
+const META_LINE_HEIGHT = 13
 
 type AutoTableDoc = {
   lastAutoTable?: {
@@ -45,6 +47,36 @@ function coveredRangeLabel(snapshot: ReportSnapshot, t: Messages, locale: string
 
   if (!snapshot.period.startAt || !snapshot.period.endAt) return t.reportAllRecordedData
   return `${formatDateTime(snapshot.period.startAt, locale)} → ${formatDateTime(snapshot.period.endAt, locale)}`
+}
+
+function drawMetadataBlock(
+  doc: {
+    setFont: (fontName: string, fontStyle?: string) => void
+    setFontSize: (size: number) => void
+    setTextColor: (r: number, g: number, b: number) => void
+    text: (text: string | string[], x: number, y: number, options?: { maxWidth?: number }) => void
+    splitTextToSize: (text: string, size: number) => string[]
+  },
+  label: string,
+  value: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+) {
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(84, 96, 92)
+  doc.text(label, x, y)
+
+  const lines = doc.splitTextToSize(value, maxWidth)
+  const valueY = y + META_VALUE_OFFSET
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+  doc.setTextColor(36, 51, 47)
+  doc.text(lines, x, valueY)
+
+  return valueY + (lines.length - 1) * META_LINE_HEIGHT
 }
 
 function addFooter(
@@ -88,14 +120,22 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   cursorY += 24
 
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(11)
-  doc.setTextColor(84, 96, 92)
-  doc.text(`${t.reportCoveredRange}: ${coveredRangeLabel(snapshot, t, locale)}`, PAGE_MARGIN, cursorY, {
-    maxWidth: pageWidth - PAGE_MARGIN * 2,
-  })
-  cursorY += 16
-  doc.text(`${t.reportGeneratedAt}: ${formatDateTime(snapshot.generatedAt, locale)}`, PAGE_MARGIN, cursorY)
-  cursorY += 22
+  cursorY = drawMetadataBlock(
+    doc,
+    t.reportCoveredRange,
+    coveredRangeLabel(snapshot, t, locale),
+    PAGE_MARGIN,
+    cursorY,
+    pageWidth - PAGE_MARGIN * 2,
+  ) + 10
+  cursorY = drawMetadataBlock(
+    doc,
+    t.reportGeneratedAt,
+    formatDateTime(snapshot.generatedAt, locale),
+    PAGE_MARGIN,
+    cursorY,
+    pageWidth - PAGE_MARGIN * 2,
+  ) + 18
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(13)
@@ -125,7 +165,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   autoTable(doc, {
     startY: cursorY,
     theme: 'grid',
-    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_MARGIN_BOTTOM },
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_BOTTOM_MARGIN },
     body: summaryRows,
     styles: {
       fontSize: 10,
@@ -153,7 +193,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       autoTable(doc, {
         startY: cursorY,
         theme: 'grid',
-        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_MARGIN_BOTTOM },
+        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_BOTTOM_MARGIN },
         head: [[t.reportDateTime, t.amount, ...(showComments ? [t.comment] : [])]],
         body: snapshot.feeds.map((feed) => [
           formatDateTime(feed.occurredAt, locale),
@@ -185,7 +225,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       autoTable(doc, {
         startY: cursorY,
         theme: 'grid',
-        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_MARGIN_BOTTOM },
+        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_BOTTOM_MARGIN },
         head: [[t.reportDateTime, t.weight]],
         body: snapshot.weights.map((weight) => [
           formatDateTime(weight.occurredAt, locale),

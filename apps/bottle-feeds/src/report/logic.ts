@@ -115,8 +115,8 @@ function isWithinPeriod(occurredAt: string, period: ReportPeriod) {
   return true
 }
 
-function sortChronologically<T extends { occurredAt: string }>(items: T[]) {
-  return [...items].sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt))
+function sortByOccurredAtDescending<T extends { occurredAt: string }>(items: T[]) {
+  return [...items].sort((left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt))
 }
 
 export function createReportSnapshot(
@@ -126,9 +126,11 @@ export function createReportSnapshot(
   generatedAt = new Date(),
 ): ReportSnapshot {
   const period = resolveReportPeriod(config, generatedAt)
-  const selectedFeeds = config.includeFeeds ? sortChronologically(feeds.filter((feed) => isWithinPeriod(feed.occurredAt, period))) : []
+  const selectedFeeds = config.includeFeeds
+    ? sortByOccurredAtDescending(feeds.filter((feed) => isWithinPeriod(feed.occurredAt, period)))
+    : []
   const selectedWeights = config.includeWeights
-    ? sortChronologically(weights.filter((weight) => isWithinPeriod(weight.occurredAt, period)))
+    ? sortByOccurredAtDescending(weights.filter((weight) => isWithinPeriod(weight.occurredAt, period)))
     : []
 
   const count = selectedFeeds.length
@@ -145,7 +147,7 @@ export function createReportSnapshot(
       totalAmount,
       averageAmount: count > 0 ? totalAmount / count : null,
     },
-    latestWeight: selectedWeights.at(-1) ?? null,
+    latestWeight: selectedWeights[0] ?? null,
   }
 }
 
