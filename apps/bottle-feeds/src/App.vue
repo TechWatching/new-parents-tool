@@ -399,10 +399,10 @@ const weightPolyline = computed(() =>
 )
 
 // ---------------------------------------------------------------------------
-// Rolling 24-hour intake chart
+// Rolling intake chart (7 × 4-hour windows = last 28 hours)
 // ---------------------------------------------------------------------------
 
-const rolling24hPoints = computed<ChartPoint[]>(() =>
+const rollingIntakePoints = computed<ChartPoint[]>(() =>
   Array.from({ length: 7 }, (_, index) => {
     const end = Date.now() - (6 - index) * 4 * 60 * 60 * 1000
     const start = end - 4 * 60 * 60 * 1000
@@ -418,15 +418,15 @@ const rolling24hPoints = computed<ChartPoint[]>(() =>
   }),
 )
 
-const rolling24hMax = computed(() =>
-  Math.max(...rolling24hPoints.value.map((p) => p.amount), 1),
+const rollingIntakeMax = computed(() =>
+  Math.max(...rollingIntakePoints.value.map((p) => p.amount), 1),
 )
 
-const rolling24hPolyline = computed(() =>
-  rolling24hPoints.value
+const rollingIntakePolyline = computed(() =>
+  rollingIntakePoints.value
     .map((point, i) => ({ point, i }))
     .filter(({ point }) => point.amount > 0)
-    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rolling24hMax.value) * 76}`)
+    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
     .join(' '),
 )
 
@@ -856,20 +856,20 @@ const syncLabel = computed(() => {
           </article>
           <article v-if="range === '7d'" class="full-width">
             <h3>{{ t.rollingIntake }}</h3>
-            <div v-if="rolling24hPoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
+            <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
               <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
-                <polyline v-if="rolling24hPolyline" :points="rolling24hPolyline" />
-                <template v-for="(point, i) in rolling24hPoints" :key="i">
+                <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
+                <template v-for="(point, i) in rollingIntakePoints" :key="i">
                   <circle
                     v-if="point.amount > 0"
                     r="3"
                     :cx="15 + (i / 6) * 270"
-                    :cy="88 - (point.amount / rolling24hMax) * 76"
+                    :cy="88 - (point.amount / rollingIntakeMax) * 76"
                   />
                 </template>
               </svg>
               <div class="rolling-intake-labels">
-                <div v-for="(point, i) in rolling24hPoints" :key="i" class="rolling-intake-col">
+                <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col">
                   <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
                   <span>{{ point.label }}</span>
                 </div>
