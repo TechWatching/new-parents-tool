@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
-import Root from '../Root.vue'
+import AppRoot from '../AppRoot.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
 
@@ -33,7 +33,7 @@ describe('App', () => {
   })
 
   const mountApp = async () => {
-    wrapper = mount(Root, {
+    wrapper = mount(AppRoot, {
       attachTo: document.body,
       global: {
         plugins: [
