@@ -203,8 +203,8 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
-    for (const picker of wrapper.findAllComponents(UInputDate)) {
-      expect(picker.props('locale')).toBe('fr-FR')
+    for (const picker of wrapper.findAllComponents(UInputDate) as unknown as VueWrapper[]) {
+      expect(picker.props()).toMatchObject({ locale: 'fr-FR' })
     }
     const uiApp = wrapper.findComponent(UApp) as unknown as VueWrapper
     expect(uiApp.props()).toMatchObject({ locale: { code: 'fr' } })

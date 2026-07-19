@@ -7,11 +7,6 @@ import { nextTick } from 'vue'
 export const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 export const LATEST_ENTRY_DATE_DURATION = 5 * 60 * 1000
 
-export function showDatePicker(event: MouseEvent) {
-  const input = event.currentTarget as HTMLInputElement
-  input.showPicker?.()
-}
-
 /** Masks free-form digit input into a `HH:MM` shape as the user types. */
 export function maskTimeValue(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 4)

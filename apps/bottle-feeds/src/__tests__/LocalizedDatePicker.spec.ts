@@ -1,5 +1,5 @@
 import { expect, it } from 'vite-plus/test'
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, type VueWrapper } from '@vue/test-utils'
 import UCalendar from '@nuxt/ui/components/Calendar.vue'
 import UInputDate from '@nuxt/ui/components/InputDate.vue'
 
@@ -20,6 +20,8 @@ it('passes the selected locale to the date field and calendar', () => {
     },
   })
 
-  expect(wrapper.findComponent(UInputDate).props('locale')).toBe('fr-FR')
-  expect(wrapper.findComponent(UCalendar).props('locale')).toBe('fr-FR')
+  const dateInput = wrapper.findComponent(UInputDate) as unknown as VueWrapper
+  const calendar = wrapper.findComponent(UCalendar) as unknown as VueWrapper
+  expect(dateInput.props()).toMatchObject({ locale: 'fr-FR' })
+  expect(calendar.props()).toMatchObject({ locale: 'fr-FR' })
 })
