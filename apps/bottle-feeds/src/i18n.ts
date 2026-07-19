@@ -15,9 +15,11 @@ export const messages = {
     comment: 'Comment (optional)',
     commentPlaceholder: 'e.g. Drank slowly',
     saveFeed: 'Save bottle',
+    feedAdded: 'Bottle recorded',
     addWeight: 'Record a weight',
     weight: 'Weight (kg)',
     saveWeight: 'Save weight',
+    weightAdded: 'Weight recorded',
     today: 'Last 24 hours',
     bottles: 'bottles',
     total: 'Total consumed',
@@ -94,9 +96,11 @@ export const messages = {
     comment: 'Commentaire (facultatif)',
     commentPlaceholder: 'ex. A bu lentement',
     saveFeed: 'Enregistrer',
+    feedAdded: 'Biberon enregistré',
     addWeight: 'Noter un poids',
     weight: 'Poids (kg)',
     saveWeight: 'Enregistrer le poids',
+    weightAdded: 'Poids enregistré',
     today: 'Dernières 24 heures',
     bottles: 'biberons',
     total: 'Total consommé',
@@ -160,3 +164,6 @@ export const messages = {
     loading: 'Chargement…',
   },
 } as const
+
+/** Shape of a single language's translation table, used by presentational components. */
+export type Messages = { [K in keyof typeof messages.en]: string }

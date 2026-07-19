@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
-import App from '../App.vue'
+import AppRoot from '../AppRoot.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
+import { dateTimeForInput, LATEST_ENTRY_DATE_DURATION } from '../utils/time'
 
 // Silence storage-related console warnings in tests
 beforeEach(() => {
@@ -17,6 +19,8 @@ afterEach(() => {
 })
 
 describe('App', () => {
+  let wrapper: ReturnType<typeof mount> | null = null
+
   beforeEach(() => {
     _setTestDriver(memoryDriver())
     localStorage.clear()
@@ -24,11 +28,15 @@ describe('App', () => {
   })
 
   afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
     _setTestDriver(null)
+    document.body.innerHTML = ''
   })
 
   const mountApp = async () => {
-    const wrapper = mount(App, {
+    wrapper = mount(AppRoot, {
+      attachTo: document.body,
       global: {
         plugins: [
           createRouter({
@@ -62,6 +70,110 @@ describe('App', () => {
     })
   })
 
+  it('keeps the latest entry date as the default for five minutes', async () => {
+    const wrapper = await mountApp()
+    vi.useFakeTimers()
+    try {
+      await wrapper.get('.feed-card input[type="number"]').setValue('120')
+      await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+      await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+      await wrapper.get('.feed-card').trigger('submit')
+      await nextTick()
+
+      expect(wrapper.text()).toContain('120 ml')
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      }
+
+      await vi.advanceTimersByTimeAsync(LATEST_ENTRY_DATE_DURATION)
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('restores the latest entry date on reload while its five-minute window is still active', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-recent',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T09:58:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      }
+
+      await vi.advanceTimersByTimeAsync(3 * 60 * 1000)
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not restore stale entry dates on reload after the five-minute window expires', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-stale',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T09:54:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows a confirmation notification after recording a bottle', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.feed-card input[type="number"]').setValue('120')
+    await wrapper.get('.feed-card').trigger('submit')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Bottle recorded')
+  })
+
+  it('shows a confirmation notification after recording a weight', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
+    await wrapper.get('.weight-card').trigger('submit')
+    await flushPromises()
+    expect(document.body.textContent).toContain('Weight recorded')
+  })
+
   it('calculates the daily estimate from the latest weight', async () => {
     const wrapper = await mountApp()
 
@@ -79,6 +191,36 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('defaults to French when browser language is French', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['fr-CA'])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-CA')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('falls back to navigator.language when preferred languages are empty', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('prefers saved language over browser language', async () => {
+    localStorage.setItem('new-parents-tool:language', 'en')
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Record a bottle')
+    expect(document.documentElement.lang).toBe('en')
   })
 
   it('auto-inserts the colon once minutes start for 24-hour time inputs', async () => {
@@ -157,8 +299,7 @@ describe('App', () => {
     expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
-    // Value labels and hour labels are rendered in .rolling-intake-col children
-    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(7)
+    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 
   it('shows older bottles when all-time trends are selected', async () => {
