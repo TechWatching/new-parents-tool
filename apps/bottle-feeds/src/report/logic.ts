@@ -228,8 +228,6 @@ export function createReportFeedChartPoints(snapshot: ReportSnapshot, locale: st
       endExclusive.setDate(endExclusive.getDate() + 1)
       break
     }
-    case '24h':
-      return []
   }
 
   const points: ReportFeedChartPoint[] = []
