@@ -12,6 +12,13 @@ export function formatDate(value: string, locale: string) {
   }).format(new Date(value))
 }
 
+export function formatDateOnly(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(value))
+}
+
 export function shortDay(date: Date, locale: string) {
   return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date)
 }

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
-import { formatDate } from '../utils/format'
+import { formatDateOnly } from '../utils/format'
 
 const props = defineProps<{
   feeds: Feed[]
@@ -34,7 +34,7 @@ const total24h = computed(() => feeds24h.value.reduce((total, feed) => total + f
     <article class="metric-card">
       <span>{{ t.latestWeight }}</span>
       <strong>{{ latestWeight ? latestWeight.kilograms.toLocaleString(locale) : '—' }} <small>{{ t.kg }}</small></strong>
-      <small v-if="latestWeight">{{ formatDate(latestWeight.occurredAt, locale) }}</small>
+      <small v-if="latestWeight">{{ formatDateOnly(latestWeight.occurredAt, locale) }}</small>
     </article>
     <article class="metric-card guide-card">
       <span>{{ t.dailyGuide }}</span>

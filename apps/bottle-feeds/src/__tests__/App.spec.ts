@@ -174,12 +174,17 @@ describe('App', () => {
 
     await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
     await wrapper.get('.weight-card input[type="date"]').setValue('2026-07-14')
-    await wrapper.get('.weight-card input[inputmode="numeric"]').setValue('14:30')
     await wrapper.get('.weight-card').trigger('submit')
     await flushPromises()
     expect(document.body.textContent).toContain('Weight recorded')
     expect(document.body.textContent).toContain('4.2 kg')
-    expect(document.body.textContent).toContain('14 Jul, 14:30')
+    expect(document.body.textContent).toContain('14 Jul')
+    expect(wrapper.find('.weight-card input[inputmode="numeric"]').exists()).toBe(false)
+
+    const stored = await loadData(GUEST_NAMESPACE)
+    expect(stored.weights[0]).toMatchObject({
+      occurredAt: new Date('2026-07-14T00:00').toISOString(),
+    })
   })
 
   it('calculates the daily estimate from the latest weight', async () => {

@@ -1,22 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { Messages } from '../i18n'
-import { maskTimeValue, timePattern } from '../utils/time'
 
 defineProps<{ t: Messages }>()
 const emit = defineEmits<{ submit: [] }>()
 
 const kilograms = defineModel<string>('kilograms', { required: true })
 const date = defineModel<string>('date', { required: true })
-const time = defineModel<string>('time', { required: true })
-
-// Masks free-form digits into `HH:MM` as the user types, without mutating props directly.
-const maskedTime = computed({
-  get: () => time.value,
-  set: (value: string) => {
-    time.value = maskTimeValue(value)
-  },
-})
 </script>
 
 <template>
@@ -32,18 +21,6 @@ const maskedTime = computed({
     <label>
       {{ t.date }}
       <input v-model="date" type="date" required />
-    </label>
-    <label>
-      {{ t.time }}
-      <input
-        v-model="maskedTime"
-        type="text"
-        inputmode="numeric"
-        :pattern="timePattern.source"
-        placeholder="14:30"
-        maxlength="5"
-        required
-      />
     </label>
     <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
   </form>

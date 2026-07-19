@@ -19,8 +19,15 @@ import {
 import { syncNow, onLocalMutation, syncStatus, syncError, lastSyncedAt } from './sync'
 import { mergeAppData } from './merge'
 import type { AppData, Feed, Weight } from './types'
-import { dateTimeForInput, dateTimeFromOccurredAt, LATEST_ENTRY_DATE_DURATION, occurredAt } from './utils/time'
-import { formatDate } from './utils/format'
+import {
+  dateFromOccurredAt,
+  dateOnlyOccurredAt,
+  dateTimeForInput,
+  dateTimeFromOccurredAt,
+  LATEST_ENTRY_DATE_DURATION,
+  occurredAt,
+} from './utils/time'
+import { formatDate, formatDateOnly } from './utils/format'
 import FeedForm from './components/FeedForm.vue'
 import WeightForm from './components/WeightForm.vue'
 import SummaryMetrics from './components/SummaryMetrics.vue'
@@ -47,7 +54,7 @@ function resolveInitialLanguage(): Language {
 
 const language = ref<Language>(resolveInitialLanguage())
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
-const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
+const weightForm = reactive({ kilograms: '', date: dateTimeForInput().date })
 const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
 
 // Auth form
@@ -196,7 +203,7 @@ function makeId() {
 function defaultToCurrentDateTime() {
   const currentDateTime = dateTimeForInput()
   Object.assign(feedForm, currentDateTime)
-  Object.assign(weightForm, currentDateTime)
+  weightForm.date = currentDateTime.date
 }
 
 const { start: startEntryDateTimeout, stop: stopEntryDateTimeout } = useTimeoutFn(
@@ -251,7 +258,7 @@ function addFeed() {
 
 function addWeight() {
   const kilograms = Number(weightForm.kilograms)
-  const recordedAt = occurredAt(weightForm.date, weightForm.time)
+  const recordedAt = dateOnlyOccurredAt(weightForm.date)
   if (!kilograms || kilograms <= 0 || !recordedAt) return
   const now = new Date().toISOString()
   data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
@@ -259,7 +266,7 @@ function addWeight() {
   applyEntryDateWithReset(recordedAt)
   toast.add({
     title: t.value.weightAdded,
-    description: `${kilograms.toLocaleString(locale.value)} ${t.value.kg} · ${formatDate(recordedAt, locale.value)}`,
+    description: `${kilograms.toLocaleString(locale.value)} ${t.value.kg} · ${formatDateOnly(recordedAt, locale.value)}`,
     color: 'success',
   })
 }
@@ -316,7 +323,7 @@ const sortedFeeds = computed(() =>
   [...activeFeeds.value].sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt)),
 )
 const sortedWeights = computed(() =>
-  [...activeWeights.value].sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt)),
+  [...activeWeights.value].sort((a, b) => dateFromOccurredAt(b.occurredAt).localeCompare(dateFromOccurredAt(a.occurredAt))),
 )
 const latestWeight = computed(() => sortedWeights.value[0])
 const dailyGuide = computed(() =>
@@ -583,7 +590,6 @@ const syncLabel = computed(() => {
         <WeightForm
           v-model:kilograms="weightForm.kilograms"
           v-model:date="weightForm.date"
-          v-model:time="weightForm.time"
           :t="t"
           @submit="addWeight"
         />
