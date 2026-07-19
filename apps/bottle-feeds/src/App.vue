@@ -50,9 +50,15 @@ const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 
-const language = ref<Language>(
-  (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
-)
+function resolveInitialLanguage(): Language {
+  const stored = localStorage.getItem('new-parents-tool:language')
+  if (stored === 'en' || stored === 'fr') return stored
+  const browserLanguage =
+    (typeof navigator !== 'undefined' && (navigator.languages?.[0] || navigator.language)) || 'en'
+  return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+}
+
+const language = ref<Language>(resolveInitialLanguage())
 const range = ref<'24h' | '7d'>('7d')
 const measureTab = ref<'feeds' | 'weights'>('feeds')
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
