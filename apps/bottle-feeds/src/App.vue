@@ -35,30 +35,6 @@ const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 
-<<<<<<< HEAD
-const language = ref<Language>(
-  (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
-)
-type TrendRange = '24h' | '7d' | 'all' | 'custom'
-
-const range = ref<TrendRange>('7d')
-const customRange = reactive({ start: '', end: '' })
-const measureTab = ref<'feeds' | 'weights'>('feeds')
-const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
-const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
-const editingFeedId = ref<string | null>(null)
-const editingWeightId = ref<string | null>(null)
-const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
-const editingWeight = reactive({ kilograms: '', date: '', time: '' })
-
-function timeModel(form: { time: string }) {
-  return computed({
-    get: () => form.time,
-    set: (value: string) => {
-      form.time = maskTimeValue(value)
-    },
-  })
-=======
 function resolveInitialLanguage(): Language {
   const stored = localStorage.getItem('new-parents-tool:language')
   if (stored === 'en' || stored === 'fr') return stored
@@ -67,7 +43,6 @@ function resolveInitialLanguage(): Language {
       ? navigator.languages[0]
       : navigator.language ?? 'en'
   return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
->>>>>>> origin/main
 }
 
 const language = ref<Language>(resolveInitialLanguage())
@@ -340,175 +315,7 @@ const dailyGuide = computed(() =>
   latestWeight.value ? Math.round((latestWeight.value.kilograms * 1000) / 10 + 200) : null,
 )
 
-<<<<<<< HEAD
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(locale.value, {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
-}
 
-function shortDay(date: Date) {
-  return new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(date)
-}
-
-function chartDayLabel(date: Date) {
-  return new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short' }).format(date)
-}
-
-interface ChartPoint {
-  label: string
-  amount: number
-}
-
-const chartPeriod = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  if (range.value === '7d') {
-    const start = new Date(today)
-    start.setDate(start.getDate() - 6)
-    const end = new Date(today)
-    end.setDate(end.getDate() + 1)
-    return { start, end }
-  }
-
-  if (range.value === 'custom') {
-    let start = customRange.start ? new Date(`${customRange.start}T00:00`) : null
-    let end = customRange.end ? new Date(`${customRange.end}T00:00`) : null
-    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
-    if (start > end) [start, end] = [end, start]
-    end.setDate(end.getDate() + 1)
-    return { start, end }
-  }
-
-  const earliestRecord = [...activeFeeds.value, ...activeWeights.value]
-    .map((record) => Date.parse(record.occurredAt))
-    .filter(Number.isFinite)
-    .reduce((earliest, time) => Math.min(earliest, time), Infinity)
-  if (!Number.isFinite(earliestRecord)) return null
-  const start = new Date(earliestRecord)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(today)
-  end.setDate(end.getDate() + 1)
-  return { start, end }
-})
-
-const intakePoints = computed<ChartPoint[]>(() => {
-  if (range.value === '24h') {
-    return Array.from({ length: 6 }, (_, index) => {
-      const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
-      const start = end - 4 * 60 * 60 * 1000
-      return {
-        label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
-        amount: activeFeeds.value
-          .filter((feed) => {
-            const time = Date.parse(feed.occurredAt)
-            return time > start && time <= end
-          })
-          .reduce((total, feed) => total + feed.amount, 0),
-      }
-    })
-  }
-
-  const period = chartPeriod.value
-  if (!period) return []
-  const points: ChartPoint[] = []
-  for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    points.push({
-      label: range.value === '7d' ? shortDay(date) : chartDayLabel(date),
-      amount: activeFeeds.value
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time >= date.getTime() && time < next.getTime()
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
-    })
-  }
-  return points
-})
-
-const intakeMax = computed(() =>
-  Math.max(...intakePoints.value.map((point) => point.amount), dailyGuide.value || 0, 1),
-)
-
-const visibleWeights = computed(() => {
-  const period = chartPeriod.value
-  const cutoff = range.value === '24h' ? Date.now() - 24 * 60 * 60 * 1000 : period?.start.getTime()
-  const end = period?.end.getTime()
-  return [...activeWeights.value]
-    .filter((weight) => {
-      const time = Date.parse(weight.occurredAt)
-      return cutoff !== undefined && time >= cutoff && (end === undefined || time < end)
-    })
-    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
-})
-
-function weightPosition(weight: Weight, axis: 'x' | 'y') {
-  const points = visibleWeights.value
-  if (axis === 'x') {
-    if (points.length <= 1) return 50
-    return 6 + (points.indexOf(weight) / (points.length - 1)) * 88
-  }
-  const values = points.map((point) => point.kilograms)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  if (min === max) return 50
-  return 88 - ((weight.kilograms - min) / (max - min)) * 76
-}
-
-const weightPolyline = computed(() =>
-  visibleWeights.value
-    .map((weight) => `${weightPosition(weight, 'x')},${weightPosition(weight, 'y')}`)
-    .join(' '),
-)
-
-// ---------------------------------------------------------------------------
-// Rolling intake chart (7 × 4-hour windows = last 28 hours)
-// ---------------------------------------------------------------------------
-
-const rollingIntakePoints = computed<ChartPoint[]>(() =>
-  Array.from({ length: 7 }, (_, index) => {
-    const end = Date.now() - (6 - index) * 4 * 60 * 60 * 1000
-    const start = end - 4 * 60 * 60 * 1000
-    return {
-      label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
-      amount: activeFeeds.value
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time > start && time <= end
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
-    }
-  }),
-)
-
-const rollingIntakeCumulativePoints = computed<ChartPoint[]>(() => {
-  let running = 0
-  return rollingIntakePoints.value.map((p) => {
-    running += p.amount
-    return { label: p.label, amount: running }
-  })
-})
-
-const rollingIntakeMax = computed(() =>
-  Math.max(...rollingIntakeCumulativePoints.value.map((p) => p.amount), 1),
-)
-
-const rollingIntakePolyline = computed(() =>
-  rollingIntakeCumulativePoints.value
-    .map((point, i) => ({ point, i }))
-    .filter(({ point }) => point.amount > 0)
-    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
-    .join(' '),
-)
-
-=======
->>>>>>> origin/main
 // ---------------------------------------------------------------------------
 // Export / Import
 // ---------------------------------------------------------------------------
@@ -784,39 +591,6 @@ const syncLabel = computed(() => {
 
       <p class="disclaimer">{{ t.disclaimer }}</p>
 
-<<<<<<< HEAD
-      <section class="card trends">
-        <div class="trends-header">
-          <div class="section-heading">
-            <span class="icon blue" aria-hidden="true">⌁</span>
-            <h2>{{ t.overview }}</h2>
-          </div>
-          <div class="range-toggle">
-            <button type="button" :class="{ active: range === '24h' }" @click="range = '24h'">
-              {{ t.twentyFourHours }}
-            </button>
-            <button type="button" :class="{ active: range === '7d' }" @click="range = '7d'">
-              {{ t.sevenDays }}
-            </button>
-            <button type="button" :class="{ active: range === 'all' }" @click="range = 'all'">
-              {{ t.allTime }}
-            </button>
-            <button type="button" :class="{ active: range === 'custom' }" @click="range = 'custom'">
-              {{ t.customRange }}
-            </button>
-          </div>
-        </div>
-        <div v-if="range === 'custom'" class="custom-range">
-          <label>
-            {{ t.startDate }}
-            <input v-model="customRange.start" type="date" :max="customRange.end || undefined" />
-          </label>
-          <label>
-            {{ t.endDate }}
-            <input v-model="customRange.end" type="date" :min="customRange.start || undefined" />
-          </label>
-        </div>
-=======
       <TrendsCharts
         :feeds="activeFeeds"
         :weights="activeWeights"
@@ -824,7 +598,6 @@ const syncLabel = computed(() => {
         :t="t"
         :locale="locale"
       />
->>>>>>> origin/main
 
       <MeasureHistory
         :feeds="sortedFeeds"

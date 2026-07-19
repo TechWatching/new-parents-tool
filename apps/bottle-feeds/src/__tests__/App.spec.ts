@@ -319,7 +319,8 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     expect(wrapper.find('.bar-value').exists()).toBe(false)
-    await wrapper.get('.range-toggle button:nth-child(3)').trigger('click')
+    const allTimeBtn = wrapper.findAll('.range-toggle button').find((b) => b.text() === 'All time')
+    await allTimeBtn!.trigger('click')
 
     expect(wrapper.find('.bar-value').text()).toBe('120')
   })
