@@ -102,6 +102,34 @@ const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
 )
 
+const bottleCountPoints = computed<ChartPoint[]>(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const period =
+    range.value === '24h'
+      ? { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
+      : chartPeriod.value
+  if (!period) return []
+
+  const points: ChartPoint[] = []
+  let date = new Date(period.start)
+  while (date < period.end) {
+    const next = new Date(date)
+    next.setDate(next.getDate() + 1)
+    points.push({
+      label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
+      amount: props.feeds.filter((feed) => {
+        const time = Date.parse(feed.occurredAt)
+        return time >= date.getTime() && time < next.getTime()
+      }).length,
+    })
+    date = next
+  }
+  return points
+})
+
+const bottleCountMax = computed(() => Math.max(...bottleCountPoints.value.map((point) => point.amount), 1))
+
 const visibleWeights = computed(() => {
   if (range.value === '24h') {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000
@@ -253,6 +281,20 @@ const rollingIntakePolyline = computed(() =>
           </div>
         </div>
         <div v-else class="chart-empty">{{ t.noChartData }}</div>
+      </article>
+      <article>
+        <h3>{{ t.bottlesPerDay }}</h3>
+        <div class="bar-chart bottle-count-chart" role="img" :aria-label="t.bottlesPerDay">
+          <div v-for="point in bottleCountPoints" :key="point.label" class="bar-column">
+            <span v-if="point.amount" class="bar-value">{{ point.amount }}</span>
+            <i
+              :style="{
+                height: `${Math.max((point.amount / bottleCountMax) * 100, point.amount ? 4 : 0)}%`,
+              }"
+            ></i>
+            <small>{{ point.label }}</small>
+          </div>
+        </div>
       </article>
       <article v-if="range === '7d'" class="full-width">
         <h3>{{ t.rollingIntake }}</h3>
