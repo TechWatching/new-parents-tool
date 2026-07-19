@@ -220,6 +220,7 @@ const rollingIntakeMax = computed(() =>
 )
 
 function rollingIntakeX(index: number) {
+  // Guard against division by zero when there are 0 or 1 points.
   const denominator = Math.max(rollingIntakePoints.value.length - 1, 1)
   return 15 + (index / denominator) * 270
 }
