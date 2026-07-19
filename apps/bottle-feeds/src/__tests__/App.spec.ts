@@ -277,15 +277,11 @@ describe('App', () => {
 
     await wrapper.get('.feed-card .date-field-toggle').trigger('click')
     await flushPromises()
-    await new Promise((resolve) => setTimeout(resolve, 50))
-
-    expect(document.body.textContent).toContain('July 2026')
+    await vi.waitFor(() => expect(document.body.textContent).toContain('July 2026'))
 
     await wrapper.get('.language-button').trigger('click')
     await flushPromises()
-    await new Promise((resolve) => setTimeout(resolve, 50))
-
-    expect(document.body.textContent).toContain('juillet 2026')
+    await vi.waitFor(() => expect(document.body.textContent).toContain('juillet 2026'))
   })
 
   it('lists every measure in tabs and saves quick edits', async () => {
