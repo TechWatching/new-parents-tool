@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
-import App from '../App.vue'
+import AppRoot from '../AppRoot.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
 
@@ -17,6 +17,8 @@ afterEach(() => {
 })
 
 describe('App', () => {
+  let wrapper: ReturnType<typeof mount> | null = null
+
   beforeEach(() => {
     _setTestDriver(memoryDriver())
     localStorage.clear()
@@ -24,11 +26,15 @@ describe('App', () => {
   })
 
   afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
     _setTestDriver(null)
+    document.body.innerHTML = ''
   })
 
   const mountApp = async () => {
-    const wrapper = mount(App, {
+    wrapper = mount(AppRoot, {
+      attachTo: document.body,
       global: {
         plugins: [
           createRouter({
@@ -60,6 +66,26 @@ describe('App', () => {
     expect(stored.feeds[0]).toMatchObject({
       occurredAt: '2026-07-14T14:30:00.000Z',
     })
+  })
+
+  it('shows a confirmation notification after recording a bottle', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.feed-card input[type="number"]').setValue('120')
+    await wrapper.get('.feed-card').trigger('submit')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Bottle recorded')
+  })
+
+  it('shows a confirmation notification after recording a weight', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
+    await wrapper.get('.weight-card').trigger('submit')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Weight recorded')
   })
 
   it('calculates the daily estimate from the latest weight', async () => {

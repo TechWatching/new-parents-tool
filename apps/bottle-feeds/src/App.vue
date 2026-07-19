@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
+import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
 import { isSupabaseConfigured } from './supabase'
@@ -56,6 +57,8 @@ const importFileRef = ref<HTMLInputElement | null>(null)
 
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
+
+const toast = useToast()
 
 watch(
   language,
@@ -188,6 +191,7 @@ function addFeed() {
   feedForm.amount = ''
   feedForm.comment = ''
   Object.assign(feedForm, dateTimeForInput())
+  toast.add({ title: t.value.feedAdded, color: 'success' })
 }
 
 function addWeight() {
@@ -198,6 +202,7 @@ function addWeight() {
   data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
   weightForm.kilograms = ''
   Object.assign(weightForm, dateTimeForInput())
+  toast.add({ title: t.value.weightAdded, color: 'success' })
 }
 
 function saveFeed(payload: { id: string; amount: number; occurredAt: string; comment: string }) {
