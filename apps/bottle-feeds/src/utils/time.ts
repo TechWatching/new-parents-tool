@@ -58,9 +58,18 @@ export function occurredAt(date: string, time: string) {
   return Number.isNaN(value.getTime()) ? null : value.toISOString()
 }
 
+export function dateOnlyOccurredAt(date: string) {
+  const value = new Date(`${date}T00:00`)
+  return Number.isNaN(value.getTime()) ? null : value.toISOString()
+}
+
 export function dateTimeFromOccurredAt(value: string) {
   const date = new Date(value)
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
   const localValue = date.toISOString().slice(0, 16)
   return { date: localValue.slice(0, 10), time: localValue.slice(11) }
+}
+
+export function dateFromOccurredAt(value: string) {
+  return dateTimeFromOccurredAt(value).date
 }

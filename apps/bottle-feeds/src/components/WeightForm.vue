@@ -1,20 +1,11 @@
 <script setup lang="ts">
 import type { Messages } from '../i18n'
-import { maskTimeInput, timePattern } from '../utils/time'
 
 defineProps<{ t: Messages }>()
 const emit = defineEmits<{ submit: [] }>()
 
 const kilograms = defineModel<string>('kilograms', { required: true })
 const date = defineModel<string>('date', { required: true })
-const time = defineModel<string>('time', { required: true })
-
-// Masks free-form digits into `HH:MM` as the user types, keeping the caret in place.
-function onTimeInput(event: Event) {
-  maskTimeInput(event, (value) => {
-    time.value = value
-  })
-}
 </script>
 
 <template>
@@ -30,19 +21,6 @@ function onTimeInput(event: Event) {
     <label>
       {{ t.date }}
       <input v-model="date" type="date" required />
-    </label>
-    <label>
-      {{ t.time }}
-      <input
-        :value="time"
-        type="text"
-        inputmode="numeric"
-        :pattern="timePattern.source"
-        placeholder="14:30"
-        maxlength="5"
-        required
-        @input="onTimeInput"
-      />
     </label>
     <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
   </form>

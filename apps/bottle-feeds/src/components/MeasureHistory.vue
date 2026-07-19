@@ -4,8 +4,8 @@ import UButton from '@nuxt/ui/components/Button.vue'
 import UTabs from '@nuxt/ui/components/Tabs.vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
-import { formatDate } from '../utils/format'
-import { dateTimeFromOccurredAt, maskTimeInput, occurredAt, timePattern } from '../utils/time'
+import { formatDate, formatDateOnly } from '../utils/format'
+import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTimeInput, occurredAt, timePattern } from '../utils/time'
 
 defineProps<{
   feeds: Feed[]
@@ -31,7 +31,7 @@ const measureTab = ref<'feeds' | 'weights'>('feeds')
 const editingFeedId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeightId = ref<string | null>(null)
-const editingWeight = reactive({ kilograms: '', date: '', time: '' })
+const editingWeight = reactive({ kilograms: '', date: '' })
 
 function onTimeInput(form: { time: string }, event: Event) {
   maskTimeInput(event, (value) => {
@@ -42,11 +42,6 @@ function onTimeInput(form: { time: string }, event: Event) {
 function onEditingFeedTimeInput(event: Event) {
   onTimeInput(editingFeed, event)
 }
-
-function onEditingWeightTimeInput(event: Event) {
-  onTimeInput(editingWeight, event)
-}
-
 function editFeed(feed: Feed) {
   editingFeedId.value = feed.id
   Object.assign(editingFeed, {
@@ -68,13 +63,13 @@ function editWeight(weight: Weight) {
   editingWeightId.value = weight.id
   Object.assign(editingWeight, {
     kilograms: String(weight.kilograms),
-    ...dateTimeFromOccurredAt(weight.occurredAt),
+    date: dateFromOccurredAt(weight.occurredAt),
   })
 }
 
 function saveWeight(weight: Weight) {
   const kilograms = Number(editingWeight.kilograms)
-  const recordedAt = occurredAt(editingWeight.date, editingWeight.time)
+  const recordedAt = dateOnlyOccurredAt(editingWeight.date)
   if (!kilograms || kilograms <= 0 || !recordedAt) return
   emit('save-weight', { id: weight.id, kilograms, occurredAt: recordedAt })
   editingWeightId.value = null
@@ -165,20 +160,6 @@ function saveWeight(weight: Weight) {
                 {{ t.date }}
                 <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
               </label>
-              <label for="edit-weight-time">
-                {{ t.time }}
-                <input
-                  id="edit-weight-time"
-                  :value="editingWeight.time"
-                  type="text"
-                  inputmode="numeric"
-                  :pattern="timePattern.source"
-                  placeholder="14:30"
-                  maxlength="5"
-                  required
-                  @input="onEditingWeightTimeInput"
-                />
-              </label>
             </div>
             <div class="measure-actions">
               <UButton type="submit" size="xs">{{ t.save }}</UButton>
@@ -190,7 +171,7 @@ function saveWeight(weight: Weight) {
         </template>
         <template v-else>
           <div>
-            <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong><span>{{ formatDate(weight.occurredAt, locale) }}</span>
+            <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong><span>{{ formatDateOnly(weight.occurredAt, locale) }}</span>
           </div>
           <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(weight)">
             {{ t.edit }}

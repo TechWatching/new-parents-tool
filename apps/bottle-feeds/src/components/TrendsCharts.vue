@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { shortDay } from '../utils/format'
+import { dateFromOccurredAt } from '../utils/time'
 
 const props = defineProps<{
   feeds: Feed[]
@@ -132,19 +133,21 @@ const bottleCountMax = computed(() => Math.max(...bottleCountPoints.value.map((p
 
 const visibleWeights = computed(() => {
   if (range.value === '24h') {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    const today = dateFromOccurredAt(new Date().toISOString())
     return [...props.weights]
-      .filter((weight) => Date.parse(weight.occurredAt) >= cutoff)
-      .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
+      .filter((weight) => dateFromOccurredAt(weight.occurredAt) >= today)
+      .sort((a, b) => dateFromOccurredAt(a.occurredAt).localeCompare(dateFromOccurredAt(b.occurredAt)))
   }
   const period = chartPeriod.value
   if (!period) return []
+  const startDate = dateFromOccurredAt(period.start.toISOString())
+  const endDate = dateFromOccurredAt(period.end.toISOString())
   return [...props.weights]
     .filter((weight) => {
-      const time = Date.parse(weight.occurredAt)
-      return time >= period.start.getTime() && time < period.end.getTime()
+      const date = dateFromOccurredAt(weight.occurredAt)
+      return date >= startDate && date < endDate
     })
-    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
+    .sort((a, b) => dateFromOccurredAt(a.occurredAt).localeCompare(dateFromOccurredAt(b.occurredAt)))
 })
 
 function weightPosition(weight: Weight, axis: 'x' | 'y') {
