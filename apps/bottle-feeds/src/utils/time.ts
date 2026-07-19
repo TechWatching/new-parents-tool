@@ -1,3 +1,5 @@
+import { nextTick } from 'vue'
+
 // ---------------------------------------------------------------------------
 // Date / time helpers shared by the feed & weight entry forms and history.
 // ---------------------------------------------------------------------------
@@ -10,6 +12,33 @@ export function maskTimeValue(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 4)
   if (digits.length <= 2) return digits
   return `${digits.slice(0, 2)}:${digits.slice(2)}`
+}
+
+/** Finds the caret position in a masked `HH:MM` string right after a given number of digits. */
+function cursorPositionForDigitCount(masked: string, digitCount: number) {
+  let seen = 0
+  for (let i = 0; i < masked.length; i++) {
+    if (seen === digitCount) return i
+    if (/\d/.test(masked.charAt(i))) seen++
+  }
+  return masked.length
+}
+
+/**
+ * Handles a masked `HH:MM` text input's `input` event, applying `maskTimeValue`
+ * while keeping the caret next to the digit the user just typed/deleted,
+ * instead of letting it jump to the end of the field.
+ */
+export function maskTimeInput(event: Event, setValue: (value: string) => void) {
+  const target = event.target as HTMLInputElement
+  const cursor = target.selectionStart ?? target.value.length
+  const digitsBeforeCursor = target.value.slice(0, cursor).replace(/\D/g, '').length
+  const masked = maskTimeValue(target.value)
+  setValue(masked)
+  nextTick(() => {
+    const position = cursorPositionForDigitCount(masked, digitsBeforeCursor)
+    target.setSelectionRange(position, position)
+  })
 }
 
 export function nowForInput() {

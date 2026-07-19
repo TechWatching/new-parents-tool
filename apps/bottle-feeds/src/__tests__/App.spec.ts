@@ -315,6 +315,29 @@ describe('App', () => {
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 
+  it('shows the number of bottles recorded for each day', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T14:00:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          { id: 'feed-today-1', amount: 120, occurredAt: '2026-07-19T12:00:00.000Z', comment: '', updatedAt: '2026-07-19T14:00:00.000Z' },
+          { id: 'feed-today-2', amount: 80, occurredAt: '2026-07-19T09:00:00.000Z', comment: '', updatedAt: '2026-07-19T14:00:00.000Z' },
+          { id: 'feed-yesterday', amount: 150, occurredAt: '2026-07-18T12:00:00.000Z', comment: '', updatedAt: '2026-07-19T14:00:00.000Z' },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      expect(wrapper.text()).toContain('Bottles per day')
+      expect(wrapper.find('.bottle-count-chart').attributes('aria-label')).toBe('Bottles per day')
+      expect(wrapper.findAll('.bottle-count-chart .bar-value').map((bar) => bar.text())).toEqual(['1', '2'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows older bottles when all-time trends are selected', async () => {
     const preloaded: AppData = {
       feeds: [

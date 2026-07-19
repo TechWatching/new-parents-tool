@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import UTabs from '@nuxt/ui/components/Tabs.vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { formatDate, formatDateOnly } from '../utils/format'
-import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTimeValue, occurredAt, timePattern } from '../utils/time'
+import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTimeInput, occurredAt, timePattern } from '../utils/time'
 
 defineProps<{
   feeds: Feed[]
@@ -33,16 +33,15 @@ const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeightId = ref<string | null>(null)
 const editingWeight = reactive({ kilograms: '', date: '' })
 
-function timeModel(form: { time: string }) {
-  return computed({
-    get: () => form.time,
-    set: (value: string) => {
-      form.time = maskTimeValue(value)
-    },
+function onTimeInput(form: { time: string }, event: Event) {
+  maskTimeInput(event, (value) => {
+    form.time = value
   })
 }
 
-const editingFeedTimeModel = timeModel(editingFeed)
+function onEditingFeedTimeInput(event: Event) {
+  onTimeInput(editingFeed, event)
+}
 function editFeed(feed: Feed) {
   editingFeedId.value = feed.id
   Object.assign(editingFeed, {
@@ -110,13 +109,14 @@ function saveWeight(weight: Weight) {
                 {{ t.time }}
                 <input
                   id="edit-feed-time"
-                  v-model="editingFeedTimeModel"
+                  :value="editingFeed.time"
                   type="text"
                   inputmode="numeric"
                   :pattern="timePattern.source"
                   placeholder="14:30"
                   maxlength="5"
                   required
+                  @input="onEditingFeedTimeInput"
                 />
               </label>
               <label for="edit-feed-comment">
