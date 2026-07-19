@@ -2,7 +2,7 @@
 import type { Messages } from '../i18n'
 import { maskTimeInput, timePattern } from '../utils/time'
 
-defineProps<{ t: Messages }>()
+defineProps<{ t: Messages; locale: string }>()
 const emit = defineEmits<{ submit: [] }>()
 
 const amount = defineModel<string>('amount', { required: true })
@@ -31,7 +31,7 @@ function onTimeInput(event: Event) {
       </label>
       <label>
         {{ t.date }}
-        <input v-model="date" type="date" required />
+        <input v-model="date" type="date" :lang="locale" required />
       </label>
       <label>
         {{ t.time }}

@@ -575,6 +575,7 @@ const syncLabel = computed(() => {
           v-model:time="feedForm.time"
           v-model:comment="feedForm.comment"
           :t="t"
+          :locale="locale"
           @submit="addFeed"
         />
         <WeightForm
@@ -582,6 +583,7 @@ const syncLabel = computed(() => {
           v-model:date="weightForm.date"
           v-model:time="weightForm.time"
           :t="t"
+          :locale="locale"
           @submit="addWeight"
         />
       </section>
