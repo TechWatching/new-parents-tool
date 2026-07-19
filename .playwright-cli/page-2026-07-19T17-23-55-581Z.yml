@@ -1,0 +1,107 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e18]:
+      - generic [ref=e19]:
+        - link "Little Sips" [ref=e20] [cursor=pointer]:
+          - /url: "#"
+          - generic [ref=e21]: ◒
+        - paragraph [ref=e23]: Bottle and growth tracker
+      - button "Français" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e26]: ⌁ Private by design — everything stays in this browser.
+      - generic [ref=e27]:
+        - button "Export data" [ref=e28] [cursor=pointer]
+        - button "Import data" [ref=e29] [cursor=pointer]
+        - button "Import data" [ref=e30]
+      - region "Data entry" [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - generic [ref=e34]: ＋
+            - heading "Record a bottle" [level=2] [ref=e35]
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - text: Quantity (ml)
+              - spinbutton "Quantity (ml)" [ref=e38]
+            - generic [ref=e39]:
+              - text: Date
+              - textbox "Date" [active] [ref=e40]: 2026-07-19
+            - generic [ref=e41]:
+              - text: Time (24h)
+              - textbox "Time (24h)" [ref=e42]:
+                - /placeholder: 14:30
+                - text: 17:23
+            - generic [ref=e43]:
+              - text: Comment (optional)
+              - textbox "Comment (optional)" [ref=e44]:
+                - /placeholder: e.g. Drank slowly
+          - button "Save bottle" [ref=e45] [cursor=pointer]
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: ↗
+            - heading "Record a weight" [level=2] [ref=e49]
+          - generic [ref=e50]:
+            - text: Weight (kg)
+            - spinbutton "Weight (kg)" [ref=e51]
+          - generic [ref=e52]:
+            - text: Date
+            - textbox "Date" [ref=e53]: 2026-07-19
+          - generic [ref=e54]:
+            - text: Time (24h)
+            - textbox "Time (24h)" [ref=e55]:
+              - /placeholder: 14:30
+              - text: 17:23
+          - button "Save weight" [ref=e56] [cursor=pointer]
+      - region "Last 24 hours" [ref=e57]:
+        - article [ref=e58]:
+          - generic [ref=e59]: Last 24 hours
+          - strong [ref=e60]: "0"
+          - text: bottles
+        - article [ref=e61]:
+          - generic [ref=e62]: Total consumed
+          - strong [ref=e63]: 0 ml
+        - article [ref=e64]:
+          - generic [ref=e65]: Latest weight
+          - strong [ref=e66]: — kg
+        - article [ref=e67]:
+          - generic [ref=e68]: Estimated theoretical daily quantity
+          - strong [ref=e69]: —
+          - text: Add a weight to see the guide
+      - paragraph [ref=e70]: This estimate is very theoretical and indicative only, not medical advice. Follow your healthcare professional’s recommendations and your baby’s cues.
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: ⌁
+            - heading "Trends" [level=2] [ref=e75]
+          - generic [ref=e76]:
+            - button "24 hours" [ref=e77] [cursor=pointer]
+            - button "7 days" [ref=e78] [cursor=pointer]
+            - button "All time" [ref=e79] [cursor=pointer]
+            - button "Custom" [ref=e80] [cursor=pointer]
+        - generic [ref=e81]:
+          - article [ref=e82]:
+            - heading "Bottle quantity" [level=3] [ref=e83]
+            - img "Bottle quantity" [ref=e84]:
+              - generic [ref=e85]: Mon
+              - generic [ref=e87]: Tue
+              - generic [ref=e89]: Wed
+              - generic [ref=e91]: Thu
+              - generic [ref=e93]: Fri
+              - generic [ref=e95]: Sat
+              - generic [ref=e97]: Sun
+          - article [ref=e99]:
+            - heading "Weight evolution" [level=3] [ref=e100]
+            - generic [ref=e101]: Record a bottle or weight to start seeing trends.
+          - article [ref=e102]:
+            - heading "Quantity fed (rolling 24h)" [level=3] [ref=e103]
+            - generic [ref=e104]: Record a bottle or weight to start seeing trends.
+      - region "All measures" [ref=e105]:
+        - heading "All measures" [level=2] [ref=e106]
+        - tablist [ref=e108]:
+          - tab "Quantities" [selected] [ref=e110] [cursor=pointer]
+          - tab "Weights" [ref=e112] [cursor=pointer]
+        - paragraph [ref=e114]: No bottles recorded yet.
+  - generic [ref=e6]:
+    - generic "Toggle devtools panel" [ref=e7] [cursor=pointer]
+    - generic "Toggle Component Inspector" [ref=e13] [cursor=pointer]
+  - region "Notifications (F8)":
+    - list
