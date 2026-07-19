@@ -419,6 +419,46 @@ const weightPolyline = computed(() =>
 )
 
 // ---------------------------------------------------------------------------
+// Rolling intake chart (7 × 4-hour windows = last 28 hours)
+// ---------------------------------------------------------------------------
+
+const rollingIntakePoints = computed<ChartPoint[]>(() =>
+  Array.from({ length: 7 }, (_, index) => {
+    const end = Date.now() - (6 - index) * 4 * 60 * 60 * 1000
+    const start = end - 4 * 60 * 60 * 1000
+    return {
+      label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
+      amount: activeFeeds.value
+        .filter((feed) => {
+          const time = Date.parse(feed.occurredAt)
+          return time > start && time <= end
+        })
+        .reduce((total, feed) => total + feed.amount, 0),
+    }
+  }),
+)
+
+const rollingIntakeCumulativePoints = computed<ChartPoint[]>(() => {
+  let running = 0
+  return rollingIntakePoints.value.map((p) => {
+    running += p.amount
+    return { label: p.label, amount: running }
+  })
+})
+
+const rollingIntakeMax = computed(() =>
+  Math.max(...rollingIntakeCumulativePoints.value.map((p) => p.amount), 1),
+)
+
+const rollingIntakePolyline = computed(() =>
+  rollingIntakeCumulativePoints.value
+    .map((point, i) => ({ point, i }))
+    .filter(({ point }) => point.amount > 0)
+    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
+    .join(' '),
+)
+
+// ---------------------------------------------------------------------------
 // Export / Import
 // ---------------------------------------------------------------------------
 
@@ -838,6 +878,29 @@ const syncLabel = computed(() => {
               <div class="weight-range">
                 <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
                 <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
+              </div>
+            </div>
+            <div v-else class="chart-empty">{{ t.noChartData }}</div>
+          </article>
+          <article v-if="range === '7d'" class="full-width">
+            <h3>{{ t.rollingIntake }}</h3>
+            <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
+                <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
+                <template v-for="(point, i) in rollingIntakeCumulativePoints" :key="i">
+                  <circle
+                    v-if="point.amount > 0"
+                    r="3"
+                    :cx="15 + (i / 6) * 270"
+                    :cy="88 - (point.amount / rollingIntakeMax) * 76"
+                  />
+                </template>
+              </svg>
+              <div class="rolling-intake-labels">
+                <div v-for="(point, i) in rollingIntakeCumulativePoints" :key="i" class="rolling-intake-col">
+                  <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
+                  <span>{{ point.label }}</span>
+                </div>
               </div>
             </div>
             <div v-else class="chart-empty">{{ t.noChartData }}</div>
