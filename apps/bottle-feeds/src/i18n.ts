@@ -1,3 +1,5 @@
+import { createI18n } from 'vue-i18n'
+
 export type Language = 'en' | 'fr'
 
 export const messages = {
@@ -167,3 +169,24 @@ export const messages = {
 
 /** Shape of a single language's translation table, used by presentational components. */
 export type Messages = { [K in keyof typeof messages.en]: string }
+
+export function resolveInitialLanguage(): Language {
+  const stored = localStorage.getItem('new-parents-tool:language')
+  if (stored === 'en' || stored === 'fr') return stored
+
+  const browserLanguage =
+    Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages[0]
+      : navigator.language
+
+  return browserLanguage?.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+}
+
+export function createAppI18n() {
+  return createI18n({
+    legacy: false,
+    locale: resolveInitialLanguage(),
+    fallbackLocale: 'en',
+    messages,
+  })
+}

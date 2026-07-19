@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import UApp from '@nuxt/ui/components/App.vue'
 import memoryDriver from 'unstorage/drivers/memory'
 
 import AppRoot from '../AppRoot.vue'
+import { createAppI18n } from '../i18n'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
 import { dateTimeForInput, LATEST_ENTRY_DATE_DURATION } from '../utils/time'
@@ -39,6 +41,7 @@ describe('App', () => {
       attachTo: document.body,
       global: {
         plugins: [
+          createAppI18n(),
           createRouter({
             history: createWebHistory(),
             routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
@@ -199,6 +202,8 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
+    const uiApp = wrapper.findComponent(UApp) as unknown as VueWrapper
+    expect(uiApp.props()).toMatchObject({ locale: { code: 'fr' } })
   })
 
   it('defaults to French when browser language is French', async () => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
@@ -35,17 +36,6 @@ const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 
-function resolveInitialLanguage(): Language {
-  const stored = localStorage.getItem('new-parents-tool:language')
-  if (stored === 'en' || stored === 'fr') return stored
-  const browserLanguage =
-    Array.isArray(navigator.languages) && navigator.languages.length > 0
-      ? navigator.languages[0]
-      : navigator.language ?? 'en'
-  return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
-}
-
-const language = ref<Language>(resolveInitialLanguage())
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
 const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
@@ -65,6 +55,13 @@ const importFileRef = ref<HTMLInputElement | null>(null)
 // i18n & locale
 // ---------------------------------------------------------------------------
 
+const { locale: i18nLocale } = useI18n()
+const language = computed<Language>({
+  get: () => i18nLocale.value as Language,
+  set: (value) => {
+    i18nLocale.value = value
+  },
+})
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
 
