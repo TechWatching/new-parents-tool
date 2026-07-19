@@ -290,24 +290,44 @@ describe('App', () => {
     expect(wrapper.text()).toContain('4.2 kg')
   })
 
-  it('shows the rolling 24h intake line chart in the 7-day trends view', async () => {
-    const now = Date.now()
-    const preloaded: AppData = {
-      feeds: [
-        { id: 'feed-today-1', amount: 120, occurredAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
-        { id: 'feed-today-2', amount: 80, occurredAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
-        { id: 'feed-yesterday', amount: 150, occurredAt: new Date(now - 26 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
-      ],
-      weights: [],
-    }
-    await saveData(preloaded, GUEST_NAMESPACE)
-    const wrapper = await mountApp()
+  it('always shows the rolling 24h intake chart where each point sums the trailing 24 hours', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T14:00:00.000Z'))
+    try {
+      const now = Date.now()
+      const preloaded: AppData = {
+        feeds: [
+          { id: 'feed-today-1', amount: 120, occurredAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+          { id: 'feed-today-2', amount: 80, occurredAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+          { id: 'feed-yesterday', amount: 150, occurredAt: new Date(now - 26 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
 
-    expect(wrapper.text()).toContain('Quantity fed (rolling 24h)')
-    expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
-    expect(wrapper.find('.full-width svg').exists()).toBe(true)
-    expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
-    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
+      // Chart is present in the default 7-day view (one point per day).
+      expect(wrapper.text()).toContain('Quantity fed (rolling 24h)')
+      expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
+      expect(wrapper.find('.full-width svg').exists()).toBe(true)
+      expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
+      expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(7)
+
+      // The chart is still shown on the 24 hours range (6 four-hour samples).
+      const twentyFourHoursBtn = wrapper
+        .findAll('.range-toggle button')
+        .find((b) => b.text() === '24 hours')
+      await twentyFourHoursBtn!.trigger('click')
+      const cols = wrapper.findAll('.rolling-intake-col')
+      expect(cols).toHaveLength(6)
+
+      // The final point sums the quantities fed over the trailing 24 hours
+      // (120 + 80 = 200), excluding the 26h-old bottle.
+      const amounts = wrapper.findAll('.rolling-intake-amount').map((el) => el.text())
+      expect(amounts[amounts.length - 1]).toBe('200 ml')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('shows the number of bottles recorded for each day', async () => {
