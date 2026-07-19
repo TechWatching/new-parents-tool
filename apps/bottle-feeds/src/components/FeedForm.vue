@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { Messages } from '../i18n'
 import { maskTimeValue, timePattern } from '../utils/time'
 
-defineProps<{ t: Messages }>()
+defineProps<{ t: Messages; locale: string }>()
 const emit = defineEmits<{ submit: [] }>()
 
 const amount = defineModel<string>('amount', { required: true })
@@ -33,7 +33,7 @@ const maskedTime = computed({
       </label>
       <label>
         {{ t.date }}
-        <input v-model="date" type="date" required />
+        <input v-model="date" type="date" :lang="locale" required />
       </label>
       <label>
         {{ t.time }}

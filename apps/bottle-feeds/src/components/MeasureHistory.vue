@@ -106,7 +106,7 @@ function saveWeight(weight: Weight) {
               </label>
               <label for="edit-feed-date">
                 {{ t.date }}
-                <input id="edit-feed-date" v-model="editingFeed.date" type="date" required />
+                <input id="edit-feed-date" v-model="editingFeed.date" type="date" :lang="locale" required />
               </label>
               <label for="edit-feed-time">
                 {{ t.time }}
@@ -160,7 +160,7 @@ function saveWeight(weight: Weight) {
               </label>
               <label for="edit-weight-date">
                 {{ t.date }}
-                <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
+                <input id="edit-weight-date" v-model="editingWeight.date" type="date" :lang="locale" required />
               </label>
               <label for="edit-weight-time">
                 {{ t.time }}

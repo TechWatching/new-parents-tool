@@ -204,11 +204,11 @@ const rollingIntakePolyline = computed(() =>
     <div v-if="range === 'custom'" class="custom-range">
       <label>
         {{ t.startDate }}
-        <input v-model="customRange.start" type="date" :max="customRange.end || undefined" />
+        <input v-model="customRange.start" type="date" :lang="locale" :max="customRange.end || undefined" />
       </label>
       <label>
         {{ t.endDate }}
-        <input v-model="customRange.end" type="date" :min="customRange.start || undefined" />
+        <input v-model="customRange.end" type="date" :lang="locale" :min="customRange.start || undefined" />
       </label>
     </div>
 
