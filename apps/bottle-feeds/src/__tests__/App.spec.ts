@@ -301,4 +301,27 @@ describe('App', () => {
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
+
+  it('shows older bottles when all-time trends are selected', async () => {
+    const preloaded: AppData = {
+      feeds: [
+        {
+          id: 'older-feed',
+          amount: 120,
+          occurredAt: '2026-01-01T12:00:00.000Z',
+          comment: '',
+          updatedAt: '2026-01-01T12:00:00.000Z',
+        },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    expect(wrapper.find('.bar-value').exists()).toBe(false)
+    const allTimeBtn = wrapper.findAll('.range-toggle button').find((b) => b.text() === 'All time')
+    await allTimeBtn!.trigger('click')
+
+    expect(wrapper.find('.bar-value').text()).toBe('120')
+  })
 })
