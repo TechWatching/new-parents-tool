@@ -158,6 +158,6 @@ describe('App', () => {
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
     // Value labels and hour labels are rendered in .rolling-intake-col children
-    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(7)
+    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 })

@@ -85,12 +85,12 @@ const weightPolyline = computed(() =>
 )
 
 // ---------------------------------------------------------------------------
-// Rolling intake chart (7 × 4-hour windows = last 28 hours)
+// Rolling intake chart (6 × 4-hour windows = last 24 hours)
 // ---------------------------------------------------------------------------
 
 const rollingIntakePoints = computed<ChartPoint[]>(() =>
-  Array.from({ length: 7 }, (_, index) => {
-    const end = Date.now() - (6 - index) * 4 * 60 * 60 * 1000
+  Array.from({ length: 6 }, (_, index) => {
+    const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
     const start = end - 4 * 60 * 60 * 1000
     return {
       label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
@@ -120,7 +120,7 @@ const rollingIntakePolyline = computed(() =>
   rollingIntakeCumulativePoints.value
     .map((point, i) => ({ point, i }))
     .filter(({ point }) => point.amount > 0)
-    .map(({ point, i }) => `${15 + (i / 6) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
+    .map(({ point, i }) => `${15 + (i / 5) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
     .join(' '),
 )
 </script>
@@ -193,7 +193,7 @@ const rollingIntakePolyline = computed(() =>
               <circle
                 v-if="point.amount > 0"
                 r="3"
-                :cx="15 + (i / 6) * 270"
+                :cx="15 + (i / 5) * 270"
                 :cy="88 - (point.amount / rollingIntakeMax) * 76"
               />
             </template>
