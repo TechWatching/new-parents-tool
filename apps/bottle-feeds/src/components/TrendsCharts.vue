@@ -338,7 +338,6 @@ const rollingIntakePolyline = computed(() =>
             <template v-for="(point, i) in rollingIntakePoints" :key="i">
               <circle
                 v-if="point.amount > 0"
-                r="1.5"
                 :cx="rollingIntakeX(i)"
                 :cy="rollingIntakeY(point.amount)"
               />
