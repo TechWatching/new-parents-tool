@@ -3,6 +3,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import UApp from '@nuxt/ui/components/App.vue'
+import UInputDate from '@nuxt/ui/components/InputDate.vue'
 import memoryDriver from 'unstorage/drivers/memory'
 
 import AppRoot from '../AppRoot.vue'
@@ -58,7 +59,7 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.feed-card input[type="number"]').setValue('120')
-    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+    await wrapper.get('.feed-card input[data-date-value]').setValue('2026-07-14')
     await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
     await wrapper.get('.feed-card input[maxlength="160"]').setValue('Drank well')
     await wrapper.get('.feed-card').trigger('submit')
@@ -78,19 +79,19 @@ describe('App', () => {
     vi.useFakeTimers()
     try {
       await wrapper.get('.feed-card input[type="number"]').setValue('120')
-      await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+      await wrapper.get('.feed-card input[data-date-value]').setValue('2026-07-14')
       await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
       await wrapper.get('.feed-card').trigger('submit')
       await nextTick()
 
       expect(wrapper.text()).toContain('120 ml')
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      for (const input of wrapper.findAll('.entry-grid input[data-date-value]')) {
         expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
       }
 
       await vi.advanceTimersByTimeAsync(LATEST_ENTRY_DATE_DURATION)
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      for (const input of wrapper.findAll('.entry-grid input[data-date-value]')) {
         expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
       }
     } finally {
@@ -117,13 +118,13 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      for (const input of wrapper.findAll('.entry-grid input[data-date-value]')) {
         expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
       }
 
       await vi.advanceTimersByTimeAsync(3 * 60 * 1000)
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      for (const input of wrapper.findAll('.entry-grid input[data-date-value]')) {
         expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
       }
     } finally {
@@ -150,7 +151,7 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      for (const input of wrapper.findAll('.entry-grid input[data-date-value]')) {
         expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
       }
     } finally {
@@ -162,7 +163,7 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.feed-card input[type="number"]').setValue('120')
-    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+    await wrapper.get('.feed-card input[data-date-value]').setValue('2026-07-14')
     await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
     await wrapper.get('.feed-card').trigger('submit')
     await flushPromises()
@@ -176,7 +177,7 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
-    await wrapper.get('.weight-card input[type="date"]').setValue('2026-07-14')
+    await wrapper.get('.weight-card input[data-date-value]').setValue('2026-07-14')
     await wrapper.get('.weight-card input[inputmode="numeric"]').setValue('14:30')
     await wrapper.get('.weight-card').trigger('submit')
     await flushPromises()
@@ -202,8 +203,8 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
-    for (const input of wrapper.findAll('input[type="date"]')) {
-      expect(input.attributes('lang')).toBe('fr-FR')
+    for (const picker of wrapper.findAllComponents(UInputDate)) {
+      expect(picker.props('locale')).toBe('fr-FR')
     }
     const uiApp = wrapper.findComponent(UApp) as unknown as VueWrapper
     expect(uiApp.props()).toMatchObject({ locale: { code: 'fr' } })

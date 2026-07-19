@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { shortDay } from '../utils/format'
-import { showDatePicker } from '../utils/time'
+import LocalizedDatePicker from './LocalizedDatePicker.vue'
 
 const props = defineProps<{
   feeds: Feed[]
@@ -205,22 +205,18 @@ const rollingIntakePolyline = computed(() =>
     <div v-if="range === 'custom'" class="custom-range">
       <label>
         {{ t.startDate }}
-        <input
+        <LocalizedDatePicker
           v-model="customRange.start"
-          type="date"
-          :lang="locale"
+          :locale="locale"
           :max="customRange.end || undefined"
-          @click="showDatePicker"
         />
       </label>
       <label>
         {{ t.endDate }}
-        <input
+        <LocalizedDatePicker
           v-model="customRange.end"
-          type="date"
-          :lang="locale"
+          :locale="locale"
           :min="customRange.start || undefined"
-          @click="showDatePicker"
         />
       </label>
     </div>

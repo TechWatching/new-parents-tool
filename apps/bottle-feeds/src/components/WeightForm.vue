@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Messages } from '../i18n'
-import { maskTimeInput, showDatePicker, timePattern } from '../utils/time'
+import { maskTimeInput, timePattern } from '../utils/time'
+import LocalizedDatePicker from './LocalizedDatePicker.vue'
 
 defineProps<{ t: Messages; locale: string }>()
 const emit = defineEmits<{ submit: [] }>()
@@ -29,7 +30,7 @@ function onTimeInput(event: Event) {
     </label>
     <label>
       {{ t.date }}
-      <input v-model="date" type="date" :lang="locale" required @click="showDatePicker" />
+      <LocalizedDatePicker v-model="date" :locale="locale" required />
     </label>
     <label>
       {{ t.time }}

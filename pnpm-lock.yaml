@@ -29,6 +29,9 @@ importers:
 
   apps/bottle-feeds:
     dependencies:
+      '@internationalized/date':
+        specifier: 3.12.2
+        version: 3.12.2
       '@nuxt/ui':
         specifier: 4.10.0
         version: 4.10.0(4d4bd93f34fc544f37f7c20211dd36f6)
