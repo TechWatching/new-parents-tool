@@ -167,42 +167,72 @@ const weightPolyline = computed(() =>
 )
 
 // ---------------------------------------------------------------------------
-// Rolling intake chart (6 × 4-hour windows = last 24 hours)
+// Rolling intake chart: each point is the total quantity fed over the trailing
+// 24 hours ending at that point. Shown for every selected range.
 // ---------------------------------------------------------------------------
 
-const rollingIntakePoints = computed<ChartPoint[]>(() =>
-  Array.from({ length: 6 }, (_, index) => {
-    const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
-    const start = end - 4 * 60 * 60 * 1000
-    return {
-      label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
-      amount: props.feeds
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time > start && time <= end
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
-    }
-  }),
-)
+const DAY_MS = 24 * 60 * 60 * 1000
 
-const rollingIntakeCumulativePoints = computed<ChartPoint[]>(() => {
-  let running = 0
-  return rollingIntakePoints.value.map((p) => {
-    running += p.amount
-    return { label: p.label, amount: running }
-  })
+/** Sample points (an end time and its label) spanning the selected range. */
+const rollingIntakeSamples = computed<{ label: string; end: number }[]>(() => {
+  if (range.value === '24h') {
+    return Array.from({ length: 6 }, (_, index) => {
+      const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
+      return {
+        label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
+        end,
+      }
+    })
+  }
+
+  const period = chartPeriod.value
+  if (!period) return []
+  const now = Date.now()
+  const samples: { label: string; end: number }[] = []
+  for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
+    const next = new Date(date)
+    next.setDate(next.getDate() + 1)
+    // The trailing 24h window ends at the close of the day, capped at "now"
+    // so we never sample into the future.
+    const end = Math.min(next.getTime(), now)
+    samples.push({
+      label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
+      end,
+    })
+  }
+  return samples
 })
 
-const rollingIntakeMax = computed(() =>
-  Math.max(...rollingIntakeCumulativePoints.value.map((p) => p.amount), 1),
+const rollingIntakePoints = computed<ChartPoint[]>(() =>
+  rollingIntakeSamples.value.map((sample) => ({
+    label: sample.label,
+    amount: props.feeds
+      .filter((feed) => {
+        const time = Date.parse(feed.occurredAt)
+        return time > sample.end - DAY_MS && time <= sample.end
+      })
+      .reduce((total, feed) => total + feed.amount, 0),
+  })),
 )
 
+const rollingIntakeMax = computed(() =>
+  Math.max(...rollingIntakePoints.value.map((p) => p.amount), 1),
+)
+
+function rollingIntakeX(index: number) {
+  const denominator = Math.max(rollingIntakePoints.value.length - 1, 1)
+  return 15 + (index / denominator) * 270
+}
+
+function rollingIntakeY(amount: number) {
+  return 88 - (amount / rollingIntakeMax.value) * 76
+}
+
 const rollingIntakePolyline = computed(() =>
-  rollingIntakeCumulativePoints.value
+  rollingIntakePoints.value
     .map((point, i) => ({ point, i }))
     .filter(({ point }) => point.amount > 0)
-    .map(({ point, i }) => `${15 + (i / 5) * 270},${88 - (point.amount / rollingIntakeMax.value) * 76}`)
+    .map(({ point, i }) => `${rollingIntakeX(i)},${rollingIntakeY(point.amount)}`)
     .join(' '),
 )
 </script>
@@ -296,22 +326,22 @@ const rollingIntakePolyline = computed(() =>
           </div>
         </div>
       </article>
-      <article v-if="range === '7d'" class="full-width">
+      <article class="full-width">
         <h3>{{ t.rollingIntake }}</h3>
         <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
           <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
             <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
-            <template v-for="(point, i) in rollingIntakeCumulativePoints" :key="i">
+            <template v-for="(point, i) in rollingIntakePoints" :key="i">
               <circle
                 v-if="point.amount > 0"
                 r="3"
-                :cx="15 + (i / 5) * 270"
-                :cy="88 - (point.amount / rollingIntakeMax) * 76"
+                :cx="rollingIntakeX(i)"
+                :cy="rollingIntakeY(point.amount)"
               />
             </template>
           </svg>
           <div class="rolling-intake-labels">
-            <div v-for="(point, i) in rollingIntakeCumulativePoints" :key="i" class="rolling-intake-col">
+            <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col">
               <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
               <span>{{ point.label }}</span>
             </div>
