@@ -4,7 +4,7 @@ A pnpm monorepo for simple, privacy-first tools that help new parents track baby
 
 ## Preview
 
-The latest version of the bottle feed tracker is deployed to [GitHub Pages](https://techwatching.github.io/new-parents-tool/). The repository's Pages source must be set to **GitHub Actions** for the first deployment.
+Open the bottle feed tracker directly: **https://techwatching.github.io/new-parents-tool/**. The repository's Pages source must be set to **GitHub Actions** for the first deployment.
 
 ## Bottle feed tracker
 
