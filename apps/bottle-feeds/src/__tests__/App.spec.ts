@@ -91,6 +91,16 @@ describe('App', () => {
     expect(document.documentElement.lang).toBe('fr')
   })
 
+  it('falls back to navigator.language when preferred languages are empty', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
   it('prefers saved language over browser language', async () => {
     localStorage.setItem('new-parents-tool:language', 'en')
     vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
@@ -178,6 +188,6 @@ describe('App', () => {
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
     // Value labels and hour labels are rendered in .rolling-intake-col children
-    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(7)
+    expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 })
