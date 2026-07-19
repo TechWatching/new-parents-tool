@@ -187,7 +187,7 @@ describe('App', () => {
     expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
-    // Value labels and hour labels are rendered in .rolling-intake-col children
+    // TrendsCharts renders six 4-hour buckets to cover the last 24 hours.
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 })
