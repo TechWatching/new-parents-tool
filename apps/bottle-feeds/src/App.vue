@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
+import UDashboardToolbar from '@nuxt/ui/components/DashboardToolbar.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
@@ -496,33 +497,37 @@ const syncLabel = computed(() => {
       </div>
 
       <!-- Export / Import -->
-      <div class="toolbar-actions">
-        <div class="data-actions">
-          <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
-          <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
-          <input
-            ref="importFileRef"
-            type="file"
-            accept="application/json,.json"
-            class="sr-only"
-            :aria-label="t.importData"
-            @change="handleImportFile"
-          />
-          <span v-if="importFeedback === 'success'" class="import-feedback import-feedback--ok">
-            {{ t.importSuccess }}
-          </span>
-          <span v-else-if="importFeedback === 'error'" class="import-feedback import-feedback--err">
-            {{ t.importError }}
-          </span>
-        </div>
+      <UDashboardToolbar class="toolbar-actions" :ui="{ left: 'contents', right: 'contents' }">
+        <template #left>
+          <div class="data-actions">
+            <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
+            <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
+            <input
+              ref="importFileRef"
+              type="file"
+              accept="application/json,.json"
+              class="sr-only"
+              :aria-label="t.importData"
+              @change="handleImportFile"
+            />
+            <span v-if="importFeedback === 'success'" class="import-feedback import-feedback--ok">
+              {{ t.importSuccess }}
+            </span>
+            <span v-else-if="importFeedback === 'error'" class="import-feedback import-feedback--err">
+              {{ t.importError }}
+            </span>
+          </div>
+        </template>
 
-        <ReportGenerator
-          :feeds="activeFeeds"
-          :weights="activeWeights"
-          :t="t"
-          :locale="locale"
-        />
-      </div>
+        <template #right>
+          <ReportGenerator
+            :feeds="activeFeeds"
+            :weights="activeWeights"
+            :t="t"
+            :locale="locale"
+          />
+        </template>
+      </UDashboardToolbar>
 
       <!-- Cloud sync / Auth section -->
       <section v-if="isSupabaseConfigured" class="card auth-card" :aria-label="t.cloudSync">
