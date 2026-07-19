@@ -404,10 +404,10 @@ const weightPolyline = computed(() =>
 
 const rolling24hPoints = computed<ChartPoint[]>(() =>
   Array.from({ length: 7 }, (_, index) => {
-    const end = Date.now() - (6 - index) * 24 * 60 * 60 * 1000
-    const start = end - 24 * 60 * 60 * 1000
+    const end = Date.now() - (6 - index) * 4 * 60 * 60 * 1000
+    const start = end - 4 * 60 * 60 * 1000
     return {
-      label: shortDay(new Date(end)),
+      label: new Intl.DateTimeFormat(locale.value, { hour: '2-digit' }).format(new Date(end)),
       amount: activeFeeds.value
         .filter((feed) => {
           const time = Date.parse(feed.occurredAt)
@@ -419,7 +419,7 @@ const rolling24hPoints = computed<ChartPoint[]>(() =>
 )
 
 const rolling24hMax = computed(() =>
-  Math.max(...rolling24hPoints.value.map((p) => p.amount), dailyGuide.value || 0, 1),
+  Math.max(...rolling24hPoints.value.map((p) => p.amount), 1),
 )
 
 const rolling24hPolyline = computed(() =>
@@ -868,13 +868,6 @@ const syncLabel = computed(() => {
                   />
                 </template>
               </svg>
-              <div
-                v-if="dailyGuide"
-                class="guide-line"
-                :style="{ bottom: `${Math.round(50 + (dailyGuide / rolling24hMax) * 129)}px` }"
-              >
-                <span>{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
-              </div>
               <div class="rolling-intake-labels">
                 <div v-for="(point, i) in rolling24hPoints" :key="i" class="rolling-intake-col">
                   <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
