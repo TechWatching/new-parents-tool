@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { Messages } from '../i18n'
-import { maskTimeValue, timePattern } from '../utils/time'
+import { maskTimeInput, timePattern } from '../utils/time'
 
 defineProps<{ t: Messages }>()
 const emit = defineEmits<{ submit: [] }>()
@@ -11,13 +10,12 @@ const date = defineModel<string>('date', { required: true })
 const time = defineModel<string>('time', { required: true })
 const comment = defineModel<string>('comment', { required: true })
 
-// Masks free-form digits into `HH:MM` as the user types, without mutating props directly.
-const maskedTime = computed({
-  get: () => time.value,
-  set: (value: string) => {
-    time.value = maskTimeValue(value)
-  },
-})
+// Masks free-form digits into `HH:MM` as the user types, keeping the caret in place.
+function onTimeInput(event: Event) {
+  maskTimeInput(event, (value) => {
+    time.value = value
+  })
+}
 </script>
 
 <template>
@@ -38,13 +36,14 @@ const maskedTime = computed({
       <label>
         {{ t.time }}
         <input
-          v-model="maskedTime"
+          :value="time"
           type="text"
           inputmode="numeric"
           :pattern="timePattern.source"
           placeholder="14:30"
           maxlength="5"
           required
+          @input="onTimeInput"
         />
       </label>
       <label class="full-width">
