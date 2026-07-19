@@ -25,10 +25,12 @@ describe('App', () => {
 
   afterEach(() => {
     _setTestDriver(null)
+    document.body.innerHTML = ''
   })
 
   const mountApp = async () => {
     const wrapper = mount(App, {
+      attachTo: document.body,
       global: {
         plugins: [
           createRouter({
@@ -60,6 +62,26 @@ describe('App', () => {
     expect(stored.feeds[0]).toMatchObject({
       occurredAt: '2026-07-14T14:30:00.000Z',
     })
+  })
+
+  it('shows a confirmation notification after recording a bottle', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.feed-card input[type="number"]').setValue('120')
+    await wrapper.get('.feed-card').trigger('submit')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Bottle recorded')
+  })
+
+  it('shows a confirmation notification after recording a weight', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
+    await wrapper.get('.weight-card').trigger('submit')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Weight recorded')
   })
 
   it('calculates the daily estimate from the latest weight', async () => {
