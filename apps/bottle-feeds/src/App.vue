@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
+import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
 import { isSupabaseConfigured } from './supabase'
@@ -34,9 +35,17 @@ const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
 
-const language = ref<Language>(
-  (localStorage.getItem('new-parents-tool:language') as Language) || 'en',
-)
+function resolveInitialLanguage(): Language {
+  const stored = localStorage.getItem('new-parents-tool:language')
+  if (stored === 'en' || stored === 'fr') return stored
+  const browserLanguage =
+    Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages[0]
+      : navigator.language ?? 'en'
+  return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+}
+
+const language = ref<Language>(resolveInitialLanguage())
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
 const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
@@ -58,6 +67,8 @@ const importFileRef = ref<HTMLInputElement | null>(null)
 
 const t = computed(() => messages[language.value])
 const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
+
+const toast = useToast()
 
 watch(
   language,
@@ -231,6 +242,7 @@ function addFeed() {
   feedForm.amount = ''
   feedForm.comment = ''
   applyEntryDateWithReset(recordedAt)
+  toast.add({ title: t.value.feedAdded, color: 'success' })
 }
 
 function addWeight() {
@@ -241,6 +253,7 @@ function addWeight() {
   data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
   weightForm.kilograms = ''
   applyEntryDateWithReset(recordedAt)
+  toast.add({ title: t.value.weightAdded, color: 'success' })
 }
 
 function saveFeed(payload: { id: string; amount: number; occurredAt: string; comment: string }) {

@@ -4,7 +4,7 @@ import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
 
-import App from '../App.vue'
+import AppRoot from '../AppRoot.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
 import { dateTimeForInput, LATEST_ENTRY_DATE_DURATION } from '../utils/time'
@@ -19,6 +19,8 @@ afterEach(() => {
 })
 
 describe('App', () => {
+  let wrapper: ReturnType<typeof mount> | null = null
+
   beforeEach(() => {
     _setTestDriver(memoryDriver())
     localStorage.clear()
@@ -26,11 +28,15 @@ describe('App', () => {
   })
 
   afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
     _setTestDriver(null)
+    document.body.innerHTML = ''
   })
 
   const mountApp = async () => {
-    const wrapper = mount(App, {
+    wrapper = mount(AppRoot, {
+      attachTo: document.body,
       global: {
         plugins: [
           createRouter({
@@ -149,6 +155,25 @@ describe('App', () => {
     }
   })
 
+  it('shows a confirmation notification after recording a bottle', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.feed-card input[type="number"]').setValue('120')
+    await wrapper.get('.feed-card').trigger('submit')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Bottle recorded')
+  })
+
+  it('shows a confirmation notification after recording a weight', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
+    await wrapper.get('.weight-card').trigger('submit')
+    await flushPromises()
+    expect(document.body.textContent).toContain('Weight recorded')
+  })
+
   it('calculates the daily estimate from the latest weight', async () => {
     const wrapper = await mountApp()
 
@@ -166,6 +191,36 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('defaults to French when browser language is French', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['fr-CA'])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-CA')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('falls back to navigator.language when preferred languages are empty', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Noter un biberon')
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('prefers saved language over browser language', async () => {
+    localStorage.setItem('new-parents-tool:language', 'en')
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-FR')
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Record a bottle')
+    expect(document.documentElement.lang).toBe('en')
   })
 
   it('auto-inserts the colon once minutes start for 24-hour time inputs', async () => {
@@ -244,7 +299,6 @@ describe('App', () => {
     expect(wrapper.find('.full-width .rolling-intake-chart').exists()).toBe(true)
     expect(wrapper.find('.full-width svg').exists()).toBe(true)
     expect(wrapper.find('.rolling-intake-labels').exists()).toBe(true)
-    // Value labels and hour labels are rendered in .rolling-intake-col children
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 })
