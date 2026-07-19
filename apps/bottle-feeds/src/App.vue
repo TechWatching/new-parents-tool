@@ -26,6 +26,7 @@ import WeightForm from './components/WeightForm.vue'
 import SummaryMetrics from './components/SummaryMetrics.vue'
 import TrendsCharts from './components/TrendsCharts.vue'
 import MeasureHistory from './components/MeasureHistory.vue'
+import ReportGenerator from './components/ReportGenerator.vue'
 
 // ---------------------------------------------------------------------------
 // State
@@ -513,6 +514,13 @@ const syncLabel = computed(() => {
           {{ t.importError }}
         </span>
       </div>
+
+      <ReportGenerator
+        :feeds="activeFeeds"
+        :weights="activeWeights"
+        :t="t"
+        :locale="locale"
+      />
 
       <!-- Cloud sync / Auth section -->
       <section v-if="isSupabaseConfigured" class="card auth-card" :aria-label="t.cloudSync">
