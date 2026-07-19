@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
@@ -39,7 +40,7 @@ const language = ref<Language>(
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
 const LATEST_ENTRY_DATE_DURATION = 5 * 60 * 1000
-let resetEntryDateTimer: ReturnType<typeof setTimeout> | undefined
+const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
 
 // Auth form
 const emailInput = ref('')
@@ -105,8 +106,6 @@ onMounted(async () => {
     triggerSync()
   }
 })
-
-onUnmounted(() => clearTimeout(resetEntryDateTimer))
 
 // ---------------------------------------------------------------------------
 // Auth state change handler
@@ -189,16 +188,23 @@ function defaultToCurrentDateTime() {
   Object.assign(weightForm, dateTimeForInput())
 }
 
+const { start: startEntryDateTimeout, stop: stopEntryDateTimeout } = useTimeoutFn(
+  defaultToCurrentDateTime,
+  entryDateTimeoutDuration,
+  { immediate: false },
+)
+
 function defaultToEntryDate(recordedAt: string, duration = LATEST_ENTRY_DATE_DURATION) {
   const { date } = dateTimeFromOccurredAt(recordedAt)
   feedForm.date = date
   weightForm.date = date
-  clearTimeout(resetEntryDateTimer)
-  resetEntryDateTimer = setTimeout(defaultToCurrentDateTime, duration)
+  stopEntryDateTimeout()
+  entryDateTimeoutDuration.value = duration
+  startEntryDateTimeout()
 }
 
 function defaultToRecentEntryDate() {
-  clearTimeout(resetEntryDateTimer)
+  stopEntryDateTimeout()
   defaultToCurrentDateTime()
   const latestEntry = [...data.feeds, ...data.weights].reduce<{ entry: Feed | Weight; updatedAt: number } | undefined>(
     (latest, entry) => {
