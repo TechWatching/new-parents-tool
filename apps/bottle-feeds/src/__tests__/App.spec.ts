@@ -310,6 +310,24 @@ describe('App', () => {
     expect(wrapper.findAll('.rolling-intake-col')).toHaveLength(6)
   })
 
+  it('shows the number of bottles recorded for each day', async () => {
+    const now = Date.now()
+    const preloaded: AppData = {
+      feeds: [
+        { id: 'feed-today-1', amount: 120, occurredAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+        { id: 'feed-today-2', amount: 80, occurredAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+        { id: 'feed-yesterday', amount: 150, occurredAt: new Date(now - 26 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain('Bottles per day')
+    expect(wrapper.find('.bottle-count-chart').attributes('aria-label')).toBe('Bottles per day')
+    expect(wrapper.findAll('.bottle-count-chart .bar-value').map((bar) => bar.text())).toEqual(['1', '2'])
+  })
+
   it('shows older bottles when all-time trends are selected', async () => {
     const preloaded: AppData = {
       feeds: [
