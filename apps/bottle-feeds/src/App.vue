@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { usePreferredLanguages } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
@@ -33,14 +32,13 @@ import MeasureHistory from './components/MeasureHistory.vue'
 const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
-const preferredLanguages = usePreferredLanguages()
 
 function resolveInitialLanguage(): Language {
   const stored = localStorage.getItem('new-parents-tool:language')
   if (stored === 'en' || stored === 'fr') return stored
   const browserLanguage =
-    Array.isArray(preferredLanguages.value) && preferredLanguages.value.length > 0
-      ? preferredLanguages.value[0]
+    Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages[0]
       : navigator.language ?? 'en'
   return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
 }
