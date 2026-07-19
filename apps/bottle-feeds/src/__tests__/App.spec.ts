@@ -6,6 +6,7 @@ import memoryDriver from 'unstorage/drivers/memory'
 import App from '../App.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
+import { dateTimeForInput } from '../utils/time'
 
 // Silence storage-related console warnings in tests
 beforeEach(() => {
@@ -60,6 +61,39 @@ describe('App', () => {
     expect(stored.feeds[0]).toMatchObject({
       occurredAt: '2026-07-14T14:30:00.000Z',
     })
+  })
+
+  it('keeps the latest entry date as the default for five minutes', async () => {
+    const wrapper = await mountApp()
+    let resetToCurrentDateTime: (() => void) | undefined
+    const originalSetTimeout = globalThis.setTimeout
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation((handler, timeout, ...args) => {
+      if (timeout === 5 * 60 * 1000) {
+        resetToCurrentDateTime = () => {
+          if (typeof handler === 'function') handler(...args)
+        }
+        return 0 as unknown as ReturnType<typeof setTimeout>
+      }
+      return originalSetTimeout(handler, timeout, ...args)
+    })
+
+    await wrapper.get('.feed-card input[type="number"]').setValue('120')
+    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+    await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+    await wrapper.get('.feed-card').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('120 ml')
+    for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+    }
+
+    resetToCurrentDateTime!()
+    await flushPromises()
+
+    for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
+      expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+    }
   })
 
   it('calculates the daily estimate from the latest weight', async () => {
