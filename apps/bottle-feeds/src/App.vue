@@ -18,7 +18,7 @@ import {
 import { syncNow, onLocalMutation, syncStatus, syncError, lastSyncedAt } from './sync'
 import { mergeAppData } from './merge'
 import type { AppData, Feed, Weight } from './types'
-import { dateTimeForInput, dateTimeFromOccurredAt, occurredAt } from './utils/time'
+import { dateTimeForInput, dateTimeFromOccurredAt, LATEST_ENTRY_DATE_DURATION, occurredAt } from './utils/time'
 import { formatDate } from './utils/format'
 import FeedForm from './components/FeedForm.vue'
 import WeightForm from './components/WeightForm.vue'
@@ -39,7 +39,6 @@ const language = ref<Language>(
 )
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', ...dateTimeForInput() })
-const LATEST_ENTRY_DATE_DURATION = 5 * 60 * 1000
 const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
 
 // Auth form

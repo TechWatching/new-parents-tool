@@ -7,7 +7,7 @@ import memoryDriver from 'unstorage/drivers/memory'
 import App from '../App.vue'
 import { loadData, saveData, _setTestDriver, GUEST_NAMESPACE } from '../storage'
 import type { AppData } from '../types'
-import { dateTimeForInput } from '../utils/time'
+import { dateTimeForInput, LATEST_ENTRY_DATE_DURATION } from '../utils/time'
 
 // Silence storage-related console warnings in tests
 beforeEach(() => {
@@ -79,7 +79,7 @@ describe('App', () => {
         expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
       }
 
-      await vi.advanceTimersByTimeAsync(5 * 60 * 1000)
+      await vi.advanceTimersByTimeAsync(LATEST_ENTRY_DATE_DURATION)
 
       for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
         expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
