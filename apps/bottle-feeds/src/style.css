@@ -166,6 +166,40 @@ input:focus {
   border-color: #70ab98;
   box-shadow: 0 0 0 3px #e4f2ed;
 }
+.date-field {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.date-field-input {
+  min-width: 0;
+}
+.date-field-toggle {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  border: 1px solid #d9e1dd;
+  border-radius: 10px;
+  background: #fbfcfb;
+  font-size: 16px;
+  outline: none;
+}
+.date-field-toggle:focus-visible {
+  border-color: #70ab98;
+  box-shadow: 0 0 0 3px #e4f2ed;
+}
+.date-field-calendar {
+  padding: 10px;
+}
+.custom-range .date-field-toggle {
+  width: 32px;
+  border: 1px solid #dfe6e2;
+  border-radius: 7px;
+  background: white;
+  font-size: 14px;
+}
+
 .primary-button,
 .secondary-button {
   width: 100%;

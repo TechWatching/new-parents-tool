@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { shortDay } from '../utils/format'
+import DateField from './DateField.vue'
 
 const props = defineProps<{
   feeds: Feed[]
@@ -204,11 +205,11 @@ const rollingIntakePolyline = computed(() =>
     <div v-if="range === 'custom'" class="custom-range">
       <label>
         {{ t.startDate }}
-        <input v-model="customRange.start" type="date" :lang="locale" :max="customRange.end || undefined" />
+        <DateField v-model="customRange.start" :locale="locale" :max="customRange.end || undefined" />
       </label>
       <label>
         {{ t.endDate }}
-        <input v-model="customRange.end" type="date" :lang="locale" :min="customRange.start || undefined" />
+        <DateField v-model="customRange.end" :locale="locale" :min="customRange.start || undefined" />
       </label>
     </div>
 

@@ -16,6 +16,7 @@
     "format": "vp fmt ."
   },
   "dependencies": {
+    "@internationalized/date": "^3.12.2",
     "@nuxt/ui": "4.10.0",
     "@supabase/supabase-js": "^2.110.7",
     "@tailwindcss/vite": "4.3.3",

@@ -6,6 +6,7 @@ import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { formatDate } from '../utils/format'
 import { dateTimeFromOccurredAt, maskTimeValue, occurredAt, timePattern } from '../utils/time'
+import DateField from './DateField.vue'
 
 defineProps<{
   feeds: Feed[]
@@ -106,7 +107,7 @@ function saveWeight(weight: Weight) {
               </label>
               <label for="edit-feed-date">
                 {{ t.date }}
-                <input id="edit-feed-date" v-model="editingFeed.date" type="date" :lang="locale" required />
+                <DateField id="edit-feed-date" v-model="editingFeed.date" :locale="locale" required />
               </label>
               <label for="edit-feed-time">
                 {{ t.time }}
@@ -160,7 +161,7 @@ function saveWeight(weight: Weight) {
               </label>
               <label for="edit-weight-date">
                 {{ t.date }}
-                <input id="edit-weight-date" v-model="editingWeight.date" type="date" :lang="locale" required />
+                <DateField id="edit-weight-date" v-model="editingWeight.date" :locale="locale" required />
               </label>
               <label for="edit-weight-time">
                 {{ t.time }}

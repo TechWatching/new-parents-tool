@@ -55,8 +55,8 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.feed-card input[type="number"]').setValue('120')
-    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
-    await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+    await wrapper.get('.feed-card .date-field-input').setValue('14/07/2026')
+    await wrapper.get('.feed-card input[inputmode="numeric"][pattern]').setValue('14:30')
     await wrapper.get('.feed-card input[maxlength="160"]').setValue('Drank well')
     await wrapper.get('.feed-card').trigger('submit')
     await flushPromises()
@@ -75,20 +75,20 @@ describe('App', () => {
     vi.useFakeTimers()
     try {
       await wrapper.get('.feed-card input[type="number"]').setValue('120')
-      await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
-      await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+      await wrapper.get('.feed-card .date-field-input').setValue('14/07/2026')
+      await wrapper.get('.feed-card input[inputmode="numeric"][pattern]').setValue('14:30')
       await wrapper.get('.feed-card').trigger('submit')
       await nextTick()
 
       expect(wrapper.text()).toContain('120 ml')
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      for (const input of wrapper.findAll('.entry-grid .date-field-input')) {
+        expect(input.attributes('data-iso')).toBe('2026-07-14')
       }
 
       await vi.advanceTimersByTimeAsync(LATEST_ENTRY_DATE_DURATION)
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      for (const input of wrapper.findAll('.entry-grid .date-field-input')) {
+        expect(input.attributes('data-iso')).toBe(dateTimeForInput().date)
       }
     } finally {
       vi.useRealTimers()
@@ -114,14 +114,14 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-        expect((input.element as HTMLInputElement).value).toBe('2026-07-14')
+      for (const input of wrapper.findAll('.entry-grid .date-field-input')) {
+        expect(input.attributes('data-iso')).toBe('2026-07-14')
       }
 
       await vi.advanceTimersByTimeAsync(3 * 60 * 1000)
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      for (const input of wrapper.findAll('.entry-grid .date-field-input')) {
+        expect(input.attributes('data-iso')).toBe(dateTimeForInput().date)
       }
     } finally {
       vi.useRealTimers()
@@ -147,8 +147,8 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      for (const input of wrapper.findAll('.entry-grid input[type="date"]')) {
-        expect((input.element as HTMLInputElement).value).toBe(dateTimeForInput().date)
+      for (const input of wrapper.findAll('.entry-grid .date-field-input')) {
+        expect(input.attributes('data-iso')).toBe(dateTimeForInput().date)
       }
     } finally {
       vi.useRealTimers()
@@ -159,8 +159,8 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.feed-card input[type="number"]').setValue('120')
-    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
-    await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+    await wrapper.get('.feed-card .date-field-input').setValue('14/07/2026')
+    await wrapper.get('.feed-card input[inputmode="numeric"][pattern]').setValue('14:30')
     await wrapper.get('.feed-card').trigger('submit')
     await flushPromises()
 
@@ -173,8 +173,8 @@ describe('App', () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.weight-card input[type="number"]').setValue('4.2')
-    await wrapper.get('.weight-card input[type="date"]').setValue('2026-07-14')
-    await wrapper.get('.weight-card input[inputmode="numeric"]').setValue('14:30')
+    await wrapper.get('.weight-card .date-field-input').setValue('14/07/2026')
+    await wrapper.get('.weight-card input[inputmode="numeric"][pattern]').setValue('14:30')
     await wrapper.get('.weight-card').trigger('submit')
     await flushPromises()
     expect(document.body.textContent).toContain('Weight recorded')
@@ -234,7 +234,7 @@ describe('App', () => {
   it('auto-inserts the colon once minutes start for 24-hour time inputs', async () => {
     const wrapper = await mountApp()
 
-    for (const input of wrapper.findAll('input[inputmode="numeric"]')) {
+    for (const input of wrapper.findAll('input[inputmode="numeric"][pattern]')) {
       await input.setValue('14')
       await flushPromises()
       expect((input.element as HTMLInputElement).value).toBe('14')
@@ -252,6 +252,40 @@ describe('App', () => {
       expect(input.attributes('placeholder')).toBe('14:30')
       expect((input.element as HTMLInputElement).value).toBe('14:30')
     }
+  })
+
+  it('auto-inserts slashes while typing a date and keeps an ISO value in sync', async () => {
+    const wrapper = await mountApp()
+
+    const input = wrapper.get('.feed-card .date-field-input')
+    await input.setValue('14')
+    await flushPromises()
+    expect((input.element as HTMLInputElement).value).toBe('14')
+
+    await input.setValue('1407')
+    await flushPromises()
+    expect((input.element as HTMLInputElement).value).toBe('14/07')
+
+    await input.setValue('14072026')
+    await flushPromises()
+    expect((input.element as HTMLInputElement).value).toBe('14/07/2026')
+    expect(input.attributes('data-iso')).toBe('2026-07-14')
+  })
+
+  it('renders the calendar picker in the currently selected app language, not the browser locale', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.feed-card .date-field-toggle').trigger('click')
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(document.body.textContent).toContain('July 2026')
+
+    await wrapper.get('.language-button').trigger('click')
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(document.body.textContent).toContain('juillet 2026')
   })
 
   it('lists every measure in tabs and saves quick edits', async () => {
