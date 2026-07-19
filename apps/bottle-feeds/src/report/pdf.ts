@@ -19,6 +19,8 @@ const CHART_CONTENT_TOP = 34
 const CHART_CONTENT_BOTTOM = 28
 const CHART_CONTENT_SIDE = 16
 const CHART_LABEL_SPACE = 24
+const CHART_COLOR_MILK: [number, number, number] = [236, 121, 108]
+const CHART_COLOR_BOTTLES: [number, number, number] = [90, 156, 135]
 
 type AutoTableDoc = {
   lastAutoTable?: {
@@ -243,7 +245,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       cursorY,
       chartWidth,
       CHART_HEIGHT,
-      [236, 121, 108],
+      CHART_COLOR_MILK,
       (point) => point.totalAmount,
       t.ml,
     )
@@ -254,7 +256,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       cursorY,
       chartWidth,
       CHART_HEIGHT,
-      [90, 156, 135],
+      CHART_COLOR_BOTTLES,
       (point) => point.bottleCount,
     )
     cursorY += CHART_HEIGHT + 24
