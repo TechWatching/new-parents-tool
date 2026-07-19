@@ -81,13 +81,26 @@ describe('App', () => {
     expect(document.documentElement.lang).toBe('fr')
   })
 
-  it('uses keyboard-friendly 24-hour time inputs', async () => {
+  it('auto-inserts the colon once minutes start for 24-hour time inputs', async () => {
     const wrapper = await mountApp()
 
     for (const input of wrapper.findAll('input[inputmode="numeric"]')) {
+      await input.setValue('14')
+      await flushPromises()
+      expect((input.element as HTMLInputElement).value).toBe('14')
+
+      await input.setValue('143')
+      await flushPromises()
+      expect((input.element as HTMLInputElement).value).toBe('14:3')
+
+      await input.setValue('1430')
+      await flushPromises()
+
       expect(input.attributes('type')).toBe('text')
+      expect(input.attributes('inputmode')).toBe('numeric')
       expect(input.attributes('pattern')).toBe('^(?:[01]\\d|2[0-3]):[0-5]\\d$')
       expect(input.attributes('placeholder')).toBe('14:30')
+      expect((input.element as HTMLInputElement).value).toBe('14:30')
     }
   })
 
@@ -109,6 +122,7 @@ describe('App', () => {
     expect(wrapper.get('.measure-list form').text()).toContain('Time (24h)')
     expect(wrapper.get('.measure-list form').text()).toContain('Comment (optional)')
     await wrapper.get('.measure-list input[type="number"]').setValue('150')
+    await wrapper.get('#edit-feed-time').setValue('0915')
     await wrapper.get('.measure-list form').trigger('submit')
     await flushPromises()
 
@@ -118,6 +132,7 @@ describe('App', () => {
     // The edited feed should be updated (feed-1 is sorted first by date desc)
     const editedFeed = stored.feeds.find((f) => f.id === 'feed-1')
     expect(editedFeed!.amount).toBe(150)
+    expect(editedFeed!.occurredAt).toBe('2026-07-14T09:15:00.000Z')
 
     const weightTab = wrapper.findAll('[role="tab"]')[1]
     expect(weightTab).toBeDefined()
