@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import { nextTick } from 'vue'
-import { maskTimeInput, maskTimeValue } from '../utils/time'
+import { maskTimeInput, maskTimeValue, showDatePicker } from '../utils/time'
 
 function makeInputEvent(value: string, selectionStart: number) {
   const input = document.createElement('input')
@@ -14,6 +14,18 @@ describe('maskTimeValue', () => {
   it('inserts the colon after two digits', () => {
     expect(maskTimeValue('1234')).toBe('12:34')
     expect(maskTimeValue('12')).toBe('12')
+  })
+
+  describe('showDatePicker', () => {
+    it('opens the native picker for the clicked date input', () => {
+      const input = document.createElement('input')
+      input.type = 'date'
+      input.showPicker = vi.fn()
+
+      showDatePicker({ currentTarget: input } as unknown as MouseEvent)
+
+      expect(input.showPicker).toHaveBeenCalledOnce()
+    })
   })
 })
 

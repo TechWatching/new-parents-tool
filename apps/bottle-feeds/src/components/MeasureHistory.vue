@@ -5,7 +5,7 @@ import UTabs from '@nuxt/ui/components/Tabs.vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { formatDate } from '../utils/format'
-import { dateTimeFromOccurredAt, maskTimeInput, occurredAt, timePattern } from '../utils/time'
+import { dateTimeFromOccurredAt, maskTimeInput, occurredAt, showDatePicker, timePattern } from '../utils/time'
 
 defineProps<{
   feeds: Feed[]
@@ -114,6 +114,7 @@ function saveWeight(weight: Weight) {
                   type="date"
                   :lang="locale"
                   required
+                  @click="showDatePicker"
                 />
               </label>
               <label for="edit-feed-time">
@@ -175,6 +176,7 @@ function saveWeight(weight: Weight) {
                   type="date"
                   :lang="locale"
                   required
+                  @click="showDatePicker"
                 />
               </label>
               <label for="edit-weight-time">

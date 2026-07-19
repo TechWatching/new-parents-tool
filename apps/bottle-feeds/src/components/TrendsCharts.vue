@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { shortDay } from '../utils/format'
+import { showDatePicker } from '../utils/time'
 
 const props = defineProps<{
   feeds: Feed[]
@@ -209,6 +210,7 @@ const rollingIntakePolyline = computed(() =>
           type="date"
           :lang="locale"
           :max="customRange.end || undefined"
+          @click="showDatePicker"
         />
       </label>
       <label>
@@ -218,6 +220,7 @@ const rollingIntakePolyline = computed(() =>
           type="date"
           :lang="locale"
           :min="customRange.start || undefined"
+          @click="showDatePicker"
         />
       </label>
     </div>
