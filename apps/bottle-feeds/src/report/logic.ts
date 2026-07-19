@@ -133,8 +133,8 @@ export function resolveReportPeriod(config: ReportConfig, now = new Date()): Rep
       return { range: config.range, startAt: null, endAt: null }
     case 'custom': {
       const startAt = parseDateInput(config.startDate)
-      const endStart = parseDateInput(config.endDate)
-      const endAt = endStart ? new Date(endStart.getTime() + 24 * 60 * 60 * 1000 - 1) : null
+      const parsedEndDate = parseDateInput(config.endDate)
+      const endAt = parsedEndDate ? new Date(parsedEndDate.getTime() + 24 * 60 * 60 * 1000 - 1) : null
       return { range: config.range, startAt, endAt }
     }
   }
