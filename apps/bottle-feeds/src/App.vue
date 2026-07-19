@@ -242,7 +242,11 @@ function addFeed() {
   feedForm.amount = ''
   feedForm.comment = ''
   applyEntryDateWithReset(recordedAt)
-  toast.add({ title: t.value.feedAdded, color: 'success' })
+  toast.add({
+    title: t.value.feedAdded,
+    description: `${amount.toLocaleString(locale.value)} ${t.value.ml} · ${formatDate(recordedAt, locale.value)}`,
+    color: 'success',
+  })
 }
 
 function addWeight() {
@@ -253,7 +257,11 @@ function addWeight() {
   data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
   weightForm.kilograms = ''
   applyEntryDateWithReset(recordedAt)
-  toast.add({ title: t.value.weightAdded, color: 'success' })
+  toast.add({
+    title: t.value.weightAdded,
+    description: `${kilograms.toLocaleString(locale.value)} ${t.value.kg} · ${formatDate(recordedAt, locale.value)}`,
+    color: 'success',
+  })
 }
 
 function saveFeed(payload: { id: string; amount: number; occurredAt: string; comment: string }) {
