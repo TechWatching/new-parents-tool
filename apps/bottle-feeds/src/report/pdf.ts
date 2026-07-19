@@ -1,12 +1,24 @@
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
-import type { ReportSnapshot } from './logic'
+import {
+  compactReportFeedChartPoints,
+  createReportFeedChartPoints,
+  type ReportFeedChartPoint,
+  type ReportSnapshot,
+} from './logic'
 
 const PAGE_MARGIN = 40
 const PAGE_FOOTER = 28
 const TABLE_BOTTOM_MARGIN = 36
 const META_VALUE_OFFSET = 14
 const META_LINE_HEIGHT = 13
+const CHART_GAP = 16
+const CHART_HEIGHT = 172
+const CHART_TITLE_OFFSET = 18
+const CHART_CONTENT_TOP = 34
+const CHART_CONTENT_BOTTOM = 28
+const CHART_CONTENT_SIDE = 16
+const CHART_LABEL_SPACE = 24
 
 type AutoTableDoc = {
   lastAutoTable?: {
@@ -104,6 +116,10 @@ function addFooter(
   }
 }
 
+function chartValueLabel(value: number, locale: string, suffix?: string) {
+  return suffix ? `${formatNumber(value, locale)} ${suffix}` : formatNumber(value, locale)
+}
+
 export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Messages, locale: string) {
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
 
@@ -111,7 +127,87 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const showComments = snapshot.config.includeComments
+  const reportFeedChartPoints = compactReportFeedChartPoints(
+    createReportFeedChartPoints(snapshot, locale),
+    snapshot.period.range === '24h' ? 6 : 8,
+  )
   let cursorY = PAGE_MARGIN
+
+  const ensureSpace = (requiredHeight: number) => {
+    if (cursorY + requiredHeight <= pageHeight - PAGE_MARGIN - PAGE_FOOTER - 30) return
+    doc.addPage()
+    cursorY = PAGE_MARGIN
+  }
+
+  const drawFeedChart = (
+    title: string,
+    points: ReportFeedChartPoint[],
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: [number, number, number],
+    valueForPoint: (point: ReportFeedChartPoint) => number,
+    valueSuffix?: string,
+  ) => {
+    doc.setDrawColor(226, 232, 228)
+    doc.rect(x, y, width, height)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(36, 51, 47)
+    doc.text(title, x + CHART_CONTENT_SIDE, y + CHART_TITLE_OFFSET)
+
+    if (points.length === 0) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(101, 115, 111)
+      doc.text(t.reportNoFeeds, x + width / 2, y + height / 2, {
+        align: 'center',
+        maxWidth: width - CHART_CONTENT_SIDE * 2,
+      })
+      return
+    }
+
+    const maxValue = Math.max(...points.map(valueForPoint), 1)
+    const plotLeft = x + CHART_CONTENT_SIDE
+    const plotTop = y + CHART_CONTENT_TOP
+    const plotBottom = y + height - CHART_CONTENT_BOTTOM
+    const plotWidth = width - CHART_CONTENT_SIDE * 2
+    const plotHeight = plotBottom - plotTop - CHART_LABEL_SPACE
+    const barGap = Math.max(4, Math.min(10, plotWidth / Math.max(points.length * 4, 1)))
+    const barWidth = Math.max(8, (plotWidth - barGap * (points.length + 1)) / Math.max(points.length, 1))
+    const topValueY = plotTop - 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(84, 96, 92)
+    doc.text(chartValueLabel(maxValue, locale, valueSuffix), x + width - CHART_CONTENT_SIDE, topValueY, {
+      align: 'right',
+    })
+    doc.setDrawColor(226, 232, 228)
+    doc.line(plotLeft, plotTop, plotLeft + plotWidth, plotTop)
+    doc.line(plotLeft, plotBottom - CHART_LABEL_SPACE, plotLeft + plotWidth, plotBottom - CHART_LABEL_SPACE)
+
+    points.forEach((point, index) => {
+      const value = valueForPoint(point)
+      const barHeight = value > 0 ? Math.max((value / maxValue) * (plotHeight - 6), 4) : 0
+      const barX = plotLeft + barGap + index * (barWidth + barGap)
+      const barY = plotBottom - CHART_LABEL_SPACE - barHeight
+
+      if (barHeight > 0) {
+        doc.setFillColor(...color)
+        doc.rect(barX, barY, barWidth, barHeight, 'F')
+      }
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(84, 96, 92)
+      doc.text(doc.splitTextToSize(point.label, barWidth + 8).slice(0, 2), barX + barWidth / 2, plotBottom - 10, {
+        align: 'center',
+      })
+    })
+  }
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(18)
@@ -136,6 +232,33 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
     cursorY,
     pageWidth - PAGE_MARGIN * 2,
   ) + 18
+
+  if (snapshot.config.includeFeeds) {
+    ensureSpace(CHART_HEIGHT + 24)
+    const chartWidth = (pageWidth - PAGE_MARGIN * 2 - CHART_GAP) / 2
+    drawFeedChart(
+      t.reportMilkQuantityChartTitle,
+      reportFeedChartPoints,
+      PAGE_MARGIN,
+      cursorY,
+      chartWidth,
+      CHART_HEIGHT,
+      [236, 121, 108],
+      (point) => point.totalAmount,
+      t.ml,
+    )
+    drawFeedChart(
+      t.reportBottleCountChartTitle,
+      reportFeedChartPoints,
+      PAGE_MARGIN + chartWidth + CHART_GAP,
+      cursorY,
+      chartWidth,
+      CHART_HEIGHT,
+      [90, 156, 135],
+      (point) => point.bottleCount,
+    )
+    cursorY += CHART_HEIGHT + 24
+  }
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(13)

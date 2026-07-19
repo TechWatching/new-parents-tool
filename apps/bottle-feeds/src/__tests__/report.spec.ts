@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vite-plus/test'
 import { messages } from '../i18n'
 import {
   buildReportFilename,
+  compactReportFeedChartPoints,
+  createReportFeedChartPoints,
   createDefaultReportConfig,
   createReportSnapshot,
   validateReportConfig,
@@ -130,6 +132,45 @@ describe('report logic', () => {
 
   it('builds the requested report filename pattern', () => {
     expect(buildReportFilename(new Date('2026-07-19T10:15:00.000Z'))).toBe('little-sips-report-2026-07-19.pdf')
+  })
+
+  it('creates chart points for feed quantity and bottle count', () => {
+    const snapshot = createReportSnapshot(
+      feeds,
+      weights,
+      {
+        range: '7d',
+        startDate: '2026-07-12',
+        endDate: '2026-07-19',
+        includeFeeds: true,
+        includeWeights: true,
+        includeComments: true,
+      },
+      new Date('2026-07-19T10:15:00.000Z'),
+    )
+
+    const points = createReportFeedChartPoints(snapshot, 'en-GB')
+
+    expect(points).toHaveLength(7)
+    expect(points.map((point) => point.totalAmount)).toEqual([0, 0, 0, 0, 0, 120, 90])
+    expect(points.map((point) => point.bottleCount)).toEqual([0, 0, 0, 0, 0, 1, 1])
+  })
+
+  it('compacts chart points for long report ranges', () => {
+    const points = compactReportFeedChartPoints(
+      [
+        { label: '1 Jul', totalAmount: 80, bottleCount: 1 },
+        { label: '2 Jul', totalAmount: 100, bottleCount: 1 },
+        { label: '3 Jul', totalAmount: 120, bottleCount: 2 },
+        { label: '4 Jul', totalAmount: 90, bottleCount: 1 },
+      ],
+      2,
+    )
+
+    expect(points).toEqual([
+      { label: '1 Jul–2 Jul', totalAmount: 180, bottleCount: 2 },
+      { label: '3 Jul–4 Jul', totalAmount: 210, bottleCount: 3 },
+    ])
   })
 
   it('generates a PDF blob for browser download', async () => {

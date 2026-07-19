@@ -1,4 +1,5 @@
 import type { Feed, Weight } from '../types'
+import { shortDay } from '../utils/format'
 
 export type ReportRange = '24h' | '7d' | 'all' | 'custom'
 
@@ -39,6 +40,12 @@ export interface ReportSnapshot {
   latestWeight: Weight | null
 }
 
+export interface ReportFeedChartPoint {
+  label: string
+  totalAmount: number
+  bottleCount: number
+}
+
 function localDateInput(date: Date) {
   const local = new Date(date)
   local.setMinutes(local.getMinutes() - local.getTimezoneOffset())
@@ -49,6 +56,32 @@ function parseDateInput(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+function startOfDay(date: Date) {
+  const value = new Date(date)
+  value.setHours(0, 0, 0, 0)
+  return value
+}
+
+function formatReportChartLabel(date: Date, range: ReportRange, locale: string) {
+  if (range === '7d') return shortDay(date, locale)
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date)
+}
+
+function summarizeFeedsInRange(feeds: Feed[], startTime: number, endTime: number) {
+  let totalAmount = 0
+  let bottleCount = 0
+
+  for (const feed of feeds) {
+    const occurredAt = Date.parse(feed.occurredAt)
+    if (Number.isNaN(occurredAt) || occurredAt < startTime || occurredAt >= endTime) continue
+
+    totalAmount += feed.amount
+    bottleCount++
+  }
+
+  return { totalAmount, bottleCount }
 }
 
 export function createDefaultReportConfig(now = new Date()): ReportConfig {
@@ -149,6 +182,89 @@ export function createReportSnapshot(
     },
     latestWeight: selectedWeights[0] ?? null,
   }
+}
+
+export function createReportFeedChartPoints(snapshot: ReportSnapshot, locale: string): ReportFeedChartPoint[] {
+  const feeds = [...snapshot.feeds].sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt))
+  if (feeds.length === 0) return []
+
+  if (snapshot.period.range === '24h') {
+    const windowSize = 4 * 60 * 60 * 1000
+    return Array.from({ length: 6 }, (_, index) => {
+      const endTime = snapshot.generatedAt.getTime() - (5 - index) * windowSize
+      const startTime = endTime - windowSize
+      const summary = summarizeFeedsInRange(feeds, startTime, endTime)
+      return {
+        label: new Intl.DateTimeFormat(locale, { hour: '2-digit' }).format(new Date(endTime)),
+        ...summary,
+      }
+    })
+  }
+
+  let startAt: Date
+  let endExclusive: Date
+
+  switch (snapshot.period.range) {
+    case '7d': {
+      endExclusive = startOfDay(snapshot.generatedAt)
+      endExclusive.setDate(endExclusive.getDate() + 1)
+      startAt = new Date(endExclusive)
+      startAt.setDate(startAt.getDate() - 7)
+      break
+    }
+    case 'custom': {
+      if (!snapshot.period.startAt || !snapshot.period.endAt) return []
+      startAt = startOfDay(snapshot.period.startAt)
+      endExclusive = startOfDay(snapshot.period.endAt)
+      endExclusive.setDate(endExclusive.getDate() + 1)
+      break
+    }
+    case 'all': {
+      const earliestFeed = feeds[0]
+      const latestFeed = feeds.at(-1)
+      if (!earliestFeed || !latestFeed) return []
+      startAt = startOfDay(new Date(earliestFeed.occurredAt))
+      endExclusive = startOfDay(new Date(latestFeed.occurredAt))
+      endExclusive.setDate(endExclusive.getDate() + 1)
+      break
+    }
+    case '24h':
+      return []
+  }
+
+  const points: ReportFeedChartPoint[] = []
+  for (const date = new Date(startAt); date < endExclusive; date.setDate(date.getDate() + 1)) {
+    const nextDate = new Date(date)
+    nextDate.setDate(nextDate.getDate() + 1)
+    points.push({
+      label: formatReportChartLabel(date, snapshot.period.range, locale),
+      ...summarizeFeedsInRange(feeds, date.getTime(), nextDate.getTime()),
+    })
+  }
+
+  return points
+}
+
+export function compactReportFeedChartPoints(points: ReportFeedChartPoint[], maxPoints: number) {
+  if (maxPoints <= 0 || points.length <= maxPoints) return points
+
+  const groupSize = Math.ceil(points.length / maxPoints)
+  const compacted: ReportFeedChartPoint[] = []
+
+  for (let index = 0; index < points.length; index += groupSize) {
+    const group = points.slice(index, index + groupSize)
+    const firstPoint = group[0]
+    const lastPoint = group.at(-1)
+    if (!firstPoint || !lastPoint) continue
+
+    compacted.push({
+      label: firstPoint.label === lastPoint.label ? firstPoint.label : `${firstPoint.label}–${lastPoint.label}`,
+      totalAmount: group.reduce((total, point) => total + point.totalAmount, 0),
+      bottleCount: group.reduce((total, point) => total + point.bottleCount, 0),
+    })
+  }
+
+  return compacted
 }
 
 export function buildReportFilename(date = new Date()) {
