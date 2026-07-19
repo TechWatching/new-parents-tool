@@ -29,6 +29,9 @@ export function displayDateToIso(display: string): string | null {
   const month = Number(display.slice(3, 5))
   const year = Number(display.slice(6, 10))
   if (month < 1 || month > 12) return null
+  // Day 0 of `month` rolls back to the last day of the previous month, giving the
+  // number of days in `month` (JS `Date` months are 0-indexed, so `month` here is
+  // already "next month" relative to the 0-indexed value).
   const daysInMonth = new Date(year, month, 0).getDate()
   if (day < 1 || day > daysInMonth) return null
   const pad = (n: number) => String(n).padStart(2, '0')

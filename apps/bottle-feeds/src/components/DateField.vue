@@ -57,9 +57,21 @@ const isFrench = computed(() => props.locale.toLowerCase().startsWith('fr'))
 const placeholder = computed(() => (isFrench.value ? 'JJ/MM/AAAA' : 'DD/MM/YYYY'))
 const toggleLabel = computed(() => (isFrench.value ? 'Choisir une date' : 'Choose a date'))
 
+function isDateValue(next: unknown): next is DateValue {
+  return (
+    !!next &&
+    typeof next === 'object' &&
+    !Array.isArray(next) &&
+    'year' in next &&
+    'month' in next &&
+    'day' in next &&
+    typeof (next as DateValue).toString === 'function'
+  )
+}
+
 function selectDate(next: unknown) {
-  if (next && typeof next === 'object' && 'toString' in next) {
-    value.value = (next as DateValue).toString()
+  if (isDateValue(next)) {
+    value.value = next.toString()
   }
   open.value = false
 }
