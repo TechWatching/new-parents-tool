@@ -369,7 +369,9 @@ describe('App', () => {
     expect(reportPdfSpies.generateReportPdfBlob).toHaveBeenCalledTimes(1)
     expect(reportPdfSpies.downloadPdf).toHaveBeenCalledTimes(1)
     expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[0]).toBeInstanceOf(Blob)
-    expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[1]).toMatch(/^little-sips-report-\d{4}-\d{2}-\d{2}\.pdf$/)
+    expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[1]).toMatch(
+      /^little-sips-report-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.pdf$/,
+    )
   })
 
   it('validates report settings before generating a PDF', async () => {
