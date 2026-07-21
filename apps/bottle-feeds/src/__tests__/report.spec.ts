@@ -194,4 +194,33 @@ describe('report logic', () => {
     expect(blob.type).toBe('application/pdf')
     expect(Array.from(header)).toEqual([37, 80, 68, 70])
   })
+
+  it('renders compacted chart values into the PDF output', async () => {
+    const chartFeeds: Feed[] = Array.from({ length: 9 }, (_, index) => ({
+      id: `chart-feed-${index + 1}`,
+      amount: (index + 1) * 10,
+      occurredAt: `2026-07-${String(index + 1).padStart(2, '0')}T08:00:00.000Z`,
+      comment: '',
+      updatedAt: `2026-07-${String(index + 1).padStart(2, '0')}T08:00:00.000Z`,
+    }))
+    const snapshot = createReportSnapshot(
+      chartFeeds,
+      [],
+      {
+        range: 'all',
+        startDate: '2026-07-01',
+        endDate: '2026-07-09',
+        includeFeeds: true,
+        includeWeights: false,
+        includeComments: false,
+      },
+      new Date('2026-07-09T10:15:00.000Z'),
+    )
+
+    const blob = await generateReportPdfBlob(snapshot, messages.en, 'en-GB')
+    const pdfText = Buffer.from(await blob.arrayBuffer()).toString('latin1')
+
+    expect(pdfText).toContain('110 ml')
+    expect(pdfText).toContain('150 ml')
+  })
 })

@@ -200,6 +200,12 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       if (barHeight > 0) {
         doc.setFillColor(...color)
         doc.rect(barX, barY, barWidth, barHeight, 'F')
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(84, 96, 92)
+        doc.text(chartValueLabel(value, locale, valueSuffix), barX + barWidth / 2, Math.max(plotTop + 8, barY - 4), {
+          align: 'center',
+        })
       }
 
       doc.setFont('helvetica', 'normal')
