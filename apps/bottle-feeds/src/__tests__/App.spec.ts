@@ -181,7 +181,32 @@ describe('App', () => {
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000)
       await nextTick()
 
-      expect(wrapper.text()).toContain('2 minutes ago')
+      expect(wrapper.text()).toContain('2 minutes')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('formats longer elapsed times as hours and minutes', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-14T14:30:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-long-interval',
+            amount: 120,
+            occurredAt: '2026-07-14T13:05:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-14T13:05:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      expect(wrapper.text()).toContain('1 hour and 25 minutes')
     } finally {
       vi.useRealTimers()
     }
