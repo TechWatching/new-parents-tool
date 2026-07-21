@@ -68,10 +68,7 @@ function startOfDay(date: Date) {
   return value
 }
 
-function formatReportChartLabel(date: Date, range: ReportRange, locale: string) {
-  if (range === '7d') {
-    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date)
-  }
+function formatReportChartLabel(date: Date, locale: string) {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date)
 }
 
@@ -241,7 +238,7 @@ export function createReportFeedChartPoints(snapshot: ReportSnapshot, locale: st
     const nextDate = new Date(date)
     nextDate.setDate(nextDate.getDate() + 1)
     points.push({
-      label: formatReportChartLabel(date, snapshot.period.range, locale),
+      label: formatReportChartLabel(date, locale),
       ...summarizeFeedsInRange(feeds, date.getTime(), nextDate.getTime()),
     })
   }
