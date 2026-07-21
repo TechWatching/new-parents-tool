@@ -19,6 +19,13 @@ const CHART_CONTENT_TOP = 34
 const CHART_CONTENT_BOTTOM = 28
 const CHART_CONTENT_SIDE = 16
 const CHART_LABEL_SPACE = 24
+const CHART_BAR_MIN_HEIGHT = 4
+const CHART_BAR_SCALE_PADDING = 6
+const CHART_BAR_VALUE_MIN_TOP = 8
+const CHART_BAR_VALUE_OFFSET = 4
+const CHART_X_LABEL_WIDTH_PADDING = 8
+const CHART_X_LABEL_MAX_LINES = 2
+const CHART_X_LABEL_OFFSET = 10
 const CHART_COLOR_MILK: [number, number, number] = [236, 121, 108]
 const CHART_COLOR_BOTTLES: [number, number, number] = [90, 156, 135]
 
@@ -193,7 +200,8 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
 
     points.forEach((point, index) => {
       const value = valueForPoint(point)
-      const barHeight = value > 0 ? Math.max((value / maxValue) * (plotHeight - 6), 4) : 0
+      const barHeight =
+        value > 0 ? Math.max((value / maxValue) * (plotHeight - CHART_BAR_SCALE_PADDING), CHART_BAR_MIN_HEIGHT) : 0
       const barX = plotLeft + barGap + index * (barWidth + barGap)
       const barY = plotBottom - CHART_LABEL_SPACE - barHeight
 
@@ -203,17 +211,23 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(7)
         doc.setTextColor(84, 96, 92)
-        doc.text(chartValueLabel(value, locale, valueSuffix), barX + barWidth / 2, Math.max(plotTop + 8, barY - 4), {
-          align: 'center',
-        })
+        doc.text(
+          chartValueLabel(value, locale, valueSuffix),
+          barX + barWidth / 2,
+          Math.max(plotTop + CHART_BAR_VALUE_MIN_TOP, barY - CHART_BAR_VALUE_OFFSET),
+          { align: 'center' },
+        )
       }
 
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       doc.setTextColor(84, 96, 92)
-      doc.text(doc.splitTextToSize(point.label, barWidth + 8).slice(0, 2), barX + barWidth / 2, plotBottom - 10, {
-        align: 'center',
-      })
+      doc.text(
+        doc.splitTextToSize(point.label, barWidth + CHART_X_LABEL_WIDTH_PADDING).slice(0, CHART_X_LABEL_MAX_LINES),
+        barX + barWidth / 2,
+        plotBottom - CHART_X_LABEL_OFFSET,
+        { align: 'center' },
+      )
     })
   }
 
