@@ -21,6 +21,8 @@
     "@tailwindcss/vite": "4.3.3",
     "@vueuse/core": "14.3.0",
     "idb-keyval": "^6.3.0",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
     "tailwindcss": "4.3.3",
     "unstorage": "^1.17.5",
     "vue": "^3.5.38",
