@@ -155,6 +155,38 @@ describe('App', () => {
     }
   })
 
+  it('shows the time since the latest bottle and updates it over time', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-14T14:30:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-latest',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-14T14:30:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      expect(wrapper.text()).toContain('Time since last bottle')
+      expect(wrapper.text()).toContain('now')
+      expect(wrapper.text()).toContain('14 Jul, 14:30')
+
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000)
+      await nextTick()
+
+      expect(wrapper.text()).toContain('2 minutes ago')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows a confirmation notification after recording a bottle', async () => {
     const wrapper = await mountApp()
 

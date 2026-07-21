@@ -27,7 +27,7 @@ import {
   LATEST_ENTRY_DATE_DURATION,
   occurredAt,
 } from './utils/time'
-import { formatDate, formatDateOnly } from './utils/format'
+import { formatDate, formatDateOnly, formatRelativeTime } from './utils/format'
 import FeedForm from './components/FeedForm.vue'
 import WeightForm from './components/WeightForm.vue'
 import SummaryMetrics from './components/SummaryMetrics.vue'
@@ -41,6 +41,8 @@ import MeasureHistory from './components/MeasureHistory.vue'
 const data = reactive<AppData>({ feeds: [], weights: [] })
 const loading = ref(true)
 const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
+const now = ref(Date.now())
+let nowIntervalId: number | undefined
 
 function resolveInitialLanguage(): Language {
   const stored = localStorage.getItem('new-parents-tool:language')
@@ -112,6 +114,10 @@ async function loadNamespace(ns: Namespace) {
 }
 
 onMounted(async () => {
+  nowIntervalId = window.setInterval(() => {
+    now.value = Date.now()
+  }, 60_000)
+
   // 1. Restore Supabase session (no-op when not configured)
   await initAuth()
 
@@ -190,7 +196,12 @@ const handleOnline = () => {
 }
 
 onMounted(() => window.addEventListener('online', handleOnline))
-onUnmounted(() => window.removeEventListener('online', handleOnline))
+onUnmounted(() => {
+  if (nowIntervalId !== undefined) {
+    window.clearInterval(nowIntervalId)
+  }
+  window.removeEventListener('online', handleOnline)
+})
 
 // ---------------------------------------------------------------------------
 // CRUD helpers
@@ -326,10 +337,20 @@ const sortedWeights = computed(() =>
   [...activeWeights.value].sort((a, b) => dateFromOccurredAt(b.occurredAt).localeCompare(dateFromOccurredAt(a.occurredAt))),
 )
 const latestWeight = computed(() => sortedWeights.value[0])
+const latestFeed = computed(() => sortedFeeds.value[0])
+const lastBottleSummary = computed(() => {
+  if (!latestFeed.value) return null
+
+  const relativeTime = formatRelativeTime(latestFeed.value.occurredAt, locale.value, now.value)
+  const exactTimestamp = formatDate(latestFeed.value.occurredAt, locale.value)
+
+  return t.value.timeSinceLastBottleFormat
+    .replace('{relativeTime}', relativeTime)
+    .replace('{timestamp}', exactTimestamp)
+})
 const dailyGuide = computed(() =>
   latestWeight.value ? Math.round((latestWeight.value.kilograms * 1000) / 10 + 200) : null,
 )
-
 
 // ---------------------------------------------------------------------------
 // Export / Import
@@ -482,6 +503,10 @@ const syncLabel = computed(() => {
         <span aria-hidden="true">⌁</span>
         {{ isSupabaseConfigured ? t.localOnly : t.privacy }}
       </div>
+
+      <p v-if="lastBottleSummary" class="last-bottle-banner" role="status" aria-live="polite">
+        {{ lastBottleSummary }}
+      </p>
 
       <!-- Sync status bar -->
       <div

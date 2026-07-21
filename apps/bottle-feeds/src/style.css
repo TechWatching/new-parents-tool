@@ -88,6 +88,18 @@ main {
   font-weight: 700;
 }
 
+.last-bottle-banner {
+  margin: 0 0 18px;
+  border: 1px solid #e9efe7;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #f6fbf4;
+  color: #4d685d;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .card {
   border: 1px solid #e2e8e4;
   border-radius: 18px;
