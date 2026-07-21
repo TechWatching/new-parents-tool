@@ -156,14 +156,6 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
     const plotHeight = plotBottom - plotBarsTop - CHART_LABEL_SPACE
     const barGap = Math.max(4, Math.min(10, plotWidth / Math.max(points.length * 4, 1)))
     const barWidth = Math.max(8, (plotWidth - barGap * (points.length + 1)) / Math.max(points.length, 1))
-    const topValueY = plotBarsTop - CHART_BAR_VALUE_OFFSET
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(84, 96, 92)
-    doc.text(chartValueLabel(maxValue, locale, valueSuffix), x + width - CHART_CONTENT_SIDE, topValueY, {
-      align: 'right',
-    })
     doc.setDrawColor(226, 232, 228)
     doc.line(plotLeft, plotBarsTop, plotLeft + plotWidth, plotBarsTop)
     doc.line(plotLeft, plotBottom - CHART_LABEL_SPACE, plotLeft + plotWidth, plotBottom - CHART_LABEL_SPACE)
