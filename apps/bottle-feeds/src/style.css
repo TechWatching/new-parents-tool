@@ -50,6 +50,7 @@ button {
 }
 button:focus-visible,
 a:focus-visible,
+input:focus,
 input:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
@@ -739,8 +740,8 @@ h3 {
   *,
   *::before,
   *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
     animation-iteration-count: 1 !important;
   }
 }
