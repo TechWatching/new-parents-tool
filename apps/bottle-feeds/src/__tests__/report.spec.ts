@@ -218,7 +218,7 @@ describe('report logic', () => {
     )
 
     const blob = await generateReportPdfBlob(snapshot, messages.en, 'en-GB')
-    const pdfText = Buffer.from(await blob.arrayBuffer()).toString('latin1')
+    const pdfText = new TextDecoder('latin1').decode(await blob.arrayBuffer())
 
     expect(pdfText).toContain('110 ml')
     expect(pdfText).toContain('150 ml')
