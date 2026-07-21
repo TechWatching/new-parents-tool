@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    vite-plus:
+      specifier: 0.2.4
+      version: 0.2.4
+
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.4
 
@@ -105,6 +111,9 @@ importers:
       vite-plugin-vue-devtools:
         specifier: ^8.1.2
         version: 8.1.5(@nuxt/kit@4.4.8)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@24.13.3)(esbuild@0.27.7)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(vue@3.5.39(typescript@6.0.3))
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.13.3)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@24.13.3)(esbuild@0.27.7)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jsdom@29.1.1)
       vue-eslint-parser:
         specifier: ^10.4.1
         version: 10.4.1(eslint@10.7.0(jiti@2.7.0))
