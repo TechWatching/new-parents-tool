@@ -7,7 +7,13 @@ const NOW_DISPLAY_THRESHOLD_SECONDS = 45
 
 type DurationUnit = 'second' | 'minute' | 'hour' | 'day'
 
-const RELATIVE_TIME_STRINGS: Record<string, { now: string; and: string; unit: (value: number, unit: DurationUnit) => string }> = {
+type RelativeTimeStrings = {
+  now: string
+  and: string
+  unit: (value: number, unit: DurationUnit) => string
+}
+
+const RELATIVE_TIME_STRINGS: Record<'en' | 'fr', RelativeTimeStrings> = {
   en: {
     now: 'now',
     and: 'and',
@@ -29,7 +35,7 @@ const RELATIVE_TIME_STRINGS: Record<string, { now: string; and: string; unit: (v
   },
 }
 
-function stringsFor(locale: string) {
+function stringsFor(locale: string): RelativeTimeStrings {
   const language = locale.toLowerCase().split('-')[0]
   return language === 'fr' ? RELATIVE_TIME_STRINGS.fr : RELATIVE_TIME_STRINGS.en
 }
