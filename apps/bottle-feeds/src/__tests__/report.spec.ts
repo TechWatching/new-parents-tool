@@ -12,6 +12,10 @@ import {
 import { generateReportPdfBlob } from '../report/pdf'
 import type { Feed, Weight } from '../types'
 
+async function decodePdfText(blob: Blob) {
+  return new TextDecoder('latin1').decode(await blob.arrayBuffer())
+}
+
 describe('report logic', () => {
   const feeds: Feed[] = [
     {
@@ -218,9 +222,33 @@ describe('report logic', () => {
     )
 
     const blob = await generateReportPdfBlob(snapshot, messages.en, 'en-GB')
-    const pdfText = new TextDecoder('latin1').decode(await blob.arrayBuffer())
+    const pdfText = await decodePdfText(blob)
 
     expect(pdfText).toContain('110 ml')
     expect(pdfText).toContain('150 ml')
+  })
+
+  it('renders report metadata in the PDF output', async () => {
+    const snapshot = createReportSnapshot(
+      feeds,
+      weights,
+      {
+        range: 'custom',
+        startDate: '2026-07-10',
+        endDate: '2026-07-19',
+        includeFeeds: true,
+        includeWeights: true,
+        includeComments: true,
+      },
+      new Date('2026-07-19T10:15:00.000Z'),
+    )
+
+    const blob = await generateReportPdfBlob(snapshot, messages.en, 'en-GB')
+    const pdfText = await decodePdfText(blob)
+
+    expect(pdfText).toContain(messages.en.reportCoveredRange)
+    expect(pdfText).toContain(messages.en.reportGeneratedAt)
+    expect(pdfText).toContain('10 Jul 2026')
+    expect(pdfText).toContain('19 Jul 2026')
   })
 })

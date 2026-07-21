@@ -10,8 +10,6 @@ import {
 const PAGE_MARGIN = 40
 const PAGE_FOOTER = 28
 const TABLE_BOTTOM_MARGIN = 36
-const META_VALUE_OFFSET = 14
-const META_LINE_HEIGHT = 13
 const CHART_GAP = 16
 const CHART_HEIGHT = 172
 const CHART_TITLE_OFFSET = 18
@@ -19,6 +17,7 @@ const CHART_CONTENT_TOP = 34
 const CHART_CONTENT_BOTTOM = 28
 const CHART_CONTENT_SIDE = 16
 const CHART_LABEL_SPACE = 24
+const CHART_BAR_VALUE_SPACE = 14
 const CHART_BAR_MIN_HEIGHT = 4
 const CHART_BAR_SCALE_PADDING = 6
 const CHART_BAR_VALUE_MIN_TOP = 8
@@ -68,36 +67,6 @@ function coveredRangeLabel(snapshot: ReportSnapshot, t: Messages, locale: string
 
   if (!snapshot.period.startAt || !snapshot.period.endAt) return t.reportAllRecordedData
   return `${formatDateTime(snapshot.period.startAt, locale)} → ${formatDateTime(snapshot.period.endAt, locale)}`
-}
-
-function drawMetadataBlock(
-  doc: {
-    setFont: (fontName: string, fontStyle?: string) => void
-    setFontSize: (size: number) => void
-    setTextColor: (r: number, g: number, b: number) => void
-    text: (text: string | string[], x: number, y: number, options?: { maxWidth?: number }) => void
-    splitTextToSize: (text: string, size: number) => string[]
-  },
-  label: string,
-  value: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-) {
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.setTextColor(84, 96, 92)
-  doc.text(label, x, y)
-
-  const lines = doc.splitTextToSize(value, maxWidth)
-  const valueY = y + META_VALUE_OFFSET
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(11)
-  doc.setTextColor(36, 51, 47)
-  doc.text(lines, x, valueY)
-
-  return valueY + (lines.length - 1) * META_LINE_HEIGHT
 }
 
 function addFooter(
@@ -181,12 +150,13 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
     const maxValue = Math.max(...points.map(valueForPoint), 1)
     const plotLeft = x + CHART_CONTENT_SIDE
     const plotTop = y + CHART_CONTENT_TOP
+    const plotBarsTop = plotTop + CHART_BAR_VALUE_SPACE
     const plotBottom = y + height - CHART_CONTENT_BOTTOM
     const plotWidth = width - CHART_CONTENT_SIDE * 2
-    const plotHeight = plotBottom - plotTop - CHART_LABEL_SPACE
+    const plotHeight = plotBottom - plotBarsTop - CHART_LABEL_SPACE
     const barGap = Math.max(4, Math.min(10, plotWidth / Math.max(points.length * 4, 1)))
     const barWidth = Math.max(8, (plotWidth - barGap * (points.length + 1)) / Math.max(points.length, 1))
-    const topValueY = plotTop - 6
+    const topValueY = plotBarsTop - CHART_BAR_VALUE_OFFSET
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
@@ -195,7 +165,7 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
       align: 'right',
     })
     doc.setDrawColor(226, 232, 228)
-    doc.line(plotLeft, plotTop, plotLeft + plotWidth, plotTop)
+    doc.line(plotLeft, plotBarsTop, plotLeft + plotWidth, plotBarsTop)
     doc.line(plotLeft, plotBottom - CHART_LABEL_SPACE, plotLeft + plotWidth, plotBottom - CHART_LABEL_SPACE)
 
     points.forEach((point, index) => {
@@ -237,23 +207,25 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   doc.text(t.reportDocumentTitle, PAGE_MARGIN, cursorY)
   cursorY += 24
 
-  doc.setFont('helvetica', 'normal')
-  cursorY = drawMetadataBlock(
-    doc,
-    t.reportCoveredRange,
-    coveredRangeLabel(snapshot, t, locale),
-    PAGE_MARGIN,
-    cursorY,
-    pageWidth - PAGE_MARGIN * 2,
-  ) + 10
-  cursorY = drawMetadataBlock(
-    doc,
-    t.reportGeneratedAt,
-    formatDateTime(snapshot.generatedAt, locale),
-    PAGE_MARGIN,
-    cursorY,
-    pageWidth - PAGE_MARGIN * 2,
-  ) + 18
+  autoTable(doc, {
+    startY: cursorY,
+    theme: 'grid',
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_BOTTOM_MARGIN },
+    body: [
+      [t.reportCoveredRange, coveredRangeLabel(snapshot, t, locale)],
+      [t.reportGeneratedAt, formatDateTime(snapshot.generatedAt, locale)],
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 8,
+      lineColor: [226, 232, 228],
+      textColor: [36, 51, 47],
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', fillColor: [248, 250, 247] },
+    },
+  })
+  cursorY = ((doc as typeof doc & AutoTableDoc).lastAutoTable?.finalY ?? cursorY) + 24
 
   if (snapshot.config.includeFeeds) {
     ensureSpace(CHART_HEIGHT + 24)
