@@ -5,16 +5,18 @@
   --color-coral: #ef8376;
   --color-coral-rgb: 239, 131, 118;
   --color-coral-dark: #dc685d;
+  --color-coral-dark-rgb: 220, 104, 93;
   --color-mint: #5a9c87;
   --color-mint-rgb: 90, 156, 135;
   --color-mint-dark: #488a75;
+  --color-mint-dark-rgb: 72, 138, 117;
   --color-text: #24332f;
   --color-border: #d9e1dd;
   --color-border-hover: #b8c9c1;
   --color-focus: #70ab98;
   --color-focus-ring: #e4f2ed;
-  --shadow-coral-hover: 0 5px 12px rgba(217, 95, 82, 0.24);
-  --shadow-mint-hover: 0 5px 12px rgba(72, 138, 117, 0.24);
+  --shadow-coral-hover: 0 5px 12px rgba(var(--color-coral-dark-rgb), 0.24);
+  --shadow-mint-hover: 0 5px 12px rgba(var(--color-mint-dark-rgb), 0.24);
   color: #24332f;
   background: #f8faf7;
   font-family:
@@ -50,7 +52,6 @@ button {
 }
 button:focus-visible,
 a:focus-visible,
-input:focus,
 input:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
@@ -737,10 +738,14 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .language-button,
+  input,
+  .primary-button,
+  .secondary-button {
     transition-duration: 0s !important;
+  }
+
+  .loading-spinner {
     animation-duration: 0s !important;
     animation-iteration-count: 1 !important;
   }
