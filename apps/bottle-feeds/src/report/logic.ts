@@ -50,7 +50,7 @@ function localDateInput(date: Date) {
   return local.toISOString().slice(0, 10)
 }
 
-function localTimeInput(date: Date) {
+function localTimeFilename(date: Date) {
   const local = new Date(date)
   local.setMinutes(local.getMinutes() - local.getTimezoneOffset())
   return local.toISOString().slice(11, 16).replace(':', '-')
@@ -269,5 +269,5 @@ export function compactReportFeedChartPoints(points: ReportFeedChartPoint[], max
 }
 
 export function buildReportFilename(date = new Date()) {
-  return `little-sips-report-${localDateInput(date)}-${localTimeInput(date)}.pdf`
+  return `little-sips-report-${localDateInput(date)}-${localTimeFilename(date)}.pdf`
 }
