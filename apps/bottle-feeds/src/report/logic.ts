@@ -1,6 +1,4 @@
 import type { Feed, Weight } from '../types'
-import { shortDay } from '../utils/format'
-
 export type ReportRange = '24h' | '7d' | 'all' | 'custom'
 
 export interface ReportConfig {
@@ -52,6 +50,12 @@ function localDateInput(date: Date) {
   return local.toISOString().slice(0, 10)
 }
 
+function localTimeInput(date: Date) {
+  const local = new Date(date)
+  local.setMinutes(local.getMinutes() - local.getTimezoneOffset())
+  return local.toISOString().slice(11, 16).replace(':', '-')
+}
+
 function parseDateInput(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const date = new Date(`${value}T00:00:00`)
@@ -65,7 +69,9 @@ function startOfDay(date: Date) {
 }
 
 function formatReportChartLabel(date: Date, range: ReportRange, locale: string) {
-  if (range === '7d') return shortDay(date, locale)
+  if (range === '7d') {
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date)
+  }
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date)
 }
 
@@ -266,5 +272,5 @@ export function compactReportFeedChartPoints(points: ReportFeedChartPoint[], max
 }
 
 export function buildReportFilename(date = new Date()) {
-  return `little-sips-report-${localDateInput(date)}.pdf`
+  return `little-sips-report-${localDateInput(date)}-${localTimeInput(date)}.pdf`
 }

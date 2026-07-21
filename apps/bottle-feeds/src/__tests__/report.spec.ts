@@ -135,7 +135,7 @@ describe('report logic', () => {
   })
 
   it('builds the requested report filename pattern', () => {
-    expect(buildReportFilename(new Date('2026-07-19T10:15:00.000Z'))).toBe('little-sips-report-2026-07-19.pdf')
+    expect(buildReportFilename(new Date('2026-07-19T10:15:00.000Z'))).toBe('little-sips-report-2026-07-19-10-15.pdf')
   })
 
   it('creates chart points for feed quantity and bottle count', () => {
@@ -156,6 +156,7 @@ describe('report logic', () => {
     const points = createReportFeedChartPoints(snapshot, 'en-GB')
 
     expect(points).toHaveLength(7)
+    expect(points.map((point) => point.label)).toEqual(['13 Jul', '14 Jul', '15 Jul', '16 Jul', '17 Jul', '18 Jul', '19 Jul'])
     expect(points.map((point) => point.totalAmount)).toEqual([0, 0, 0, 0, 0, 120, 90])
     expect(points.map((point) => point.bottleCount)).toEqual([0, 0, 0, 0, 0, 1, 1])
   })
@@ -228,7 +229,7 @@ describe('report logic', () => {
     expect(pdfText).toContain('150 ml')
   })
 
-  it('renders report metadata in the PDF output', async () => {
+  it('omits report metadata rows from the PDF output', async () => {
     const snapshot = createReportSnapshot(
       feeds,
       weights,
@@ -246,9 +247,7 @@ describe('report logic', () => {
     const blob = await generateReportPdfBlob(snapshot, messages.en, 'en-GB')
     const pdfText = await decodePdfText(blob)
 
-    expect(pdfText).toContain(messages.en.reportCoveredRange)
-    expect(pdfText).toContain(messages.en.reportGeneratedAt)
-    expect(pdfText).toContain('10 Jul 2026')
-    expect(pdfText).toContain('19 Jul 2026')
+    expect(pdfText).not.toContain(messages.en.reportCoveredRange)
+    expect(pdfText).not.toContain(messages.en.reportGeneratedAt)
   })
 })

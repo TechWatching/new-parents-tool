@@ -1,5 +1,4 @@
 import type { Messages } from '../i18n'
-import type { Feed, Weight } from '../types'
 import {
   compactReportFeedChartPoints,
   createReportFeedChartPoints,
@@ -41,32 +40,8 @@ function formatDateTime(value: Date | string, locale: string) {
   }).format(typeof value === 'string' ? new Date(value) : value)
 }
 
-function formatDate(value: Date, locale: string) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(value)
-}
-
 function formatNumber(value: number, locale: string, maximumFractionDigits = 0) {
   return new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value)
-}
-
-function coveredRangeLabel(snapshot: ReportSnapshot, t: Messages, locale: string) {
-  if (snapshot.period.range === 'all') {
-    const boundaryEntries = [snapshot.feeds[0], snapshot.weights[0], snapshot.feeds.at(-1), snapshot.weights.at(-1)]
-      .filter((entry): entry is Feed | Weight => entry !== undefined)
-      .sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt))
-    const firstEntry = boundaryEntries[0]
-    const lastEntry = boundaryEntries.at(-1)
-
-    if (!firstEntry || !lastEntry) return t.reportAllRecordedData
-    return `${t.reportAllRecordedData} — ${formatDateTime(firstEntry.occurredAt, locale)} → ${formatDateTime(lastEntry.occurredAt, locale)}`
-  }
-
-  if (snapshot.period.range === 'custom' && snapshot.period.startAt && snapshot.period.endAt) {
-    return `${formatDate(snapshot.period.startAt, locale)} → ${formatDate(snapshot.period.endAt, locale)}`
-  }
-
-  if (!snapshot.period.startAt || !snapshot.period.endAt) return t.reportAllRecordedData
-  return `${formatDateTime(snapshot.period.startAt, locale)} → ${formatDateTime(snapshot.period.endAt, locale)}`
 }
 
 function addFooter(
@@ -198,26 +173,6 @@ export async function generateReportPdfBlob(snapshot: ReportSnapshot, t: Message
   doc.setTextColor(36, 51, 47)
   doc.text(t.reportDocumentTitle, PAGE_MARGIN, cursorY)
   cursorY += 24
-
-  autoTable(doc, {
-    startY: cursorY,
-    theme: 'grid',
-    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: TABLE_BOTTOM_MARGIN },
-    body: [
-      [t.reportCoveredRange, coveredRangeLabel(snapshot, t, locale)],
-      [t.reportGeneratedAt, formatDateTime(snapshot.generatedAt, locale)],
-    ],
-    styles: {
-      fontSize: 10,
-      cellPadding: 8,
-      lineColor: [226, 232, 228],
-      textColor: [36, 51, 47],
-    },
-    columnStyles: {
-      0: { fontStyle: 'bold', fillColor: [248, 250, 247] },
-    },
-  })
-  cursorY = ((doc as typeof doc & AutoTableDoc).lastAutoTable?.finalY ?? cursorY) + 24
 
   if (snapshot.config.includeFeeds) {
     ensureSpace(CHART_HEIGHT + 24)
