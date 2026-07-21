@@ -174,8 +174,7 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      expect(wrapper.text()).toContain('Time since last bottle')
-      expect(wrapper.text()).toContain('now')
+      expect(wrapper.text()).toContain('now after the last bottle')
       expect(wrapper.text()).toContain('14 Jul, 14:30')
 
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000)
