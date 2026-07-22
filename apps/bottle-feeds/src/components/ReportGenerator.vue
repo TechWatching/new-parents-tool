@@ -11,7 +11,7 @@ import {
   validateReportConfig,
   type ReportValidationError,
 } from '../report/logic'
-import { downloadPdf, generateReportPdfBlob } from '../report/pdf'
+import { generateReportPdfBlob, sharePdf } from '../report/pdf'
 
 const props = defineProps<{
   feeds: Feed[]
@@ -58,7 +58,7 @@ function closePanel() {
   isOpen.value = false
 }
 
-async function handleGenerate() {
+async function handleShare() {
   showValidation.value = true
   generationError.value = false
   if (validationErrors.value.length > 0) return
@@ -69,10 +69,11 @@ async function handleGenerate() {
   try {
     isGenerating.value = true
     const blob = await generateReportPdfBlob(currentSnapshot, props.t, props.locale)
-    downloadPdf(blob, buildReportFilename(generatedAt))
+    const result = await sharePdf(blob, buildReportFilename(generatedAt))
+    if (result === 'cancelled') return
     toast.add({
-      title: props.t.generateReport,
-      description: props.t.reportGenerationSuccess,
+      title: props.t.shareReport,
+      description: result === 'shared' ? props.t.reportShareSuccess : props.t.reportDownloadSuccess,
       color: 'success',
     })
   } catch {
@@ -95,7 +96,7 @@ async function handleGenerate() {
       aria-controls="report-panel"
       @click="isOpen = !isOpen"
     >
-      {{ t.generateReport }}
+      {{ t.shareReport }}
     </UButton>
 
     <section
@@ -114,7 +115,7 @@ async function handleGenerate() {
         <button type="button" class="action-button" @click="closePanel">{{ t.cancel }}</button>
       </div>
 
-      <form class="report-form" @submit.prevent="handleGenerate">
+      <form class="report-form" @submit.prevent="handleShare">
         <fieldset class="report-fieldset">
           <legend>{{ t.reportDateRange }}</legend>
           <label class="report-choice">
@@ -186,7 +187,7 @@ async function handleGenerate() {
 
         <div class="report-panel-actions">
           <button type="submit" class="primary-button report-generate-button" :disabled="isGenerating">
-            {{ isGenerating ? t.reportGenerating : t.reportGeneratePdf }}
+            {{ isGenerating ? t.reportGenerating : t.reportSharePdf }}
           </button>
           <button type="button" class="action-button" @click="closePanel">{{ t.cancel }}</button>
         </div>

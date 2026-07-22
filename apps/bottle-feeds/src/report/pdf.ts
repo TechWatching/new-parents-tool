@@ -340,3 +340,23 @@ export function downloadPdf(blob: Blob, filename: string) {
   anchor.click()
   URL.revokeObjectURL(url)
 }
+
+export type SharePdfResult = 'shared' | 'downloaded' | 'cancelled'
+
+export async function sharePdf(blob: Blob, filename: string): Promise<SharePdfResult> {
+  const file = new File([blob], filename, { type: 'application/pdf' })
+  const shareData = { files: [file] }
+
+  if (navigator.share && navigator.canShare?.(shareData)) {
+    try {
+      await navigator.share(shareData)
+      return 'shared'
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled'
+      throw error
+    }
+  }
+
+  downloadPdf(blob, filename)
+  return 'downloaded'
+}
