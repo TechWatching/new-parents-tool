@@ -121,3 +121,16 @@ export async function pullAll(userId: string): Promise<AppData> {
   const [feeds, weights] = await Promise.all([pullFeeds(userId), pullWeights(userId)])
   return { feeds, weights }
 }
+
+/** Permanently delete every cloud record owned by the authenticated user. */
+export async function deleteAllCloudData(userId: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase is not configured')
+
+  const [feedsResult, weightsResult] = await Promise.all([
+    supabase.from('feeds').delete().eq('user_id', userId),
+    supabase.from('weights').delete().eq('user_id', userId),
+  ])
+
+  const error = feedsResult.error ?? weightsResult.error
+  if (error) throw error
+}

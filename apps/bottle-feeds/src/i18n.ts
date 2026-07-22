@@ -6,7 +6,9 @@ export const messages = {
     tagline: 'Bottle and growth tracker',
     privacy: 'Private by design — everything stays in this browser.',
     localOnly:
-      'Records are stored in this browser only. Clearing site data will erase them. Enable cloud sync to back them up.',
+      'Records stay in this browser. You can sync across devices if you want to, but it is completely optional.',
+    cloudEnabled:
+      'Records are stored in this browser and synced to your account. You can remove the cloud copy at any time.',
     language: 'Français',
     addFeed: 'Record a bottle',
     amount: 'Quantity (ml)',
@@ -111,6 +113,17 @@ export const messages = {
     signedInAs: 'Signed in as',
     signOut: 'Sign out',
     authError: 'Sign-in failed',
+    deleteCloudData: 'Delete cloud copy',
+    deleteCloudTitle: 'Delete your cloud copy?',
+    deleteCloudBody:
+      'Your records will stay on this device. You will be signed out so they are not uploaded again.',
+    deleteCloudWarning:
+      'This permanently deletes all bottle and weight records from your cloud account.',
+    deleteCloudConfirm: 'Permanently delete cloud copy',
+    deleteCloudCancel: 'Cancel',
+    deleteCloudDeleting: 'Deleting cloud copy…',
+    deleteCloudSuccess: 'Cloud copy deleted. Your records are still on this device.',
+    deleteCloudError: 'Cloud data could not be deleted. Please try again.',
     // Sync status
     syncing: 'Syncing…',
     syncPending: 'Changes pending sync',
@@ -130,7 +143,9 @@ export const messages = {
     tagline: 'Suivi des biberons et de la croissance',
     privacy: 'Vos données restent privées dans ce navigateur.',
     localOnly:
-      'Les enregistrements sont stockés uniquement dans ce navigateur. Effacer les données du site les supprimera. Activez la synchronisation cloud pour les sauvegarder.',
+      'Les enregistrements restent dans ce navigateur. Vous pouvez les synchroniser entre appareils si vous le souhaitez, mais cela reste entièrement facultatif.',
+    cloudEnabled:
+      'Les enregistrements sont stockés dans ce navigateur et synchronisés avec votre compte. Vous pouvez supprimer la copie cloud à tout moment.',
     language: 'English',
     addFeed: 'Noter un biberon',
     amount: 'Quantité (ml)',
@@ -235,6 +250,17 @@ export const messages = {
     signedInAs: 'Connecté en tant que',
     signOut: 'Se déconnecter',
     authError: 'Connexion échouée',
+    deleteCloudData: 'Supprimer la copie cloud',
+    deleteCloudTitle: 'Supprimer votre copie cloud ?',
+    deleteCloudBody:
+      'Vos enregistrements resteront sur cet appareil. Vous serez déconnecté afin qu’ils ne soient pas téléversés à nouveau.',
+    deleteCloudWarning:
+      'Cette action supprime définitivement tous les biberons et toutes les mesures de poids de votre compte cloud.',
+    deleteCloudConfirm: 'Supprimer définitivement la copie cloud',
+    deleteCloudCancel: 'Annuler',
+    deleteCloudDeleting: 'Suppression de la copie cloud…',
+    deleteCloudSuccess: 'Copie cloud supprimée. Vos enregistrements sont toujours sur cet appareil.',
+    deleteCloudError: 'Les données cloud n’ont pas pu être supprimées. Veuillez réessayer.',
     // Sync status
     syncing: 'Synchronisation…',
     syncPending: 'Modifications en attente de sync',

@@ -124,6 +124,36 @@ main {
   font-weight: 700;
 }
 
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cloud-delete-confirm {
+  max-width: 42rem;
+  margin-top: 14px;
+  border: 1px solid #e4c8c4;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff8f7;
+  color: #573b37;
+}
+
+.cloud-delete-confirm p {
+  margin: 6px 0;
+}
+
+.cloud-delete-warning {
+  font-weight: 600;
+}
+
+.cloud-delete-confirm .auth-actions {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .last-bottle-banner {
   margin: 0 0 18px;
   border: 1px solid #e9efe7;
