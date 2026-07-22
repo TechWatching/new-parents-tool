@@ -24,7 +24,7 @@ jobs:
           cache: true
 
       - name: Install Playwright browsers
-        run: pnpm --filter bottle-feeds exec playwright install --with-deps chromium
+        run: vp exec --filter bottle-feeds playwright install --with-deps chromium
 
       - name: Run e2e tests
         run: vp run --filter bottle-feeds test:e2e
