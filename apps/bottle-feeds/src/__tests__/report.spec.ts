@@ -206,7 +206,7 @@ describe('report logic', () => {
   })
 
   it('shares the PDF through the native share sheet when file sharing is supported', async () => {
-    const share = vi.fn()
+    const share = vi.fn().mockResolvedValue(undefined)
     const canShare = vi.fn(() => true)
     vi.stubGlobal('navigator', { share, canShare })
 
@@ -232,6 +232,19 @@ describe('report logic', () => {
     expect(click).toHaveBeenCalledOnce()
     expect(createObjectURL).toHaveBeenCalledOnce()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:report')
+  })
+
+  it('downloads the PDF when the browser cannot verify file sharing support', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    vi.stubGlobal('navigator', {})
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:report'),
+      revokeObjectURL: vi.fn(),
+    })
+
+    await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).resolves.toBe('downloaded')
+
+    expect(click).toHaveBeenCalledOnce()
   })
 
   it('renders compacted chart values into the PDF output', async () => {
