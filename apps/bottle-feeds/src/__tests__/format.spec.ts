@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { messages } from '../i18n'
 import { formatRelativeTime } from '../utils/format'
 
 describe('formatRelativeTime', () => {
@@ -7,6 +8,12 @@ describe('formatRelativeTime', () => {
   it('formats in English when locale is en-GB', () => {
     const value = new Date(now - 2 * 60 * 60 * 1000).toISOString()
     expect(formatRelativeTime(value, 'en-GB', now)).toBe('2 hours')
+  })
+
+  describe('translations', () => {
+    it.each(['fr', 'es', 'de'] as const)('provides every English message in %s', (language) => {
+      expect(Object.keys(messages[language]).sort()).toEqual(Object.keys(messages.en).sort())
+    })
   })
 
   it('formats in French when locale is fr-FR', () => {
