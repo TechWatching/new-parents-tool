@@ -4,6 +4,7 @@ import memoryDriver from 'unstorage/drivers/memory'
 import {
   loadData,
   saveData,
+  clearData,
   GUEST_NAMESPACE,
   DATA_KEY,
   _setTestDriver,
@@ -96,5 +97,19 @@ describe('async IndexedDB-backed storage (memory driver)', () => {
 
     expect(loadedGuest.feeds[0]!.id).toBe('guest-feed')
     expect(loadedUser.feeds[0]!.id).toBe('user-feed')
+  })
+
+  it('clears one namespace without deleting another', async () => {
+    const data: AppData = {
+      feeds: [{ id: 'f1', amount: 120, occurredAt: '2026-01-01T12:00:00.000Z', comment: '', updatedAt: '2026-01-01T12:00:00.000Z' }],
+      weights: [],
+    }
+
+    await saveData(data, GUEST_NAMESPACE)
+    await saveData(data, 'user-abc123')
+    await clearData('user-abc123')
+
+    expect(await loadData('user-abc123')).toEqual({ feeds: [], weights: [] })
+    expect((await loadData(GUEST_NAMESPACE)).feeds).toHaveLength(1)
   })
 })
