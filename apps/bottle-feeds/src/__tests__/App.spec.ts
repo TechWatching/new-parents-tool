@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
+import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 
 const reportPdfSpies = vi.hoisted(() => ({
   generateReportPdfBlob: vi.fn(async () => new Blob(['pdf'], { type: 'application/pdf' })),
@@ -266,7 +267,8 @@ describe('App', () => {
   it('switches all content to French', async () => {
     const wrapper = await mountApp()
 
-    await wrapper.get('.language-button').trigger('click')
+    wrapper.getComponent(ULocaleSelect).vm.$emit('update:modelValue', 'fr')
+    await nextTick()
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
@@ -336,15 +338,15 @@ describe('App', () => {
     await saveData(preloaded, GUEST_NAMESPACE)
     const wrapper = await mountApp()
 
-    expect(wrapper.findAll('.measure-list li')).toHaveLength(2)
-    await wrapper.get('.measure-list button').trigger('click')
-    expect(wrapper.get('.measure-list form').text()).toContain('Quantity (ml)')
-    expect(wrapper.get('.measure-list form').text()).toContain('Date')
-    expect(wrapper.get('.measure-list form').text()).toContain('Time (24h)')
-    expect(wrapper.get('.measure-list form').text()).toContain('Comment (optional)')
-    await wrapper.get('.measure-list input[type="number"]').setValue('150')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(2)
+    await wrapper.get('.measure-tree-entry button').trigger('click')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Quantity (ml)')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Date')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Time (24h)')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Comment (optional)')
+    await wrapper.get('.measure-tree-entry input[type="number"]').setValue('150')
     await wrapper.get('#edit-feed-time').setValue('0915')
-    await wrapper.get('.measure-list form').trigger('submit')
+    await wrapper.get('.measure-tree-entry form').trigger('submit')
     await flushPromises()
 
     expect(wrapper.text()).toContain('150 ml')

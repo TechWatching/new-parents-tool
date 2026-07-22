@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
+import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
@@ -56,6 +57,16 @@ function resolveInitialLanguage(): Language {
 }
 
 const language = ref<Language>(resolveInitialLanguage())
+const languageSelection = computed({
+  get: () => language.value,
+  set: (value: string) => {
+    if (value === 'en' || value === 'fr') language.value = value
+  },
+})
+const availableLocales = [
+  { name: 'English', code: 'en', dir: 'ltr' as const, messages: {} },
+  { name: 'Français', code: 'fr', dir: 'ltr' as const, messages: {} },
+]
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', date: dateTimeForInput().date })
 const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
@@ -343,9 +354,12 @@ const lastBottleSummary = computed(() => {
   const relativeTime = formatRelativeTime(latestFeed.value.occurredAt, locale.value, now.value)
   const exactTimestamp = formatDate(latestFeed.value.occurredAt, locale.value)
 
-  return t.value.timeSinceLastBottleFormat
-    .replace('{relativeTime}', relativeTime)
-    .replace('{timestamp}', exactTimestamp)
+  return {
+    relativeTime: t.value.timeSinceLastBottleFormat.replace('{relativeTime}', relativeTime),
+    details: t.value.lastBottleDetailsFormat
+      .replace('{timestamp}', exactTimestamp)
+      .replace('{amount}', latestFeed.value.amount.toLocaleString(locale.value)),
+  }
 })
 const dailyGuide = computed(() =>
   latestWeight.value ? Math.round((latestWeight.value.kilograms * 1000) / 10 + 200) : null,
@@ -498,13 +512,13 @@ const syncLabel = computed(() => {
         </a>
         <p>{{ t.tagline }}</p>
       </div>
-      <button
-        class="language-button"
-        type="button"
-        @click="language = language === 'en' ? 'fr' : 'en'"
-      >
-        {{ t.language }}
-      </button>
+      <ULocaleSelect
+        v-model="languageSelection"
+        class="language-select"
+        :aria-label="t.languageSelector"
+        :locales="availableLocales"
+        variant="outline"
+      />
     </header>
 
     <main>
@@ -520,7 +534,8 @@ const syncLabel = computed(() => {
       </div>
 
       <p v-if="lastBottleSummary" class="last-bottle-banner" role="status" aria-live="polite">
-        {{ lastBottleSummary }}
+        <span>{{ lastBottleSummary.relativeTime }}</span>
+        <span>{{ lastBottleSummary.details }}</span>
       </p>
 
       <!-- Sync status bar -->
@@ -530,22 +545,29 @@ const syncLabel = computed(() => {
         :class="{ 'sync-bar--error': syncStatus === 'error', 'sync-bar--pending': syncStatus === 'pending' }"
       >
         <span>{{ syncLabel }}</span>
-        <button
+        <UButton
           v-if="syncStatus === 'error' || syncStatus === 'pending'"
           type="button"
           class="sync-retry"
+          color="neutral"
+          variant="outline"
+          size="xs"
           @click="triggerSync"
         >
           {{ t.syncRetry }}
-        </button>
+        </UButton>
         <span v-if="syncError && syncStatus === 'error'" class="sync-error-detail">{{ syncError }}</span>
       </div>
 
       <!-- Export / Import -->
       <div class="toolbar-actions">
         <div class="data-actions">
-          <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
-          <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
+          <UButton type="button" class="action-button" color="neutral" variant="outline" @click="exportData">
+            {{ t.exportData }}
+          </UButton>
+          <UButton type="button" class="action-button" color="neutral" variant="outline" @click="triggerImport">
+            {{ t.importData }}
+          </UButton>
           <input
             ref="importFileRef"
             type="file"

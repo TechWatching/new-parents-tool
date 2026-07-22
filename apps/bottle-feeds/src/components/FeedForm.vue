@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UButton from '@nuxt/ui/components/Button.vue'
 import type { Messages } from '../i18n'
 import { maskTimeInput, timePattern } from '../utils/time'
 
@@ -51,6 +52,6 @@ function onTimeInput(event: Event) {
         <input v-model="comment" type="text" maxlength="160" :placeholder="t.commentPlaceholder" />
       </label>
     </div>
-    <button class="primary-button" type="submit">{{ t.saveFeed }}</button>
+    <UButton class="primary-button" type="submit">{{ t.saveFeed }}</UButton>
   </form>
 </template>

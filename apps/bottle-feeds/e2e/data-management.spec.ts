@@ -55,7 +55,7 @@ test.describe('Data import', () => {
     await expect(page.getByText('Data imported successfully.')).toBeVisible()
 
     // Imported feed appears in the history
-    await expect(page.locator('.measure-list').getByText('95 ml')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('95 ml')).toBeVisible()
 
     fs.unlinkSync(tmpFile)
   })

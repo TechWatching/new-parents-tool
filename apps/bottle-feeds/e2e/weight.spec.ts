@@ -48,8 +48,8 @@ test.describe('Weight recording', () => {
     await page.getByRole('tab', { name: 'Weights' }).click()
     await expect(page.getByRole('tab', { name: 'Weights' })).toHaveAttribute('aria-selected', 'true')
 
-    await expect(page.locator('.measure-list').getByText('4.2 kg')).toBeVisible()
-    await expect(page.locator('.measure-list').getByText('3.8 kg')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('4.2 kg')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('3.8 kg')).toBeVisible()
   })
 
   test('edits an existing weight in the history', async ({ page }) => {
@@ -57,12 +57,12 @@ test.describe('Weight recording', () => {
 
     await page.getByRole('tab', { name: 'Weights' }).click()
     await expect(page.getByRole('tab', { name: 'Weights' })).toHaveAttribute('aria-selected', 'true')
-    await page.locator('.measure-list li').first().getByRole('button', { name: 'Edit' }).click()
+    await page.locator('.measure-tree-entry').first().getByRole('button', { name: 'Edit' }).click()
 
     await page.locator('#edit-weight-kilograms').fill('4.5')
-    await page.locator('.measure-list form').getByRole('button', { name: 'Save' }).click()
+    await page.locator('.measure-tree-entry form').getByRole('button', { name: 'Save' }).click()
 
-    await expect(page.locator('.measure-list').getByText('4.5 kg')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('4.5 kg')).toBeVisible()
   })
 
   test('deletes a weight from the history', async ({ page }) => {
@@ -72,10 +72,10 @@ test.describe('Weight recording', () => {
     await page.getByRole('tab', { name: 'Weights' }).click()
     await expect(page.getByRole('tab', { name: 'Weights' })).toHaveAttribute('aria-selected', 'true')
 
-    await expect(page.locator('.measure-list li')).toHaveCount(1)
-    await page.locator('.measure-list .delete-button').first().click()
+    await expect(page.locator('.measure-tree-entry')).toHaveCount(1)
+    await page.getByRole('button', { name: 'Delete 4.2 kg' }).click()
 
-    await expect(page.locator('.measure-list li')).toHaveCount(0)
+    await expect(page.locator('.measure-tree-entry')).toHaveCount(0)
     await expect(page.locator('.empty-state')).toBeVisible()
   })
 })

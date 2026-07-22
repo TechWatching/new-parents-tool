@@ -17,8 +17,8 @@ test.describe('Bottle feed recording', () => {
     await expect(page.getByText('Bottle recorded', { exact: true })).toBeVisible()
 
     // Entry is visible in the measure history
-    await expect(page.locator('.measure-list').getByText('120 ml')).toBeVisible()
-    await expect(page.locator('.measure-list').getByText('Drank quickly')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('120 ml')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('Drank quickly')).toBeVisible()
   })
 
   test('records multiple bottles and shows total in summary', async ({ page }) => {
@@ -45,30 +45,45 @@ test.describe('Bottle feed recording', () => {
   test('shows time since last bottle after recording', async ({ page }) => {
     await seedDatabase(page, minimalAppData)
 
-    await expect(page.locator('.last-bottle-banner')).toBeVisible()
-    await expect(page.locator('.last-bottle-banner')).toContainText('after the last bottle')
+    const banner = page.locator('.last-bottle-banner')
+    await expect(banner).toBeVisible()
+    await expect(banner.locator('span')).toHaveCount(2)
+    await expect(banner.locator('span').first()).toContainText('after the last bottle')
+    await expect(banner.locator('span').last()).toContainText(/15 Jul.*120 mL/)
+  })
+
+  test('groups measures by day and labels the selected tab', async ({ page }) => {
+    await seedDatabase(page, fullAppData)
+
+    const measures = page.locator('.measure-card')
+    await expect(measures.getByRole('heading', { name: 'Quantities' })).toBeVisible()
+    await expect(measures.locator('.measure-day-button')).toHaveCount(3)
+
+    await measures.getByRole('tab', { name: 'Weights' }).click()
+    await expect(measures.getByRole('heading', { name: 'Weights' })).toBeVisible()
+    await expect(measures.locator('.measure-day-button')).toHaveCount(3)
   })
 
   test('edits an existing bottle feed in the history', async ({ page }) => {
     await seedDatabase(page, fullAppData)
 
     // Click edit on the first item in the list
-    await page.locator('.measure-list li').first().getByRole('button', { name: 'Edit' }).click()
+    await page.locator('.measure-tree-entry').first().getByRole('button', { name: 'Edit' }).click()
     await page.locator('#edit-feed-amount').fill('150')
-    await page.locator('.measure-list form').getByRole('button', { name: 'Save' }).click()
+    await page.locator('.measure-tree-entry form').getByRole('button', { name: 'Save' }).click()
 
-    await expect(page.locator('.measure-list').getByText('150 ml')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('150 ml')).toBeVisible()
   })
 
   test('deletes a bottle feed from the history', async ({ page }) => {
     await seedDatabase(page, minimalAppData)
 
-    const list = page.locator('.measure-list')
-    await expect(list.locator('li')).toHaveCount(1)
+    const list = page.locator('.measure-tree-entry')
+    await expect(list).toHaveCount(1)
 
-    await list.locator('.delete-button').first().click()
+    await list.getByRole('button', { name: 'Delete 120 ml' }).click()
 
-    await expect(list.locator('li')).toHaveCount(0)
+    await expect(list).toHaveCount(0)
     await expect(page.locator('.empty-state')).toBeVisible()
   })
 })
