@@ -338,7 +338,19 @@ describe('App', () => {
     await saveData(preloaded, GUEST_NAMESPACE)
     const wrapper = await mountApp()
 
+    const dayButtons = wrapper.findAll('.measure-day-button')
+    expect(dayButtons).toHaveLength(2)
+    expect(dayButtons[0]!.attributes('aria-expanded')).toBe('true')
+    expect(dayButtons[1]!.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+
+    await dayButtons[1]!.trigger('click')
     expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(2)
+    await dayButtons[0]!.trigger('click')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+    await dayButtons[0]!.trigger('click')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(2)
+
     await wrapper.get('.measure-tree-entry button').trigger('click')
     expect(wrapper.get('.measure-tree-entry form').text()).toContain('Quantity (ml)')
     expect(wrapper.get('.measure-tree-entry form').text()).toContain('Date')

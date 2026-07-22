@@ -58,11 +58,11 @@ function groupByDay(items: MeasureTreeItem[]) {
     entries.push(item)
     days.set(date, entries)
   }
-  return Array.from(days, ([date, children]) => ({
+  return Array.from(days, ([date, children], index) => ({
     id: `day-${date}`,
     label: dayLabel(date),
     kind: 'day' as const,
-    defaultExpanded: true,
+    defaultExpanded: index === 0,
     children,
   }))
 }
