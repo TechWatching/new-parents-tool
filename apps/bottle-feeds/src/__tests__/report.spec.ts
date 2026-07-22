@@ -224,12 +224,14 @@ describe('report logic', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     const createObjectURL = vi.fn(() => 'blob:report')
     const revokeObjectURL = vi.fn()
-    vi.stubGlobal('navigator', { canShare: vi.fn(() => false) })
+    const share = vi.fn()
+    vi.stubGlobal('navigator', { share, canShare: vi.fn(() => false) })
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
 
     await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).resolves.toBe('downloaded')
 
     expect(click).toHaveBeenCalledOnce()
+    expect(share).not.toHaveBeenCalled()
     expect(createObjectURL).toHaveBeenCalledOnce()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:report')
   })
@@ -245,6 +247,25 @@ describe('report logic', () => {
     await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).resolves.toBe('downloaded')
 
     expect(click).toHaveBeenCalledOnce()
+  })
+
+  it('returns cancelled when the native share sheet is dismissed', async () => {
+    vi.stubGlobal('navigator', {
+      canShare: vi.fn(() => true),
+      share: vi.fn().mockRejectedValue(new DOMException('Dismissed', 'AbortError')),
+    })
+
+    await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).resolves.toBe('cancelled')
+  })
+
+  it('rethrows native sharing errors other than cancellation', async () => {
+    const error = new Error('Sharing failed')
+    vi.stubGlobal('navigator', {
+      canShare: vi.fn(() => true),
+      share: vi.fn().mockRejectedValue(error),
+    })
+
+    await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).rejects.toBe(error)
   })
 
   it('renders compacted chart values into the PDF output', async () => {
