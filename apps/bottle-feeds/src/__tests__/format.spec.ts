@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { messages } from '../i18n'
 import { formatRelativeTime } from '../utils/format'
 
 describe('formatRelativeTime', () => {
@@ -9,9 +10,25 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime(value, 'en-GB', now)).toBe('2 hours')
   })
 
+  describe('translations', () => {
+    it.each(['fr', 'es', 'de'] as const)('provides every English message in %s', (language) => {
+      expect(Object.keys(messages[language]).sort()).toEqual(Object.keys(messages.en).sort())
+    })
+  })
+
   it('formats in French when locale is fr-FR', () => {
     const value = new Date(now - 2 * 60 * 60 * 1000).toISOString()
     expect(formatRelativeTime(value, 'fr-FR', now)).toBe('2 heures')
+  })
+
+  it('formats in Spanish when locale is es-ES', () => {
+    const value = new Date(now - (2 * 60 * 60 + 5 * 60) * 1000).toISOString()
+    expect(formatRelativeTime(value, 'es-ES', now)).toBe('2 horas y 5 minutos')
+  })
+
+  it('formats in German when locale is de-DE', () => {
+    const value = new Date(now - (2 * 60 * 60 + 5 * 60) * 1000).toISOString()
+    expect(formatRelativeTime(value, 'de-DE', now)).toBe('2 Stunden und 5 Minuten')
   })
 
   it('uses singular French unit for a single hour', () => {

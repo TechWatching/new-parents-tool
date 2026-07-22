@@ -13,7 +13,7 @@ type RelativeTimeStrings = {
   unit: (value: number, unit: DurationUnit) => string
 }
 
-const RELATIVE_TIME_STRINGS: Record<'en' | 'fr', RelativeTimeStrings> = {
+const RELATIVE_TIME_STRINGS: Record<'en' | 'fr' | 'es' | 'de', RelativeTimeStrings> = {
   en: {
     now: 'now',
     and: 'and',
@@ -33,11 +33,41 @@ const RELATIVE_TIME_STRINGS: Record<'en' | 'fr', RelativeTimeStrings> = {
       return `${value} ${value === 1 ? singular : plural}`
     },
   },
+  es: {
+    now: 'ahora',
+    and: 'y',
+    unit: (value, unit) => {
+      const labels: Record<DurationUnit, [string, string]> = {
+        second: ['segundo', 'segundos'],
+        minute: ['minuto', 'minutos'],
+        hour: ['hora', 'horas'],
+        day: ['día', 'días'],
+      }
+      const [singular, plural] = labels[unit]
+      return `${value} ${value === 1 ? singular : plural}`
+    },
+  },
+  de: {
+    now: 'jetzt',
+    and: 'und',
+    unit: (value, unit) => {
+      const labels: Record<DurationUnit, [string, string]> = {
+        second: ['Sekunde', 'Sekunden'],
+        minute: ['Minute', 'Minuten'],
+        hour: ['Stunde', 'Stunden'],
+        day: ['Tag', 'Tage'],
+      }
+      const [singular, plural] = labels[unit]
+      return `${value} ${value === 1 ? singular : plural}`
+    },
+  },
 }
 
 function stringsFor(locale: string): RelativeTimeStrings {
   const language = locale.toLowerCase().split('-')[0]
-  return language === 'fr' ? RELATIVE_TIME_STRINGS.fr : RELATIVE_TIME_STRINGS.en
+  if (language === 'fr' || language === 'es' || language === 'de')
+    return RELATIVE_TIME_STRINGS[language]
+  return RELATIVE_TIME_STRINGS.en
 }
 
 export function formatRelativeTime(value: string, locale: string, now = Date.now()) {

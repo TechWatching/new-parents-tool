@@ -1,6 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
 
-async function selectLanguage(page: Page, label: 'Language' | 'Langue', language: 'English' | 'Français') {
+async function selectLanguage(
+  page: Page,
+  label: 'Language' | 'Langue' | 'Idioma' | 'Sprache',
+  language: 'English' | 'Français' | 'Español' | 'Deutsch',
+) {
   await page.getByRole('button', { name: label }).click()
   await page.getByRole('option', { name: new RegExp(language) }).click()
 }
@@ -22,6 +26,18 @@ test.describe('Language switching', () => {
     await expect(page.getByRole('heading', { name: 'Noter un biberon' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Noter un poids' })).toBeVisible()
     await expect(page.getByText('Suivi des biberons et de la croissance')).toBeVisible()
+  })
+
+  test('switches to Spanish and German when the language button is clicked', async ({ page }) => {
+    await page.goto('/')
+
+    await selectLanguage(page, 'Language', 'Español')
+    await expect(page.getByRole('heading', { name: 'Registrar un biberón' })).toBeVisible()
+    await expect(page.getByText('Registro de biberones y crecimiento')).toBeVisible()
+
+    await selectLanguage(page, 'Idioma', 'Deutsch')
+    await expect(page.getByRole('heading', { name: 'Fläschchen eintragen' })).toBeVisible()
+    await expect(page.getByText('Flaschen- und Wachstumstracker')).toBeVisible()
   })
 
   test('switches back to English from French', async ({ page }) => {
@@ -55,7 +71,9 @@ test.describe('Language switching', () => {
     await selectLanguage(page, 'Language', 'Français')
 
     await expect(page.locator('.feed-card').getByText('Quantité (ml)')).toBeVisible()
-    await expect(page.locator('.feed-card').getByRole('button', { name: 'Enregistrer' })).toBeVisible()
+    await expect(
+      page.locator('.feed-card').getByRole('button', { name: 'Enregistrer' }),
+    ).toBeVisible()
   })
 
   test('uses French labels in the weight form when French is active', async ({ page }) => {
