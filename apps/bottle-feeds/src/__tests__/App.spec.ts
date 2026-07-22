@@ -7,7 +7,7 @@ import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 
 const reportPdfSpies = vi.hoisted(() => ({
   generateReportPdfBlob: vi.fn(async () => new Blob(['pdf'], { type: 'application/pdf' })),
-  sharePdf: vi.fn(async () => 'downloaded'),
+  sharePdf: vi.fn(async (_blob: Blob, _filename: string) => 'downloaded' as const),
 }))
 
 vi.mock('../report/pdf', () => reportPdfSpies)
@@ -519,8 +519,8 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Report options')
 
-    const downloadButton = wrapper.findAll('button').find((button) => button.text() === 'Download PDF')
-    await downloadButton!.trigger('click')
+    const shareButton = wrapper.findAll('button').find((button) => button.text() === 'Share PDF')
+    await shareButton!.trigger('click')
     await flushPromises()
 
     expect(reportPdfSpies.generateReportPdfBlob).toHaveBeenCalledTimes(1)
@@ -574,8 +574,8 @@ describe('App', () => {
     await categoryCheckboxes[0]!.setValue(false)
     await categoryCheckboxes[1]!.setValue(false)
 
-    const downloadButton = wrapper.findAll('button').find((button) => button.text() === 'Download PDF')
-    await downloadButton!.trigger('click')
+    const shareButton = wrapper.findAll('button').find((button) => button.text() === 'Share PDF')
+    await shareButton!.trigger('click')
     await flushPromises()
 
     expect(wrapper.text()).toContain('Select bottle feeds or weight measurements to include.')
