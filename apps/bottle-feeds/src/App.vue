@@ -517,6 +517,7 @@ const syncLabel = computed(() => {
         class="language-select"
         :aria-label="t.languageSelector"
         :locales="availableLocales"
+        :ui="{ content: 'z-20' }"
         variant="outline"
       />
     </header>

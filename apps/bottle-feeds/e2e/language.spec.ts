@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 async function selectLanguage(page: Page, label: 'Language' | 'Langue', language: 'English' | 'Français') {
-  await page.getByRole('combobox', { name: label }).click()
+  await page.getByRole('button', { name: label }).click()
   await page.getByRole('option', { name: new RegExp(language) }).click()
 }
 
