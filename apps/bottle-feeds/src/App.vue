@@ -134,7 +134,6 @@ onMounted(async () => {
     now.value = Date.now()
   }, 60_000)
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  window.addEventListener('focus', handleVisibilityChange)
 
   // 1. Restore Supabase session (no-op when not configured)
   await initAuth()
@@ -220,7 +219,6 @@ onUnmounted(() => {
   }
   window.removeEventListener('online', handleOnline)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
-  window.removeEventListener('focus', handleVisibilityChange)
 })
 
 // ---------------------------------------------------------------------------
