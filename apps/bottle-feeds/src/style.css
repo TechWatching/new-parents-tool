@@ -658,6 +658,9 @@ h3 {
   .history-grid {
     grid-template-columns: 1fr;
   }
+  .toolbar-actions {
+    grid-template-columns: 1fr;
+  }
   .summary-grid {
     grid-template-columns: 1fr 1fr;
   }
