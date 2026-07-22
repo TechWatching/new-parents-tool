@@ -44,6 +44,9 @@ that the Supabase client handles client-side.
   and via the explicit *Retry* button.
 - Conflict strategy: newest `updatedAt` wins. Tombstone deletions propagate
   so stale clients cannot resurrect deleted records.
+- Signed-in users can permanently delete their cloud copy while keeping the
+  records on the current device. The app signs out afterward so those records
+  are not immediately uploaded again.
 
 ## Export, import, and reports
 

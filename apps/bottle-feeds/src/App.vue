@@ -628,13 +628,20 @@ const syncLabel = computed(() => {
               variant="ghost"
               size="sm"
               :disabled="syncStatus === 'syncing'"
+              :aria-expanded="showDeleteCloudConfirm"
+              aria-controls="cloud-delete-confirm"
               @click="showDeleteCloudConfirm = true"
             >
               {{ t.deleteCloudData }}
             </UButton>
           </div>
 
-          <div v-if="showDeleteCloudConfirm" class="cloud-delete-confirm" role="alert">
+          <div
+            v-if="showDeleteCloudConfirm"
+            id="cloud-delete-confirm"
+            class="cloud-delete-confirm"
+            role="alert"
+          >
             <strong>{{ t.deleteCloudTitle }}</strong>
             <p>{{ t.deleteCloudBody }}</p>
             <p class="cloud-delete-warning">{{ t.deleteCloudWarning }}</p>
