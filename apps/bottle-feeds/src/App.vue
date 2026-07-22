@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
-import UDashboardToolbar from '@nuxt/ui/components/DashboardToolbar.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
@@ -68,8 +67,6 @@ const emailInput = ref('')
 const showMergePrompt = ref(false)
 const guestDataForMerge = ref<AppData | null>(null)
 
-// Import feedback
-const importFeedback = ref<'success' | 'error' | null>(null)
 const importFileRef = ref<HTMLInputElement | null>(null)
 
 // ---------------------------------------------------------------------------
@@ -370,6 +367,11 @@ function exportData() {
   a.download = `little-sips-export-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+  toast.add({
+    title: t.value.exportData,
+    description: t.value.exportSuccess,
+    color: 'success',
+  })
 }
 
 function triggerImport() {
@@ -377,7 +379,6 @@ function triggerImport() {
 }
 
 async function handleImportFile(event: Event) {
-  importFeedback.value = null
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
@@ -390,7 +391,11 @@ async function handleImportFile(event: Event) {
       !Array.isArray((parsed as AppData).feeds) ||
       !Array.isArray((parsed as AppData).weights)
     ) {
-      importFeedback.value = 'error'
+      toast.add({
+        title: t.value.importData,
+        description: t.value.importError,
+        color: 'error',
+      })
       return
     }
     const now = new Date().toISOString()
@@ -405,9 +410,17 @@ async function handleImportFile(event: Event) {
     const merged = mergeAppData(current, toMerge)
     data.feeds = merged.feeds
     data.weights = merged.weights
-    importFeedback.value = 'success'
+    toast.add({
+      title: t.value.importData,
+      description: t.value.importSuccess,
+      color: 'success',
+    })
   } catch {
-    importFeedback.value = 'error'
+    toast.add({
+      title: t.value.importData,
+      description: t.value.importError,
+      color: 'error',
+    })
   } finally {
     input.value = ''
   }
@@ -529,37 +542,27 @@ const syncLabel = computed(() => {
       </div>
 
       <!-- Export / Import -->
-      <UDashboardToolbar class="toolbar-actions" :ui="{ left: 'contents', right: 'contents' }">
-        <template #left>
-          <div class="data-actions">
-            <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
-            <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
-            <input
-              ref="importFileRef"
-              type="file"
-              accept="application/json,.json"
-              class="sr-only"
-              :aria-label="t.importData"
-              @change="handleImportFile"
-            />
-            <span v-if="importFeedback === 'success'" class="import-feedback import-feedback--ok">
-              {{ t.importSuccess }}
-            </span>
-            <span v-else-if="importFeedback === 'error'" class="import-feedback import-feedback--err">
-              {{ t.importError }}
-            </span>
-          </div>
-        </template>
-
-        <template #right>
-          <ReportGenerator
-            :feeds="activeFeeds"
-            :weights="activeWeights"
-            :t="t"
-            :locale="locale"
+      <div class="toolbar-actions">
+        <div class="data-actions">
+          <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
+          <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
+          <input
+            ref="importFileRef"
+            type="file"
+            accept="application/json,.json"
+            class="sr-only"
+            :aria-label="t.importData"
+            @change="handleImportFile"
           />
-        </template>
-      </UDashboardToolbar>
+        </div>
+
+        <ReportGenerator
+          :feeds="activeFeeds"
+          :weights="activeWeights"
+          :t="t"
+          :locale="locale"
+        />
+      </div>
 
       <!-- Cloud sync / Auth section -->
       <section v-if="isSupabaseConfigured" class="card auth-card" :aria-label="t.cloudSync">

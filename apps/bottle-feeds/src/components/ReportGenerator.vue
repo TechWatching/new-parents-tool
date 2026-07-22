@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useToast } from '@nuxt/ui/composables/useToast'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import {
@@ -25,6 +26,7 @@ const generationError = ref(false)
 const triggerRef = ref<HTMLButtonElement | null>(null)
 const headingRef = ref<HTMLHeadingElement | null>(null)
 const config = reactive(createDefaultReportConfig())
+const toast = useToast()
 
 const validationErrors = computed(() => validateReportConfig(config))
 const snapshot = computed(() => createReportSnapshot(props.feeds, props.weights, config, new Date()))
@@ -67,6 +69,11 @@ async function handleGenerate() {
     isGenerating.value = true
     const blob = await generateReportPdfBlob(currentSnapshot, props.t, props.locale)
     downloadPdf(blob, buildReportFilename(generatedAt))
+    toast.add({
+      title: props.t.generateReport,
+      description: props.t.reportGenerationSuccess,
+      color: 'success',
+    })
   } catch {
     generationError.value = true
   } finally {

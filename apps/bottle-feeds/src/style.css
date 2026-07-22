@@ -2,6 +2,21 @@
 @import '@nuxt/ui';
 
 :root {
+  --color-coral: #ef8376;
+  --color-coral-rgb: 239, 131, 118;
+  --color-coral-dark: #dc685d;
+  --color-coral-dark-rgb: 220, 104, 93;
+  --color-mint: #5a9c87;
+  --color-mint-rgb: 90, 156, 135;
+  --color-mint-dark: #488a75;
+  --color-mint-dark-rgb: 72, 138, 117;
+  --color-text: #24332f;
+  --color-border: #d9e1dd;
+  --color-border-hover: #b8c9c1;
+  --color-focus: #70ab98;
+  --color-focus-ring: #e4f2ed;
+  --shadow-coral-hover: 0 5px 12px rgba(var(--color-coral-dark-rgb), 0.24);
+  --shadow-mint-hover: 0 5px 12px rgba(var(--color-mint-dark-rgb), 0.24);
   color: #24332f;
   background: #f8faf7;
   font-family:
@@ -22,6 +37,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    radial-gradient(circle at 0 0, rgba(var(--color-coral-rgb), 0.1), transparent 28rem),
+    radial-gradient(circle at 100% 18rem, rgba(var(--color-mint-rgb), 0.1), transparent 34rem),
+    #f8faf7;
+  line-height: 1.5;
 }
 button,
 input {
@@ -30,14 +50,24 @@ input {
 button {
   cursor: pointer;
 }
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
 
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 22px max(24px, calc((100vw - 1180px) / 2));
   border-bottom: 1px solid #e3e9e5;
   background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
 }
 .site-header p {
   margin: 2px 0 0 43px;
@@ -70,6 +100,12 @@ button {
   color: #45534f;
   background: white;
   font-weight: 600;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.language-button:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: 0 3px 10px rgba(45, 72, 62, 0.08);
+  transform: translateY(-1px);
 }
 
 main {
@@ -113,6 +149,12 @@ main {
 }
 .form-card {
   padding: 22px;
+}
+.feed-card {
+  border-top: 3px solid var(--color-coral);
+}
+.weight-card {
+  border-top: 3px solid var(--color-mint);
 }
 .section-heading {
   display: flex;
@@ -173,10 +215,12 @@ input {
   color: #24332f;
   background: #fbfcfb;
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-input:focus {
-  border-color: #70ab98;
-  box-shadow: 0 0 0 3px #e4f2ed;
+input:focus-visible {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  background: white;
 }
 .primary-button,
 .secondary-button {
@@ -187,18 +231,24 @@ input:focus {
   padding: 12px;
   color: white;
   font-weight: 700;
+  box-shadow: 0 2px 6px rgba(45, 72, 62, 0.12);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 .primary-button {
-  background: #ec796c;
+  background: var(--color-coral);
 }
 .primary-button:hover {
-  background: #dc685d;
+  background: var(--color-coral-dark);
+  box-shadow: var(--shadow-coral-hover);
+  transform: translateY(-1px);
 }
 .secondary-button {
-  background: #5a9c87;
+  background: var(--color-mint);
 }
 .secondary-button:hover {
-  background: #488a75;
+  background: var(--color-mint-dark);
+  box-shadow: var(--shadow-mint-hover);
+  transform: translateY(-1px);
 }
 
 .summary-grid {
@@ -215,6 +265,7 @@ input:focus {
   border: 1px solid #e4e9e6;
   border-radius: 16px;
   background: #fff;
+  box-shadow: 0 2px 10px rgba(45, 72, 62, 0.025);
 }
 .metric-card > span {
   display: block;
@@ -571,6 +622,12 @@ h3 {
   background: #fff0ed;
 }
 
+@media (max-width: 1000px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 800px) {
   .measure-list li {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -680,6 +737,20 @@ h3 {
   to   { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .language-button,
+  input,
+  .primary-button,
+  .secondary-button {
+    transition-duration: 0s !important;
+  }
+
+  .loading-spinner {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* ---------------------------------------------------------------------------
  * Sync status bar
  * --------------------------------------------------------------------------- */
@@ -728,18 +799,22 @@ h3 {
 
 .toolbar-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px 16px;
   align-items: start;
   margin-bottom: 18px;
 }
 
 .toolbar-actions .data-actions {
-  margin-bottom: 0;
+  display: contents;
 }
 
 .toolbar-actions .report-generator {
   display: contents;
+}
+
+.toolbar-actions .action-button {
+  width: 100%;
 }
 
 .toolbar-actions .report-panel {
@@ -757,15 +832,6 @@ h3 {
 }
 
 .action-button:hover { background: var(--color-surface-hover, #f9fafb); }
-
-.import-feedback {
-  font-size: 0.82rem;
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.import-feedback--ok  { background: #dcfce7; color: #166534; }
-.import-feedback--err { background: #fef2f2; color: #991b1b; }
 
 .report-generator {
   margin-bottom: 18px;

@@ -41,6 +41,7 @@ describe('App', () => {
     wrapper = null
     _setTestDriver(null)
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   const mountApp = async () => {
@@ -476,6 +477,35 @@ describe('App', () => {
     expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[1]).toMatch(
       /^little-sips-report-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.pdf$/,
     )
+    expect(document.body.textContent).toContain('Your PDF report is ready.')
+  })
+
+  it('shows a toast after exporting data', async () => {
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:export'),
+      revokeObjectURL: vi.fn(),
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const wrapper = await mountApp()
+
+    const exportButton = wrapper.findAll('button').find((button) => button.text() === 'Export data')
+    await exportButton!.trigger('click')
+
+    expect(document.body.textContent).toContain('Your data export is ready.')
+  })
+
+  it('shows a toast after importing data', async () => {
+    const wrapper = await mountApp()
+    const importInput = wrapper.get('input[type="file"]')
+    const file = new File([JSON.stringify({ feeds: [], weights: [] })], 'little-sips.json', {
+      type: 'application/json',
+    })
+    Object.defineProperty(importInput.element, 'files', { configurable: true, value: [file] })
+
+    await importInput.trigger('change')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Data imported successfully.')
   })
 
   it('validates report settings before generating a PDF', async () => {

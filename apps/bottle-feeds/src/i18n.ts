@@ -60,6 +60,7 @@ export const messages = {
     cancel: 'Cancel',
     // Export / Import
     exportData: 'Export data',
+    exportSuccess: 'Your data export is ready.',
     importData: 'Import data',
     importSuccess: 'Data imported successfully.',
     importError: 'Could not import: invalid file format.',
@@ -76,6 +77,7 @@ export const messages = {
     reportPreviewWeights: 'Weights selected',
     reportGeneratePdf: 'Download PDF',
     reportGenerating: 'Generating report…',
+    reportGenerationSuccess: 'Your PDF report is ready.',
     reportValidationCategories: 'Select bottle feeds or weight measurements to include.',
     reportValidationStartDate: 'Choose a valid start date.',
     reportValidationEndDate: 'Choose a valid end date.',
@@ -182,6 +184,7 @@ export const messages = {
     cancel: 'Annuler',
     // Export / Import
     exportData: 'Exporter les données',
+    exportSuccess: 'L’export de vos données est prêt.',
     importData: 'Importer des données',
     importSuccess: 'Données importées avec succès.',
     importError: "Impossible d’importer : format de fichier invalide.",
@@ -198,6 +201,7 @@ export const messages = {
     reportPreviewWeights: 'Poids sélectionnés',
     reportGeneratePdf: 'Télécharger le PDF',
     reportGenerating: 'Génération du rapport…',
+    reportGenerationSuccess: 'Votre rapport PDF est prêt.',
     reportValidationCategories: 'Sélectionnez les biberons ou les mesures de poids à inclure.',
     reportValidationStartDate: 'Choisissez une date de début valide.',
     reportValidationEndDate: 'Choisissez une date de fin valide.',
