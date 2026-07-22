@@ -7,7 +7,7 @@ import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 
 const reportPdfSpies = vi.hoisted(() => ({
   generateReportPdfBlob: vi.fn(async () => new Blob(['pdf'], { type: 'application/pdf' })),
-  downloadPdf: vi.fn(),
+  sharePdf: vi.fn(async (_blob: Blob, _filename: string) => 'downloaded' as const),
 }))
 
 vi.mock('../report/pdf', () => reportPdfSpies)
@@ -34,7 +34,7 @@ describe('App', () => {
     localStorage.clear()
     vi.stubGlobal('crypto', { randomUUID: () => 'test-id' })
     reportPdfSpies.generateReportPdfBlob.mockClear()
-    reportPdfSpies.downloadPdf.mockClear()
+    reportPdfSpies.sharePdf.mockClear()
   })
 
   afterEach(() => {
@@ -499,7 +499,7 @@ describe('App', () => {
 
     expect(wrapper.find('.bar-value').text()).toBe('120')
   })
-  it('opens report options and downloads a PDF report', async () => {
+  it('opens report options and shares a PDF report', async () => {
     const preloaded: AppData = {
       feeds: [
         { id: 'feed-1', amount: 120, occurredAt: '2026-07-19T08:00:00.000Z', comment: 'Drank well', updatedAt: '2026-07-19T08:00:00.000Z' },
@@ -513,24 +513,23 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Export data')
     expect(wrapper.text()).toContain('Import data')
-    expect(wrapper.text()).toContain('Generate report')
-
-    const reportButton = wrapper.findAll('button').find((button) => button.text() === 'Generate report')
+    expect(wrapper.text()).toContain('Share report')
+    const reportButton = wrapper.findAll('button').find((button) => button.text() === 'Share report')
     await reportButton!.trigger('click')
 
     expect(wrapper.text()).toContain('Report options')
 
-    const downloadButton = wrapper.findAll('button').find((button) => button.text() === 'Download PDF')
-    await downloadButton!.trigger('click')
+    const shareButton = wrapper.findAll('button').find((button) => button.text() === 'Share PDF')
+    await shareButton!.trigger('click')
     await flushPromises()
 
     expect(reportPdfSpies.generateReportPdfBlob).toHaveBeenCalledTimes(1)
-    expect(reportPdfSpies.downloadPdf).toHaveBeenCalledTimes(1)
-    expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[0]).toBeInstanceOf(Blob)
-    expect(reportPdfSpies.downloadPdf.mock.calls[0]?.[1]).toMatch(
+    expect(reportPdfSpies.sharePdf).toHaveBeenCalledTimes(1)
+    expect(reportPdfSpies.sharePdf.mock.calls[0]?.[0]).toBeInstanceOf(Blob)
+    expect(reportPdfSpies.sharePdf.mock.calls[0]?.[1]).toMatch(
       /^little-sips-report-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.pdf$/,
     )
-    expect(document.body.textContent).toContain('Your PDF report is ready.')
+    expect(document.body.textContent).toContain('Your PDF report was downloaded.')
   })
 
   it('shows a toast after exporting data', async () => {
@@ -563,7 +562,7 @@ describe('App', () => {
 
   it('validates report settings before generating a PDF', async () => {
     const wrapper = await mountApp()
-    const reportButton = wrapper.findAll('button').find((button) => button.text() === 'Generate report')
+    const reportButton = wrapper.findAll('button').find((button) => button.text() === 'Share report')
     await reportButton!.trigger('click')
 
     await wrapper.get('input[value="custom"]').setValue()
@@ -575,14 +574,14 @@ describe('App', () => {
     await categoryCheckboxes[0]!.setValue(false)
     await categoryCheckboxes[1]!.setValue(false)
 
-    const downloadButton = wrapper.findAll('button').find((button) => button.text() === 'Download PDF')
-    await downloadButton!.trigger('click')
+    const shareButton = wrapper.findAll('button').find((button) => button.text() === 'Share PDF')
+    await shareButton!.trigger('click')
     await flushPromises()
 
     expect(wrapper.text()).toContain('Select bottle feeds or weight measurements to include.')
     expect(wrapper.text()).toContain('The start date must be on or before the end date.')
     expect(reportPdfSpies.generateReportPdfBlob).not.toHaveBeenCalled()
-    expect(reportPdfSpies.downloadPdf).not.toHaveBeenCalled()
+    expect(reportPdfSpies.sharePdf).not.toHaveBeenCalled()
   })
 
 })

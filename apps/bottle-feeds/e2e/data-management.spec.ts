@@ -78,23 +78,23 @@ test.describe('PDF report generation', () => {
   test('opens the report options panel', async ({ page }) => {
     await seedDatabase(page, fullAppData)
 
-    await page.getByRole('button', { name: 'Generate report' }).click()
+    await page.getByRole('button', { name: 'Share report' }).click()
 
     await expect(page.getByText('Report options')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Download PDF' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Share PDF' })).toBeVisible()
   })
 
   test('shows validation errors when no categories are selected', async ({ page }) => {
     await page.goto('/')
 
-    await page.getByRole('button', { name: 'Generate report' }).click()
+    await page.getByRole('button', { name: 'Share report' }).click()
 
     // Uncheck both categories
     const checkboxes = page.locator('.report-fieldset input[type="checkbox"]')
     await checkboxes.nth(0).uncheck()
     await checkboxes.nth(1).uncheck()
 
-    await page.getByRole('button', { name: 'Download PDF' }).click()
+    await page.getByRole('button', { name: 'Share PDF' }).click()
 
     await expect(
       page.getByText('Select bottle feeds or weight measurements to include.'),
@@ -104,7 +104,7 @@ test.describe('PDF report generation', () => {
   test('shows a date order validation error when end is before start', async ({ page }) => {
     await page.goto('/')
 
-    await page.getByRole('button', { name: 'Generate report' }).click()
+    await page.getByRole('button', { name: 'Share report' }).click()
 
     // Select custom date range
     await page.locator('input[value="custom"]').check()
@@ -113,7 +113,7 @@ test.describe('PDF report generation', () => {
     await dateInputs.nth(0).fill('2026-07-20')
     await dateInputs.nth(1).fill('2026-07-19')
 
-    await page.getByRole('button', { name: 'Download PDF' }).click()
+    await page.getByRole('button', { name: 'Share PDF' }).click()
 
     await expect(
       page.getByText('The start date must be on or before the end date.'),
