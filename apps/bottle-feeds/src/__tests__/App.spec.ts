@@ -197,6 +197,41 @@ describe('App', () => {
     }
   })
 
+  it('refreshes the stale time since last bottle when the tab becomes visible again', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-14T14:30:00.000Z'))
+    try {
+      const preloaded: AppData = {
+        feeds: [
+          {
+            id: 'feed-latest',
+            amount: 120,
+            occurredAt: '2026-07-14T14:30:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-14T14:30:00.000Z',
+          },
+        ],
+        weights: [],
+      }
+      await saveData(preloaded, GUEST_NAMESPACE)
+      const wrapper = await mountApp()
+
+      expect(wrapper.text()).toContain('now after the last bottle')
+
+      // Simulate the tab being backgrounded for a full day: the periodic
+      // interval never fires (as browsers typically throttle/pause timers
+      // for hidden tabs), so the "now" reference would otherwise stay stale.
+      vi.setSystemTime(new Date('2026-07-15T14:30:00.000Z'))
+      document.dispatchEvent(new Event('visibilitychange'))
+      await nextTick()
+
+      expect(wrapper.text()).toContain('1 day')
+      expect(wrapper.text()).not.toContain('now after the last bottle')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('formats longer elapsed times as hours and minutes', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-14T14:30:00.000Z'))
