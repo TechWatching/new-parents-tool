@@ -150,13 +150,12 @@ function saveWeight(weight: Weight) {
         <p v-if="!feeds.length" class="empty-state">{{ t.emptyHistory }}</p>
         <UScrollArea v-else class="measure-scroll-area" shadow>
           <UTree :items="feedTreeItems" :get-key="(item) => item.id" class="measure-tree">
-            <template #item-wrapper="{ item, expanded, handleToggle }">
+            <template #item-wrapper="{ item, expanded }">
               <button
                 v-if="item.kind === 'day'"
                 class="measure-day-button"
                 type="button"
                 :aria-expanded="expanded"
-                @click="handleToggle"
               >
                 <span aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
                 {{ item.label }}
@@ -227,13 +226,12 @@ function saveWeight(weight: Weight) {
         <p v-if="!weights.length" class="empty-state">{{ t.emptyWeights }}</p>
         <UScrollArea v-else class="measure-scroll-area" shadow>
           <UTree :items="weightTreeItems" :get-key="(item) => item.id" class="measure-tree">
-            <template #item-wrapper="{ item, expanded, handleToggle }">
+            <template #item-wrapper="{ item, expanded }">
               <button
                 v-if="item.kind === 'day'"
                 class="measure-day-button"
                 type="button"
                 :aria-expanded="expanded"
-                @click="handleToggle"
               >
                 <span aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
                 {{ item.label }}
