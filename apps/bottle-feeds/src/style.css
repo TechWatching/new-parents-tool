@@ -2,14 +2,14 @@
 @import '@nuxt/ui';
 
 :root {
-  --color-coral: #ef8376;
-  --color-coral-rgb: 239, 131, 118;
-  --color-coral-dark: #dc685d;
-  --color-coral-dark-rgb: 220, 104, 93;
-  --color-mint: #5a9c87;
-  --color-mint-rgb: 90, 156, 135;
-  --color-mint-dark: #488a75;
-  --color-mint-dark-rgb: 72, 138, 117;
+  --color-coral: #b9473d;
+  --color-coral-rgb: 185, 71, 61;
+  --color-coral-dark: #a13d34;
+  --color-coral-dark-rgb: 161, 61, 52;
+  --color-mint: #2f725f;
+  --color-mint-rgb: 47, 114, 95;
+  --color-mint-dark: #245e4e;
+  --color-mint-dark-rgb: 36, 94, 78;
   --color-text: #24332f;
   --color-border: #d9e1dd;
   --color-border-hover: #b8c9c1;
