@@ -55,7 +55,7 @@ const RELATIVE_TIME_STRINGS: Record<'en' | 'fr' | 'es' | 'de', RelativeTimeStrin
         second: ['Sekunde', 'Sekunden'],
         minute: ['Minute', 'Minuten'],
         hour: ['Stunde', 'Stunden'],
-        day: ['Tag', 'Tagen'],
+        day: ['Tag', 'Tage'],
       }
       const [singular, plural] = labels[unit]
       return `${value} ${value === 1 ? singular : plural}`
@@ -65,7 +65,8 @@ const RELATIVE_TIME_STRINGS: Record<'en' | 'fr' | 'es' | 'de', RelativeTimeStrin
 
 function stringsFor(locale: string): RelativeTimeStrings {
   const language = locale.toLowerCase().split('-')[0]
-  if (language === 'fr' || language === 'es' || language === 'de') return RELATIVE_TIME_STRINGS[language]
+  if (language === 'fr' || language === 'es' || language === 'de')
+    return RELATIVE_TIME_STRINGS[language]
   return RELATIVE_TIME_STRINGS.en
 }
 

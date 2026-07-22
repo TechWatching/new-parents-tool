@@ -300,15 +300,18 @@ describe('App', () => {
   it.each([
     ['es-ES', 'es', 'Registrar un biberón'],
     ['de-DE', 'de', 'Fläschchen eintragen'],
-  ] as const)('defaults to %s when browser language is %s', async (browserLanguage, language, heading) => {
-    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([browserLanguage])
-    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue(browserLanguage)
+  ] as const)(
+    'defaults to %s when browser language is %s',
+    async (browserLanguage, language, heading) => {
+      vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([browserLanguage])
+      vi.spyOn(window.navigator, 'language', 'get').mockReturnValue(browserLanguage)
 
-    const wrapper = await mountApp()
+      const wrapper = await mountApp()
 
-    expect(wrapper.text()).toContain(heading)
-    expect(document.documentElement.lang).toBe(language)
-  })
+      expect(wrapper.text()).toContain(heading)
+      expect(document.documentElement.lang).toBe(language)
+    },
+  )
 
   it('falls back to navigator.language when preferred languages are empty', async () => {
     vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([])
@@ -356,10 +359,29 @@ describe('App', () => {
   it('lists every measure in tabs and saves quick edits', async () => {
     const preloaded: AppData = {
       feeds: [
-        { id: 'feed-1', amount: 120, occurredAt: '2026-07-14T14:30:00.000Z', comment: '', updatedAt: '2026-07-14T14:30:00.000Z' },
-        { id: 'feed-2', amount: 90, occurredAt: '2026-07-13T14:30:00.000Z', comment: '', updatedAt: '2026-07-13T14:30:00.000Z' },
+        {
+          id: 'feed-1',
+          amount: 120,
+          occurredAt: '2026-07-14T14:30:00.000Z',
+          comment: '',
+          updatedAt: '2026-07-14T14:30:00.000Z',
+        },
+        {
+          id: 'feed-2',
+          amount: 90,
+          occurredAt: '2026-07-13T14:30:00.000Z',
+          comment: '',
+          updatedAt: '2026-07-13T14:30:00.000Z',
+        },
       ],
-      weights: [{ id: 'weight-1', kilograms: 4.2, occurredAt: '2026-07-14T14:30:00.000Z', updatedAt: '2026-07-14T14:30:00.000Z' }],
+      weights: [
+        {
+          id: 'weight-1',
+          kilograms: 4.2,
+          occurredAt: '2026-07-14T14:30:00.000Z',
+          updatedAt: '2026-07-14T14:30:00.000Z',
+        },
+      ],
     }
     await saveData(preloaded, GUEST_NAMESPACE)
     const wrapper = await mountApp()
@@ -404,7 +426,13 @@ describe('App', () => {
   it('requires confirmation before deleting a measure', async () => {
     const preloaded: AppData = {
       feeds: [
-        { id: 'feed-1', amount: 120, occurredAt: '2026-07-14T14:30:00.000Z', comment: '', updatedAt: '2026-07-14T14:30:00.000Z' },
+        {
+          id: 'feed-1',
+          amount: 120,
+          occurredAt: '2026-07-14T14:30:00.000Z',
+          comment: '',
+          updatedAt: '2026-07-14T14:30:00.000Z',
+        },
       ],
       weights: [],
     }
@@ -447,9 +475,27 @@ describe('App', () => {
       const now = Date.now()
       const preloaded: AppData = {
         feeds: [
-          { id: 'feed-today-1', amount: 120, occurredAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
-          { id: 'feed-today-2', amount: 80, occurredAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
-          { id: 'feed-yesterday', amount: 150, occurredAt: new Date(now - 26 * 60 * 60 * 1000).toISOString(), comment: '', updatedAt: new Date().toISOString() },
+          {
+            id: 'feed-today-1',
+            amount: 120,
+            occurredAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+            comment: '',
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: 'feed-today-2',
+            amount: 80,
+            occurredAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
+            comment: '',
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: 'feed-yesterday',
+            amount: 150,
+            occurredAt: new Date(now - 26 * 60 * 60 * 1000).toISOString(),
+            comment: '',
+            updatedAt: new Date().toISOString(),
+          },
         ],
         weights: [],
       }
@@ -486,9 +532,27 @@ describe('App', () => {
     try {
       const preloaded: AppData = {
         feeds: [
-          { id: 'feed-today-1', amount: 120, occurredAt: '2026-07-19T12:00:00.000Z', comment: '', updatedAt: '2026-07-19T14:00:00.000Z' },
-          { id: 'feed-today-2', amount: 80, occurredAt: '2026-07-19T09:00:00.000Z', comment: '', updatedAt: '2026-07-19T14:00:00.000Z' },
-          { id: 'feed-yesterday', amount: 150, occurredAt: '2026-07-18T12:00:00.000Z', comment: '', updatedAt: '2026-07-19T14:00:00.000Z' },
+          {
+            id: 'feed-today-1',
+            amount: 120,
+            occurredAt: '2026-07-19T12:00:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T14:00:00.000Z',
+          },
+          {
+            id: 'feed-today-2',
+            amount: 80,
+            occurredAt: '2026-07-19T09:00:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T14:00:00.000Z',
+          },
+          {
+            id: 'feed-yesterday',
+            amount: 150,
+            occurredAt: '2026-07-18T12:00:00.000Z',
+            comment: '',
+            updatedAt: '2026-07-19T14:00:00.000Z',
+          },
         ],
         weights: [],
       }
@@ -497,7 +561,10 @@ describe('App', () => {
 
       expect(wrapper.text()).toContain('Bottles per day')
       expect(wrapper.find('.bottle-count-chart').attributes('aria-label')).toBe('Bottles per day')
-      expect(wrapper.findAll('.bottle-count-chart .bar-value').map((bar) => bar.text())).toEqual(['1', '2'])
+      expect(wrapper.findAll('.bottle-count-chart .bar-value').map((bar) => bar.text())).toEqual([
+        '1',
+        '2',
+      ])
     } finally {
       vi.useRealTimers()
     }
@@ -528,10 +595,21 @@ describe('App', () => {
   it('opens report options and shares a PDF report', async () => {
     const preloaded: AppData = {
       feeds: [
-        { id: 'feed-1', amount: 120, occurredAt: '2026-07-19T08:00:00.000Z', comment: 'Drank well', updatedAt: '2026-07-19T08:00:00.000Z' },
+        {
+          id: 'feed-1',
+          amount: 120,
+          occurredAt: '2026-07-19T08:00:00.000Z',
+          comment: 'Drank well',
+          updatedAt: '2026-07-19T08:00:00.000Z',
+        },
       ],
       weights: [
-        { id: 'weight-1', kilograms: 4.2, occurredAt: '2026-07-19T07:30:00.000Z', updatedAt: '2026-07-19T07:30:00.000Z' },
+        {
+          id: 'weight-1',
+          kilograms: 4.2,
+          occurredAt: '2026-07-19T07:30:00.000Z',
+          updatedAt: '2026-07-19T07:30:00.000Z',
+        },
       ],
     }
     await saveData(preloaded, GUEST_NAMESPACE)
@@ -609,5 +687,4 @@ describe('App', () => {
     expect(reportPdfSpies.generateReportPdfBlob).not.toHaveBeenCalled()
     expect(reportPdfSpies.sharePdf).not.toHaveBeenCalled()
   })
-
 })

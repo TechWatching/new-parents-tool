@@ -52,7 +52,7 @@ function resolveInitialLanguage(): Language {
   const browserLanguage =
     Array.isArray(navigator.languages) && navigator.languages.length > 0
       ? navigator.languages[0]
-      : navigator.language ?? 'en'
+      : (navigator.language ?? 'en')
   const browserLocale = browserLanguage.toLowerCase()
   if (browserLocale.startsWith('fr')) return 'fr'
   if (browserLocale.startsWith('es')) return 'es'
@@ -164,7 +164,8 @@ watch(activeNamespace, async (ns, prevNs) => {
   if (ns !== GUEST_NAMESPACE) {
     // User just signed in – check whether there is guest data to offer merging
     const guest = await loadData(GUEST_NAMESPACE)
-    const hasGuestData = guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt)
+    const hasGuestData =
+      guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt)
     if (hasGuestData) {
       guestDataForMerge.value = guest
       showMergePrompt.value = true
@@ -259,14 +260,14 @@ function applyEntryDateWithReset(recordedAt: string, duration = LATEST_ENTRY_DAT
 function defaultToRecentEntryDate() {
   stopEntryDateTimeout()
   defaultToCurrentDateTime()
-  const latestEntry = [...data.feeds, ...data.weights].reduce<{ entry: Feed | Weight; updatedAt: number } | undefined>(
-    (latest, entry) => {
-      const updatedAt = Date.parse(entry.updatedAt)
-      if (entry.deletedAt || Number.isNaN(updatedAt) || (latest && latest.updatedAt >= updatedAt)) return latest
-      return { entry, updatedAt }
-    },
-    undefined,
-  )
+  const latestEntry = [...data.feeds, ...data.weights].reduce<
+    { entry: Feed | Weight; updatedAt: number } | undefined
+  >((latest, entry) => {
+    const updatedAt = Date.parse(entry.updatedAt)
+    if (entry.deletedAt || Number.isNaN(updatedAt) || (latest && latest.updatedAt >= updatedAt))
+      return latest
+    return { entry, updatedAt }
+  }, undefined)
   if (!latestEntry) return
 
   const expiresAt = latestEntry.updatedAt + LATEST_ENTRY_DATE_DURATION
@@ -280,7 +281,13 @@ function addFeed() {
   const recordedAt = occurredAt(feedForm.date, feedForm.time)
   if (!amount || amount <= 0 || !recordedAt) return
   const now = new Date().toISOString()
-  data.feeds.unshift({ id: makeId(), amount, occurredAt: recordedAt, comment: feedForm.comment.trim(), updatedAt: now })
+  data.feeds.unshift({
+    id: makeId(),
+    amount,
+    occurredAt: recordedAt,
+    comment: feedForm.comment.trim(),
+    updatedAt: now,
+  })
   feedForm.amount = ''
   feedForm.comment = ''
   applyEntryDateWithReset(recordedAt)
@@ -358,7 +365,9 @@ const sortedFeeds = computed(() =>
   [...activeFeeds.value].sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt)),
 )
 const sortedWeights = computed(() =>
-  [...activeWeights.value].sort((a, b) => dateFromOccurredAt(b.occurredAt).localeCompare(dateFromOccurredAt(a.occurredAt))),
+  [...activeWeights.value].sort((a, b) =>
+    dateFromOccurredAt(b.occurredAt).localeCompare(dateFromOccurredAt(a.occurredAt)),
+  ),
 )
 const latestWeight = computed(() => sortedWeights.value[0])
 const latestFeed = computed(() => sortedFeeds.value[0])
@@ -499,13 +508,18 @@ async function handleSignOut() {
 
 const syncLabel = computed(() => {
   switch (syncStatus.value) {
-    case 'syncing': return t.value.syncing
-    case 'pending': return t.value.syncPending
-    case 'error': return t.value.syncError
-    case 'synced': return lastSyncedAt.value
-      ? `${t.value.syncedAt} ${formatDate(lastSyncedAt.value.toISOString(), locale.value)}`
-      : t.value.syncedAt
-    default: return null
+    case 'syncing':
+      return t.value.syncing
+    case 'pending':
+      return t.value.syncPending
+    case 'error':
+      return t.value.syncError
+    case 'synced':
+      return lastSyncedAt.value
+        ? `${t.value.syncedAt} ${formatDate(lastSyncedAt.value.toISOString(), locale.value)}`
+        : t.value.syncedAt
+    default:
+      return null
   }
 })
 </script>
@@ -557,7 +571,10 @@ const syncLabel = computed(() => {
       <div
         v-if="isSupabaseConfigured && isAuthenticated && syncStatus !== 'idle'"
         class="sync-bar"
-        :class="{ 'sync-bar--error': syncStatus === 'error', 'sync-bar--pending': syncStatus === 'pending' }"
+        :class="{
+          'sync-bar--error': syncStatus === 'error',
+          'sync-bar--pending': syncStatus === 'pending',
+        }"
       >
         <span>{{ syncLabel }}</span>
         <UButton
@@ -571,16 +588,30 @@ const syncLabel = computed(() => {
         >
           {{ t.syncRetry }}
         </UButton>
-        <span v-if="syncError && syncStatus === 'error'" class="sync-error-detail">{{ syncError }}</span>
+        <span v-if="syncError && syncStatus === 'error'" class="sync-error-detail">{{
+          syncError
+        }}</span>
       </div>
 
       <!-- Export / Import -->
       <div class="toolbar-actions">
         <div class="data-actions">
-          <UButton type="button" class="action-button" color="neutral" variant="outline" @click="exportData">
+          <UButton
+            type="button"
+            class="action-button"
+            color="neutral"
+            variant="outline"
+            @click="exportData"
+          >
             {{ t.exportData }}
           </UButton>
-          <UButton type="button" class="action-button" color="neutral" variant="outline" @click="triggerImport">
+          <UButton
+            type="button"
+            class="action-button"
+            color="neutral"
+            variant="outline"
+            @click="triggerImport"
+          >
             {{ t.importData }}
           </UButton>
           <input
@@ -593,12 +624,7 @@ const syncLabel = computed(() => {
           />
         </div>
 
-        <ReportGenerator
-          :feeds="activeFeeds"
-          :weights="activeWeights"
-          :t="t"
-          :locale="locale"
-        />
+        <ReportGenerator :feeds="activeFeeds" :weights="activeWeights" :t="t" :locale="locale" />
       </div>
 
       <!-- Cloud sync / Auth section -->
@@ -609,7 +635,9 @@ const syncLabel = computed(() => {
         </div>
 
         <template v-if="isAuthenticated">
-          <p>{{ t.signedInAs }} <strong>{{ authUser?.email }}</strong></p>
+          <p>
+            {{ t.signedInAs }} <strong>{{ authUser?.email }}</strong>
+          </p>
           <UButton type="button" color="neutral" variant="ghost" size="sm" @click="handleSignOut">
             {{ t.signOut }}
           </UButton>
@@ -643,7 +671,12 @@ const syncLabel = computed(() => {
       </section>
 
       <!-- Guest merge prompt modal -->
-      <div v-if="showMergePrompt" class="modal-overlay" role="dialog" :aria-label="t.guestMergeTitle">
+      <div
+        v-if="showMergePrompt"
+        class="modal-overlay"
+        role="dialog"
+        :aria-label="t.guestMergeTitle"
+      >
         <div class="modal-card card">
           <h2>{{ t.guestMergeTitle }}</h2>
           <p>{{ t.guestMergeBody }}</p>
@@ -651,7 +684,13 @@ const syncLabel = computed(() => {
             <UButton type="button" size="sm" @click="handleGuestMerge('merge')">
               {{ t.guestMergeYes }}
             </UButton>
-            <UButton type="button" color="neutral" variant="ghost" size="sm" @click="handleGuestMerge('keep')">
+            <UButton
+              type="button"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="handleGuestMerge('keep')"
+            >
               {{ t.guestMergeNo }}
             </UButton>
           </div>

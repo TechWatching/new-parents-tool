@@ -71,7 +71,9 @@ test.describe('Language switching', () => {
     await selectLanguage(page, 'Language', 'Français')
 
     await expect(page.locator('.feed-card').getByText('Quantité (ml)')).toBeVisible()
-    await expect(page.locator('.feed-card').getByRole('button', { name: 'Enregistrer' })).toBeVisible()
+    await expect(
+      page.locator('.feed-card').getByRole('button', { name: 'Enregistrer' }),
+    ).toBeVisible()
   })
 
   test('uses French labels in the weight form when French is active', async ({ page }) => {
