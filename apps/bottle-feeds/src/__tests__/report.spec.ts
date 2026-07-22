@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { messages } from '../i18n'
 import {
@@ -9,12 +9,17 @@ import {
   createReportSnapshot,
   validateReportConfig,
 } from '../report/logic'
-import { generateReportPdfBlob } from '../report/pdf'
+import { generateReportPdfBlob, sharePdf } from '../report/pdf'
 import type { Feed, Weight } from '../types'
 
 async function decodePdfText(blob: Blob) {
   return new TextDecoder('latin1').decode(await blob.arrayBuffer())
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('report logic', () => {
   const feeds: Feed[] = [
@@ -198,6 +203,35 @@ describe('report logic', () => {
 
     expect(blob.type).toBe('application/pdf')
     expect(Array.from(header)).toEqual([37, 80, 68, 70])
+  })
+
+  it('shares the PDF through the native share sheet when file sharing is supported', async () => {
+    const share = vi.fn()
+    const canShare = vi.fn(() => true)
+    vi.stubGlobal('navigator', { share, canShare })
+
+    await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).resolves.toBe('shared')
+
+    expect(canShare).toHaveBeenCalledOnce()
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [expect.objectContaining({ name: 'report.pdf', type: 'application/pdf' })],
+      }),
+    )
+  })
+
+  it('downloads the PDF when native file sharing is unavailable', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const createObjectURL = vi.fn(() => 'blob:report')
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('navigator', { canShare: vi.fn(() => false) })
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+
+    await expect(sharePdf(new Blob(['pdf'], { type: 'application/pdf' }), 'report.pdf')).resolves.toBe('downloaded')
+
+    expect(click).toHaveBeenCalledOnce()
+    expect(createObjectURL).toHaveBeenCalledOnce()
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:report')
   })
 
   it('renders compacted chart values into the PDF output', async () => {
