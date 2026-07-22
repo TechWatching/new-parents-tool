@@ -658,9 +658,6 @@ h3 {
   .history-grid {
     grid-template-columns: 1fr;
   }
-  .toolbar-actions {
-    grid-template-columns: 1fr;
-  }
   .summary-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -956,6 +953,12 @@ h3 {
   width: auto;
   margin-top: 0;
   min-width: 180px;
+}
+
+@media (max-width: 800px) {
+  .toolbar-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------------------------------------------------------------------------
