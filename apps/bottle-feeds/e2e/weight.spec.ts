@@ -74,6 +74,9 @@ test.describe('Weight recording', () => {
 
     await expect(page.locator('.measure-tree-entry')).toHaveCount(1)
     await page.getByRole('button', { name: 'Delete 4.2 kg' }).click()
+    await expect(page.getByRole('dialog', { name: 'Delete this measure?' })).toBeVisible()
+    await expect(page.locator('.measure-tree-entry')).toHaveCount(1)
+    await page.getByRole('button', { name: 'Delete measure' }).click()
 
     await expect(page.locator('.measure-tree-entry')).toHaveCount(0)
     await expect(page.locator('.empty-state')).toBeVisible()

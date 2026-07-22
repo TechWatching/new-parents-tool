@@ -375,6 +375,45 @@ describe('App', () => {
     expect(wrapper.text()).toContain('4.2 kg')
   })
 
+  it('requires confirmation before deleting a measure', async () => {
+    const preloaded: AppData = {
+      feeds: [
+        { id: 'feed-1', amount: 120, occurredAt: '2026-07-14T14:30:00.000Z', comment: '', updatedAt: '2026-07-14T14:30:00.000Z' },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    await wrapper.get('[aria-label="Delete 120 ml"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Delete this measure?')
+    expect(document.body.textContent).toContain('This will remove 120 ml, recorded on')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+
+    const cancelButton = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Cancel',
+    )
+    expect(cancelButton).toBeDefined()
+    cancelButton!.click()
+    await flushPromises()
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+
+    await wrapper.get('[aria-label="Delete 120 ml"]').trigger('click')
+    await flushPromises()
+    const confirmButton = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Delete measure',
+    )
+    expect(confirmButton).toBeDefined()
+    confirmButton!.click()
+    await flushPromises()
+
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(0)
+    const stored = await loadData(GUEST_NAMESPACE)
+    expect(stored.feeds[0]?.deletedAt).toBeDefined()
+  })
+
   it('always shows the rolling 24h intake chart where each point sums the trailing 24 hours', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-19T14:00:00.000Z'))

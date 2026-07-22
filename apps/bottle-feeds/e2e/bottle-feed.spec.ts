@@ -82,6 +82,15 @@ test.describe('Bottle feed recording', () => {
     await expect(list).toHaveCount(1)
 
     await list.getByRole('button', { name: 'Delete 120 ml' }).click()
+    await expect(page.getByRole('dialog', { name: 'Delete this measure?' })).toBeVisible()
+    await expect(page.getByText('This will remove 120 ml, recorded on')).toBeVisible()
+    await expect(list).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(list).toHaveCount(1)
+
+    await list.getByRole('button', { name: 'Delete 120 ml' }).click()
+    await page.getByRole('button', { name: 'Delete measure' }).click()
 
     await expect(list).toHaveCount(0)
     await expect(page.locator('.empty-state')).toBeVisible()

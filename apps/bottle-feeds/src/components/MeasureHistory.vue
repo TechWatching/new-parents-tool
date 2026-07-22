@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
+import UModal from '@nuxt/ui/components/Modal.vue'
 import UScrollArea from '@nuxt/ui/components/ScrollArea.vue'
 import UTabs from '@nuxt/ui/components/Tabs.vue'
 import UTree from '@nuxt/ui/components/Tree.vue'
@@ -96,6 +97,13 @@ const editingFeedId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeightId = ref<string | null>(null)
 const editingWeight = reactive({ kilograms: '', date: '' })
+const deleteDialogOpen = ref(false)
+const pendingDeletion = ref<{
+  id: string
+  kind: 'feed' | 'weight'
+  measure: string
+  date: string
+} | null>(null)
 
 function onTimeInput(form: { time: string }, event: Event) {
   maskTimeInput(event, (value) => {
@@ -138,6 +146,45 @@ function saveWeight(weight: Weight) {
   emit('save-weight', { id: weight.id, kilograms, occurredAt: recordedAt })
   editingWeightId.value = null
 }
+
+function requestFeedDeletion(feed: Feed) {
+  pendingDeletion.value = {
+    id: feed.id,
+    kind: 'feed',
+    measure: `${feed.amount} ${props.t.ml}`,
+    date: formatDate(feed.occurredAt, props.locale),
+  }
+  deleteDialogOpen.value = true
+}
+
+function requestWeightDeletion(weight: Weight) {
+  pendingDeletion.value = {
+    id: weight.id,
+    kind: 'weight',
+    measure: `${weight.kilograms.toLocaleString(props.locale)} ${props.t.kg}`,
+    date: formatDateOnly(weight.occurredAt, props.locale),
+  }
+  deleteDialogOpen.value = true
+}
+
+function closeDeleteDialog() {
+  deleteDialogOpen.value = false
+  pendingDeletion.value = null
+}
+
+function confirmDeletion() {
+  if (!pendingDeletion.value) return
+  const { id, kind } = pendingDeletion.value
+  emit(kind === 'feed' ? 'remove-feed' : 'remove-weight', id)
+  closeDeleteDialog()
+}
+
+const deleteDialogDescription = computed(() => {
+  if (!pendingDeletion.value) return ''
+  return props.t.deleteMeasureBody
+    .replace('{measure}', pendingDeletion.value.measure)
+    .replace('{date}', pendingDeletion.value.date)
+})
 </script>
 
 <template>
@@ -214,7 +261,7 @@ function saveWeight(weight: Weight) {
                     variant="soft"
                     size="xs"
                     :aria-label="`${t.delete} ${item.feed.amount} ${t.ml}`"
-                    @click="emit('remove-feed', item.feed.id)"
+                    @click="requestFeedDeletion(item.feed)"
                   >
                     {{ t.delete }}
                   </UButton>
@@ -271,7 +318,7 @@ function saveWeight(weight: Weight) {
                     variant="soft"
                     size="xs"
                     :aria-label="`${t.delete} ${item.weight.kilograms} ${t.kg}`"
-                    @click="emit('remove-weight', item.weight.id)"
+                    @click="requestWeightDeletion(item.weight)"
                   >
                     {{ t.delete }}
                   </UButton>
@@ -282,5 +329,22 @@ function saveWeight(weight: Weight) {
         </UScrollArea>
       </template>
     </UTabs>
+
+    <UModal
+      v-model:open="deleteDialogOpen"
+      :title="t.deleteMeasureTitle"
+      :description="deleteDialogDescription"
+      :close="false"
+      @after:leave="pendingDeletion = null"
+    >
+      <template #footer>
+        <UButton type="button" color="neutral" variant="ghost" @click="closeDeleteDialog">
+          {{ t.cancel }}
+        </UButton>
+        <UButton type="button" color="error" @click="confirmDeletion">
+          {{ t.deleteMeasureConfirm }}
+        </UButton>
+      </template>
+    </UModal>
   </section>
 </template>
