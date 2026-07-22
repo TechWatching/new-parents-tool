@@ -3,7 +3,6 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import UDashboardToolbar from '@nuxt/ui/components/DashboardToolbar.vue'
-import UFieldGroup from '@nuxt/ui/components/FieldGroup.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
 import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
@@ -547,14 +546,8 @@ const syncLabel = computed(() => {
       <UDashboardToolbar class="toolbar-actions" :ui="{ left: 'contents', right: 'contents' }">
         <template #left>
           <div class="data-actions">
-            <UFieldGroup size="sm">
-              <UButton type="button" color="neutral" variant="outline" @click="exportData">
-                {{ t.exportData }}
-              </UButton>
-              <UButton type="button" color="neutral" variant="outline" @click="triggerImport">
-                {{ t.importData }}
-              </UButton>
-            </UFieldGroup>
+            <button type="button" class="action-button" @click="exportData">{{ t.exportData }}</button>
+            <button type="button" class="action-button" @click="triggerImport">{{ t.importData }}</button>
             <input
               ref="importFileRef"
               type="file"

@@ -799,18 +799,22 @@ h3 {
 
 .toolbar-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px 16px;
   align-items: start;
   margin-bottom: 18px;
 }
 
 .toolbar-actions .data-actions {
-  margin-bottom: 0;
+  display: contents;
 }
 
 .toolbar-actions .report-generator {
   display: contents;
+}
+
+.toolbar-actions .action-button {
+  width: 100%;
 }
 
 .toolbar-actions .report-panel {
