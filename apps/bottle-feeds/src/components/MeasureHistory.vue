@@ -175,7 +175,8 @@ function closeDeleteDialog() {
 function confirmDeletion() {
   if (!pendingDeletion.value) return
   const { id, kind } = pendingDeletion.value
-  emit(kind === 'feed' ? 'remove-feed' : 'remove-weight', id)
+  if (kind === 'feed') emit('remove-feed', id)
+  else emit('remove-weight', id)
   closeDeleteDialog()
 }
 
