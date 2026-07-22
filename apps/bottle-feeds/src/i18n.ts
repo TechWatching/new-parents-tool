@@ -6,7 +6,7 @@ export const messages = {
     tagline: 'Bottle and growth tracker',
     privacy: 'Private by design — everything stays in this browser.',
     localOnly:
-      'Records stay in this browser. You can sync across devices if you want to, but it is completely optional.',
+      "Records stay in this browser and will be erased if you clear this site's data. Sign in to sync them across devices.",
     cloudEnabled:
       'Records are stored in this browser and synced to your account. You can remove the cloud copy at any time.',
     language: 'Français',
@@ -150,7 +150,7 @@ export const messages = {
     tagline: 'Suivi des biberons et de la croissance',
     privacy: 'Vos données restent privées dans ce navigateur.',
     localOnly:
-      'Les enregistrements restent dans ce navigateur. Vous pouvez les synchroniser entre appareils si vous le souhaitez, mais cela reste entièrement facultatif.',
+      'Les enregistrements restent dans ce navigateur et seront effacés si vous supprimez les données de ce site. Connectez-vous pour les synchroniser entre vos appareils.',
     cloudEnabled:
       'Les enregistrements sont stockés dans ce navigateur et synchronisés avec votre compte. Vous pouvez supprimer la copie cloud à tout moment.',
     language: 'English',

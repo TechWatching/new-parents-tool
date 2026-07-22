@@ -598,7 +598,7 @@ const syncLabel = computed(() => {
     <main>
       <!--
         When Supabase is configured we show the more detailed 'localOnly' message
-        which explicitly mentions "Enable cloud sync to back them up."
+        which explains that clearing site data erases local records and signing in enables sync.
         When Supabase is NOT configured we show the simpler 'privacy' note (no
         mention of cloud sync since there is no cloud option available).
       -->
