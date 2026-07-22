@@ -271,7 +271,7 @@ export const messages = {
     privacy: 'Tus datos permanecen privados en este navegador.',
     localOnly:
       'Los registros se guardan solo en este navegador. Si borras los datos del sitio, se eliminarán. Activa la sincronización en la nube para hacer una copia de seguridad.',
-    language: 'English',
+    language: 'Español',
     languageSelector: 'Idioma',
     addFeed: 'Registrar un biberón',
     amount: 'Cantidad (ml)',
@@ -401,7 +401,7 @@ export const messages = {
     privacy: 'Deine Daten bleiben privat in diesem Browser.',
     localOnly:
       'Die Aufzeichnungen werden nur in diesem Browser gespeichert. Wenn du die Websitedaten löschst, werden sie entfernt. Aktiviere die Cloud-Synchronisierung, um sie zu sichern.',
-    language: 'English',
+    language: 'Deutsch',
     languageSelector: 'Sprache',
     addFeed: 'Fläschchen eintragen',
     amount: 'Menge (ml)',
