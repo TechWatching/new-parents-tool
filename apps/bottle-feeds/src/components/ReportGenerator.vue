@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UButton from '@nuxt/ui/components/Button.vue'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import type { Messages } from '../i18n'
@@ -23,7 +24,7 @@ const isOpen = ref(false)
 const isGenerating = ref(false)
 const showValidation = ref(false)
 const generationError = ref(false)
-const triggerRef = ref<HTMLButtonElement | null>(null)
+const triggerRef = ref<InstanceType<typeof UButton> | null>(null)
 const headingRef = ref<HTMLHeadingElement | null>(null)
 const config = reactive(createDefaultReportConfig())
 const toast = useToast()
@@ -50,7 +51,7 @@ watch(isOpen, async (open) => {
     return
   }
   await nextTick()
-  triggerRef.value?.focus()
+  triggerRef.value?.$el.focus()
 })
 
 function closePanel() {
@@ -84,16 +85,18 @@ async function handleGenerate() {
 
 <template>
   <div class="report-generator">
-    <button
+    <UButton
       ref="triggerRef"
       type="button"
       class="action-button"
+      color="neutral"
+      variant="outline"
       :aria-expanded="isOpen"
       aria-controls="report-panel"
       @click="isOpen = !isOpen"
     >
       {{ t.generateReport }}
-    </button>
+    </UButton>
 
     <section
       v-if="isOpen"
