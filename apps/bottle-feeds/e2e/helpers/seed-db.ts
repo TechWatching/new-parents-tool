@@ -33,12 +33,11 @@ export async function seedDatabase(
     await page.addInitScript((time: number) => {
       const OriginalDate = window.Date
       class FrozenDate extends OriginalDate {
-        constructor(...args: any[]) {
+        constructor(...args: ConstructorParameters<typeof Date>) {
           if (args.length === 0) {
             super(time)
           } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            super(...(args as [any]))
+            super(...args)
           }
         }
         static now() {
