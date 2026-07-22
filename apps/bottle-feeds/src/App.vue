@@ -48,24 +48,30 @@ let nowIntervalId: number | undefined
 
 function resolveInitialLanguage(): Language {
   const stored = localStorage.getItem('new-parents-tool:language')
-  if (stored === 'en' || stored === 'fr') return stored
+  if (stored === 'en' || stored === 'fr' || stored === 'es' || stored === 'de') return stored
   const browserLanguage =
     Array.isArray(navigator.languages) && navigator.languages.length > 0
       ? navigator.languages[0]
       : navigator.language ?? 'en'
-  return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+  const browserLocale = browserLanguage.toLowerCase()
+  if (browserLocale.startsWith('fr')) return 'fr'
+  if (browserLocale.startsWith('es')) return 'es'
+  if (browserLocale.startsWith('de')) return 'de'
+  return 'en'
 }
 
 const language = ref<Language>(resolveInitialLanguage())
 const languageSelection = computed({
   get: () => language.value,
   set: (value: string) => {
-    if (value === 'en' || value === 'fr') language.value = value
+    if (value === 'en' || value === 'fr' || value === 'es' || value === 'de') language.value = value
   },
 })
 const availableLocales = [
   { name: 'English', code: 'en', dir: 'ltr' as const, messages: {} },
   { name: 'Français', code: 'fr', dir: 'ltr' as const, messages: {} },
+  { name: 'Español', code: 'es', dir: 'ltr' as const, messages: {} },
+  { name: 'Deutsch', code: 'de', dir: 'ltr' as const, messages: {} },
 ]
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', date: dateTimeForInput().date })
@@ -85,7 +91,15 @@ const importFileRef = ref<HTMLInputElement | null>(null)
 // ---------------------------------------------------------------------------
 
 const t = computed(() => messages[language.value])
-const locale = computed(() => (language.value === 'fr' ? 'fr-FR' : 'en-GB'))
+const locale = computed(() => {
+  const locales: Record<Language, string> = {
+    en: 'en-GB',
+    fr: 'fr-FR',
+    es: 'es-ES',
+    de: 'de-DE',
+  }
+  return locales[language.value]
+})
 
 const toast = useToast()
 
