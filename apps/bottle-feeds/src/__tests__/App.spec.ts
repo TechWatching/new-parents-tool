@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import memoryDriver from 'unstorage/drivers/memory'
+import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 
 const reportPdfSpies = vi.hoisted(() => ({
   generateReportPdfBlob: vi.fn(async () => new Blob(['pdf'], { type: 'application/pdf' })),
@@ -266,7 +267,8 @@ describe('App', () => {
   it('switches all content to French', async () => {
     const wrapper = await mountApp()
 
-    await wrapper.get('.language-button').trigger('click')
+    wrapper.getComponent(ULocaleSelect).vm.$emit('update:modelValue', 'fr')
+    await nextTick()
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
@@ -336,15 +338,27 @@ describe('App', () => {
     await saveData(preloaded, GUEST_NAMESPACE)
     const wrapper = await mountApp()
 
-    expect(wrapper.findAll('.measure-list li')).toHaveLength(2)
-    await wrapper.get('.measure-list button').trigger('click')
-    expect(wrapper.get('.measure-list form').text()).toContain('Quantity (ml)')
-    expect(wrapper.get('.measure-list form').text()).toContain('Date')
-    expect(wrapper.get('.measure-list form').text()).toContain('Time (24h)')
-    expect(wrapper.get('.measure-list form').text()).toContain('Comment (optional)')
-    await wrapper.get('.measure-list input[type="number"]').setValue('150')
+    const dayButtons = wrapper.findAll('.measure-day-button')
+    expect(dayButtons).toHaveLength(2)
+    expect(dayButtons[0]!.attributes('aria-expanded')).toBe('true')
+    expect(dayButtons[1]!.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+
+    await dayButtons[1]!.trigger('click')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(2)
+    await dayButtons[0]!.trigger('click')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+    await dayButtons[0]!.trigger('click')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(2)
+
+    await wrapper.get('.measure-tree-entry button').trigger('click')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Quantity (ml)')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Date')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Time (24h)')
+    expect(wrapper.get('.measure-tree-entry form').text()).toContain('Comment (optional)')
+    await wrapper.get('.measure-tree-entry input[type="number"]').setValue('150')
     await wrapper.get('#edit-feed-time').setValue('0915')
-    await wrapper.get('.measure-list form').trigger('submit')
+    await wrapper.get('.measure-tree-entry form').trigger('submit')
     await flushPromises()
 
     expect(wrapper.text()).toContain('150 ml')
@@ -359,6 +373,45 @@ describe('App', () => {
     expect(weightTab).toBeDefined()
     await weightTab!.trigger('click')
     expect(wrapper.text()).toContain('4.2 kg')
+  })
+
+  it('requires confirmation before deleting a measure', async () => {
+    const preloaded: AppData = {
+      feeds: [
+        { id: 'feed-1', amount: 120, occurredAt: '2026-07-14T14:30:00.000Z', comment: '', updatedAt: '2026-07-14T14:30:00.000Z' },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    await wrapper.get('[aria-label="Delete 120 ml"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Delete this measure?')
+    expect(document.body.textContent).toContain('This will remove 120 ml, recorded on')
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+
+    const cancelButton = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Cancel',
+    )
+    expect(cancelButton).toBeDefined()
+    cancelButton!.click()
+    await flushPromises()
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(1)
+
+    await wrapper.get('[aria-label="Delete 120 ml"]').trigger('click')
+    await flushPromises()
+    const confirmButton = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Delete measure',
+    )
+    expect(confirmButton).toBeDefined()
+    confirmButton!.click()
+    await flushPromises()
+
+    expect(wrapper.findAll('.measure-tree-entry')).toHaveLength(0)
+    const stored = await loadData(GUEST_NAMESPACE)
+    expect(stored.feeds[0]?.deletedAt).toBeDefined()
   })
 
   it('always shows the rolling 24h intake chart where each point sums the trailing 24 hours', async () => {

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
+import UModal from '@nuxt/ui/components/Modal.vue'
+import UScrollArea from '@nuxt/ui/components/ScrollArea.vue'
 import UTabs from '@nuxt/ui/components/Tabs.vue'
+import UTree from '@nuxt/ui/components/Tree.vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { formatDate, formatDateOnly } from '../utils/format'
 import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTimeInput, occurredAt, timePattern } from '../utils/time'
 
-defineProps<{
+const props = defineProps<{
   feeds: Feed[]
   weights: Weight[]
   t: Messages
@@ -22,6 +25,68 @@ const emit = defineEmits<{
 }>()
 
 const measureTab = ref<'feeds' | 'weights'>('feeds')
+const tabItems = computed(() => [
+  { label: props.t.quantities, value: 'feeds', slot: 'feeds' },
+  { label: props.t.weights, value: 'weights', slot: 'weights' },
+])
+
+type MeasureTreeItem = {
+  id: string
+  label: string
+  kind: 'day' | 'feed' | 'weight'
+  defaultExpanded?: boolean
+  children?: MeasureTreeItem[]
+  feed?: Feed
+  weight?: Weight
+}
+
+function dayLabel(date: string) {
+  return new Intl.DateTimeFormat(props.locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${date}T12:00:00`))
+}
+
+function groupByDay(items: MeasureTreeItem[]) {
+  const days = new Map<string, MeasureTreeItem[]>()
+  for (const item of items) {
+    const occurredAt = item.feed?.occurredAt ?? item.weight?.occurredAt
+    if (!occurredAt) continue
+    const date = dateFromOccurredAt(occurredAt)
+    const entries = days.get(date) ?? []
+    entries.push(item)
+    days.set(date, entries)
+  }
+  return Array.from(days)
+    .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+    .map(([date, children], index) => ({
+      id: `day-${date}`,
+      label: dayLabel(date),
+      kind: 'day' as const,
+      defaultExpanded: index === 0,
+      children,
+    }))
+}
+
+const feedTreeItems = computed<MeasureTreeItem[]>(() =>
+  groupByDay(props.feeds.map((feed) => ({
+    id: feed.id,
+    label: `${feed.amount} ${props.t.ml}`,
+    kind: 'feed' as const,
+    feed,
+  }))),
+)
+
+const weightTreeItems = computed<MeasureTreeItem[]>(() =>
+  groupByDay(props.weights.map((weight) => ({
+    id: weight.id,
+    label: `${weight.kilograms.toLocaleString(props.locale)} ${props.t.kg}`,
+    kind: 'weight' as const,
+    weight,
+  }))),
+)
 
 // ---------------------------------------------------------------------------
 // Inline edit buffers (ephemeral UI state) — the actual data mutation is
@@ -32,6 +97,13 @@ const editingFeedId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeightId = ref<string | null>(null)
 const editingWeight = reactive({ kilograms: '', date: '' })
+const deleteDialogOpen = ref(false)
+const pendingDeletion = ref<{
+  id: string
+  kind: 'feed' | 'weight'
+  measure: string
+  date: string
+} | null>(null)
 
 function onTimeInput(form: { time: string }, event: Event) {
   maskTimeInput(event, (value) => {
@@ -74,6 +146,46 @@ function saveWeight(weight: Weight) {
   emit('save-weight', { id: weight.id, kilograms, occurredAt: recordedAt })
   editingWeightId.value = null
 }
+
+function requestFeedDeletion(feed: Feed) {
+  pendingDeletion.value = {
+    id: feed.id,
+    kind: 'feed',
+    measure: `${feed.amount} ${props.t.ml}`,
+    date: formatDate(feed.occurredAt, props.locale),
+  }
+  deleteDialogOpen.value = true
+}
+
+function requestWeightDeletion(weight: Weight) {
+  pendingDeletion.value = {
+    id: weight.id,
+    kind: 'weight',
+    measure: `${weight.kilograms.toLocaleString(props.locale)} ${props.t.kg}`,
+    date: formatDateOnly(weight.occurredAt, props.locale),
+  }
+  deleteDialogOpen.value = true
+}
+
+function closeDeleteDialog() {
+  deleteDialogOpen.value = false
+  pendingDeletion.value = null
+}
+
+function confirmDeletion() {
+  if (!pendingDeletion.value) return
+  const { id, kind } = pendingDeletion.value
+  if (kind === 'feed') emit('remove-feed', id)
+  else emit('remove-weight', id)
+  closeDeleteDialog()
+}
+
+const deleteDialogDescription = computed(() => {
+  if (!pendingDeletion.value) return ''
+  return props.t.deleteMeasureBody
+    .replace('{measure}', pendingDeletion.value.measure)
+    .replace('{date}', pendingDeletion.value.date)
+})
 </script>
 
 <template>
@@ -82,105 +194,158 @@ function saveWeight(weight: Weight) {
     <UTabs
       v-model="measureTab"
       class="measure-tabs"
-      :items="[
-        { label: t.quantities, value: 'feeds' },
-        { label: t.weights, value: 'weights' },
-      ]"
-      :content="false"
-    />
+      :items="tabItems"
+    >
+      <template #feeds>
+        <p v-if="!feeds.length" class="empty-state">{{ t.emptyHistory }}</p>
+        <UScrollArea v-else class="measure-scroll-area" shadow>
+          <UTree :items="feedTreeItems" :get-key="(item) => item.id" class="measure-tree">
+            <template #item-wrapper="{ item, expanded }">
+              <button
+                v-if="item.kind === 'day'"
+                class="measure-day-button"
+                type="button"
+                :aria-expanded="expanded"
+              >
+                <span aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
+                {{ item.label }}
+              </button>
+              <div v-else-if="item.feed" class="measure-tree-entry">
+                <form v-if="editingFeedId === item.feed.id" @submit.prevent="saveFeed(item.feed)">
+                  <div class="measure-fields">
+                    <label for="edit-feed-amount">
+                      {{ t.amount }}
+                      <input id="edit-feed-amount" v-model="editingFeed.amount" type="number" min="1" max="2000" required />
+                    </label>
+                    <label for="edit-feed-date">
+                      {{ t.date }}
+                      <input id="edit-feed-date" v-model="editingFeed.date" type="date" required />
+                    </label>
+                    <label for="edit-feed-time">
+                      {{ t.time }}
+                      <input
+                        id="edit-feed-time"
+                        :value="editingFeed.time"
+                        type="text"
+                        inputmode="numeric"
+                        :pattern="timePattern.source"
+                        placeholder="14:30"
+                        maxlength="5"
+                        required
+                        @input="onEditingFeedTimeInput"
+                      />
+                    </label>
+                    <label for="edit-feed-comment">
+                      {{ t.comment }}
+                      <input id="edit-feed-comment" v-model="editingFeed.comment" type="text" maxlength="160" />
+                    </label>
+                  </div>
+                  <div class="measure-actions">
+                    <UButton type="submit" size="xs">{{ t.save }}</UButton>
+                    <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
+                      {{ t.cancel }}
+                    </UButton>
+                  </div>
+                </form>
+                <template v-else>
+                  <div class="measure-details">
+                    <strong>{{ item.feed.amount }} {{ t.ml }}</strong>
+                    <span>{{ formatDate(item.feed.occurredAt, locale) }}</span>
+                    <small v-if="item.feed.comment">{{ item.feed.comment }}</small>
+                  </div>
+                  <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(item.feed)">
+                    {{ t.edit }}
+                  </UButton>
+                  <UButton
+                    type="button"
+                    color="error"
+                    variant="soft"
+                    size="xs"
+                    :aria-label="`${t.delete} ${item.feed.amount} ${t.ml}`"
+                    @click="requestFeedDeletion(item.feed)"
+                  >
+                    {{ t.delete }}
+                  </UButton>
+                </template>
+              </div>
+            </template>
+          </UTree>
+        </UScrollArea>
+      </template>
+      <template #weights>
+        <p v-if="!weights.length" class="empty-state">{{ t.emptyWeights }}</p>
+        <UScrollArea v-else class="measure-scroll-area" shadow>
+          <UTree :items="weightTreeItems" :get-key="(item) => item.id" class="measure-tree">
+            <template #item-wrapper="{ item, expanded }">
+              <button
+                v-if="item.kind === 'day'"
+                class="measure-day-button"
+                type="button"
+                :aria-expanded="expanded"
+              >
+                <span aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
+                {{ item.label }}
+              </button>
+              <div v-else-if="item.weight" class="measure-tree-entry">
+                <form v-if="editingWeightId === item.weight.id" @submit.prevent="saveWeight(item.weight)">
+                  <div class="measure-fields">
+                    <label for="edit-weight-kilograms">
+                      {{ t.weight }}
+                      <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
+                    </label>
+                    <label for="edit-weight-date">
+                      {{ t.date }}
+                      <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
+                    </label>
+                  </div>
+                  <div class="measure-actions">
+                    <UButton type="submit" size="xs">{{ t.save }}</UButton>
+                    <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
+                      {{ t.cancel }}
+                    </UButton>
+                  </div>
+                </form>
+                <template v-else>
+                  <div class="measure-details">
+                    <strong>{{ item.weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong>
+                    <span>{{ formatDateOnly(item.weight.occurredAt, locale) }}</span>
+                  </div>
+                  <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(item.weight)">
+                    {{ t.edit }}
+                  </UButton>
+                  <UButton
+                    type="button"
+                    color="error"
+                    variant="soft"
+                    size="xs"
+                    :aria-label="`${t.delete} ${item.weight.kilograms} ${t.kg}`"
+                    @click="requestWeightDeletion(item.weight)"
+                  >
+                    {{ t.delete }}
+                  </UButton>
+                </template>
+              </div>
+            </template>
+          </UTree>
+        </UScrollArea>
+      </template>
+    </UTabs>
 
-    <p v-if="measureTab === 'feeds' && !feeds.length" class="empty-state">
-      {{ t.emptyHistory }}
-    </p>
-    <ul v-else-if="measureTab === 'feeds'" class="measure-list">
-      <li v-for="feed in feeds" :key="feed.id">
-        <template v-if="editingFeedId === feed.id">
-          <form @submit.prevent="saveFeed(feed)">
-            <div class="measure-fields">
-              <label for="edit-feed-amount">
-                {{ t.amount }}
-                <input id="edit-feed-amount" v-model="editingFeed.amount" type="number" min="1" max="2000" required />
-              </label>
-              <label for="edit-feed-date">
-                {{ t.date }}
-                <input id="edit-feed-date" v-model="editingFeed.date" type="date" required />
-              </label>
-              <label for="edit-feed-time">
-                {{ t.time }}
-                <input
-                  id="edit-feed-time"
-                  :value="editingFeed.time"
-                  type="text"
-                  inputmode="numeric"
-                  :pattern="timePattern.source"
-                  placeholder="14:30"
-                  maxlength="5"
-                  required
-                  @input="onEditingFeedTimeInput"
-                />
-              </label>
-              <label for="edit-feed-comment">
-                {{ t.comment }}
-                <input id="edit-feed-comment" v-model="editingFeed.comment" type="text" maxlength="160" />
-              </label>
-            </div>
-            <div class="measure-actions">
-              <UButton type="submit" size="xs">{{ t.save }}</UButton>
-              <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
-                {{ t.cancel }}
-              </UButton>
-            </div>
-          </form>
-        </template>
-        <template v-else>
-          <div>
-            <strong>{{ feed.amount }} {{ t.ml }}</strong><span>{{ formatDate(feed.occurredAt, locale) }}</span><small v-if="feed.comment">{{ feed.comment }}</small>
-          </div>
-          <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(feed)">
-            {{ t.edit }}
-          </UButton>
-          <button class="delete-button" type="button" :aria-label="`${t.delete} ${feed.amount} ${t.ml}`" @click="emit('remove-feed', feed.id)">
-            ×
-          </button>
-        </template>
-      </li>
-    </ul>
-
-    <p v-else-if="!weights.length" class="empty-state">{{ t.emptyWeights }}</p>
-    <ul v-else class="measure-list">
-      <li v-for="weight in weights" :key="weight.id">
-        <template v-if="editingWeightId === weight.id">
-          <form @submit.prevent="saveWeight(weight)">
-            <div class="measure-fields">
-              <label for="edit-weight-kilograms">
-                {{ t.weight }}
-                <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
-              </label>
-              <label for="edit-weight-date">
-                {{ t.date }}
-                <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
-              </label>
-            </div>
-            <div class="measure-actions">
-              <UButton type="submit" size="xs">{{ t.save }}</UButton>
-              <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
-                {{ t.cancel }}
-              </UButton>
-            </div>
-          </form>
-        </template>
-        <template v-else>
-          <div>
-            <strong>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong><span>{{ formatDateOnly(weight.occurredAt, locale) }}</span>
-          </div>
-          <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(weight)">
-            {{ t.edit }}
-          </UButton>
-          <button class="delete-button" type="button" :aria-label="`${t.delete} ${weight.kilograms} ${t.kg}`" @click="emit('remove-weight', weight.id)">
-            ×
-          </button>
-        </template>
-      </li>
-    </ul>
+    <UModal
+      v-model:open="deleteDialogOpen"
+      :title="t.deleteMeasureTitle"
+      :description="deleteDialogDescription"
+      :close="false"
+      @after:leave="pendingDeletion = null"
+    >
+      <template #footer>
+        <UButton type="button" color="neutral" variant="ghost" @click="closeDeleteDialog">
+          {{ t.cancel }}
+        </UButton>
+        <UButton type="button" color="error" @click="confirmDeletion">
+          {{ t.deleteMeasureConfirm }}
+        </UButton>
+      </template>
+    </UModal>
   </section>
 </template>

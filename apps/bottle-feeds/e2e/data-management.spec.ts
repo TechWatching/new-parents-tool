@@ -51,11 +51,10 @@ test.describe('Data import', () => {
     const fileInput = page.locator('input[type="file"][accept]')
     await fileInput.setInputFiles(tmpFile)
 
-    await expect(page.locator('.import-feedback--ok')).toBeVisible()
     await expect(page.getByText('Data imported successfully.')).toBeVisible()
 
     // Imported feed appears in the history
-    await expect(page.locator('.measure-list').getByText('95 ml')).toBeVisible()
+    await expect(page.locator('.measure-tree-entry').getByText('95 ml')).toBeVisible()
 
     fs.unlinkSync(tmpFile)
   })
@@ -69,7 +68,6 @@ test.describe('Data import', () => {
     const fileInput = page.locator('input[type="file"][accept]')
     await fileInput.setInputFiles(tmpFile)
 
-    await expect(page.locator('.import-feedback--err')).toBeVisible()
     await expect(page.getByText('Could not import: invalid file format.')).toBeVisible()
 
     fs.unlinkSync(tmpFile)

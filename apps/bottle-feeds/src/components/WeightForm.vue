@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UButton from '@nuxt/ui/components/Button.vue'
 import type { Messages } from '../i18n'
 
 defineProps<{ t: Messages }>()
@@ -22,6 +23,6 @@ const date = defineModel<string>('date', { required: true })
       {{ t.date }}
       <input v-model="date" type="date" required />
     </label>
-    <button class="secondary-button" type="submit">{{ t.saveWeight }}</button>
+    <UButton class="secondary-button" type="submit">{{ t.saveWeight }}</UButton>
   </form>
 </template>
