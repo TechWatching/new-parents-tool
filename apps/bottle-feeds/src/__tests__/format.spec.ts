@@ -14,6 +14,16 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime(value, 'fr-FR', now)).toBe('2 heures')
   })
 
+  it('formats in Spanish when locale is es-ES', () => {
+    const value = new Date(now - (2 * 60 * 60 + 5 * 60) * 1000).toISOString()
+    expect(formatRelativeTime(value, 'es-ES', now)).toBe('2 horas y 5 minutos')
+  })
+
+  it('formats in German when locale is de-DE', () => {
+    const value = new Date(now - (2 * 60 * 60 + 5 * 60) * 1000).toISOString()
+    expect(formatRelativeTime(value, 'de-DE', now)).toBe('2 Stunden und 5 Minuten')
+  })
+
   it('uses singular French unit for a single hour', () => {
     const value = new Date(now - 60 * 60 * 1000).toISOString()
     expect(formatRelativeTime(value, 'fr-FR', now)).toBe('1 heure')

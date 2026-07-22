@@ -274,6 +274,19 @@ describe('App', () => {
     expect(document.documentElement.lang).toBe('fr')
   })
 
+  it.each([
+    ['es', 'Registrar un biberón'],
+    ['de', 'Fläschchen eintragen'],
+  ] as const)('switches all content to %s', async (language, heading) => {
+    const wrapper = await mountApp()
+
+    wrapper.getComponent(ULocaleSelect).vm.$emit('update:modelValue', language)
+    await nextTick()
+
+    expect(wrapper.text()).toContain(heading)
+    expect(document.documentElement.lang).toBe(language)
+  })
+
   it('defaults to French when browser language is French', async () => {
     vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['fr-CA'])
     vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('fr-CA')
@@ -282,6 +295,19 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Noter un biberon')
     expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it.each([
+    ['es-ES', 'es', 'Registrar un biberón'],
+    ['de-DE', 'de', 'Fläschchen eintragen'],
+  ] as const)('defaults to %s when browser language is %s', async (browserLanguage, language, heading) => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([browserLanguage])
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue(browserLanguage)
+
+    const wrapper = await mountApp()
+
+    expect(wrapper.text()).toContain(heading)
+    expect(document.documentElement.lang).toBe(language)
   })
 
   it('falls back to navigator.language when preferred languages are empty', async () => {
