@@ -69,8 +69,13 @@ test.describe('Bottle feed recording', () => {
 
     // Click edit on the first item in the list
     await page.locator('.measure-tree-entry').first().getByRole('button', { name: 'Edit' }).click()
+
+    const actions = page.locator('.measure-tree-entry form .measure-actions')
+    await expect(actions.getByRole('button', { name: 'Save' })).toBeVisible()
+    await expect(actions.getByRole('button', { name: 'Cancel' })).toBeVisible()
+
     await page.locator('#edit-feed-amount').fill('150')
-    await page.locator('.measure-tree-entry form').getByRole('button', { name: 'Save' }).click()
+    await actions.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.locator('.measure-tree-entry').getByText('150 ml')).toBeVisible()
   })
