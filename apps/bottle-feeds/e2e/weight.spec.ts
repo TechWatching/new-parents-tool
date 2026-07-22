@@ -49,6 +49,7 @@ test.describe('Weight recording', () => {
     await expect(page.getByRole('tab', { name: 'Weights' })).toHaveAttribute('aria-selected', 'true')
 
     await expect(page.locator('.measure-tree-entry').getByText('4.2 kg')).toBeVisible()
+    await page.locator('.measure-day-button').last().click()
     await expect(page.locator('.measure-tree-entry').getByText('3.8 kg')).toBeVisible()
   })
 

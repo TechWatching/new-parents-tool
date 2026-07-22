@@ -56,11 +56,11 @@ test.describe('Bottle feed recording', () => {
     await seedDatabase(page, fullAppData)
 
     const measures = page.locator('.measure-card')
-    await expect(measures.getByRole('heading', { name: 'Quantities' })).toBeVisible()
+    await expect(measures.getByRole('tab', { name: 'Quantities' })).toHaveAttribute('aria-selected', 'true')
     await expect(measures.locator('.measure-day-button')).toHaveCount(3)
 
     await measures.getByRole('tab', { name: 'Weights' }).click()
-    await expect(measures.getByRole('heading', { name: 'Weights' })).toBeVisible()
+    await expect(measures.getByRole('tab', { name: 'Weights' })).toHaveAttribute('aria-selected', 'true')
     await expect(measures.locator('.measure-day-button')).toHaveCount(3)
   })
 
