@@ -1,0 +1,30 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - labeled
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@v1.15.0
+        with:
+          node-version: 22
+          cache: true
+
+      - name: Install Playwright browsers
+        run: pnpm --filter bottle-feeds exec playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: vp run --filter bottle-feeds test:e2e
