@@ -147,7 +147,6 @@ function saveWeight(weight: Weight) {
       :items="tabItems"
     >
       <template #feeds>
-        <h3 class="measure-tab-title">{{ t.quantities }}</h3>
         <p v-if="!feeds.length" class="empty-state">{{ t.emptyHistory }}</p>
         <UScrollArea v-else class="measure-scroll-area" shadow>
           <UTree :items="feedTreeItems" :get-key="(item) => item.id" class="measure-tree">
@@ -224,9 +223,7 @@ function saveWeight(weight: Weight) {
           </UTree>
         </UScrollArea>
       </template>
-
       <template #weights>
-        <h3 class="measure-tab-title">{{ t.weights }}</h3>
         <p v-if="!weights.length" class="empty-state">{{ t.emptyWeights }}</p>
         <UScrollArea v-else class="measure-scroll-area" shadow>
           <UTree :items="weightTreeItems" :get-key="(item) => item.id" class="measure-tree">

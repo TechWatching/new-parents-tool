@@ -555,11 +555,12 @@ h3 {
 .measure-tabs {
   margin-top: 16px;
 }
-.measure-tab-title {
-  margin: 2px 0 10px;
-  color: #45534f;
-  font-size: 15px;
+
+.measure-tabs [role='tab'][data-state='active'] {
+  color: var(--color-text);
+  background: var(--color-focus-ring);
 }
+
 .measure-scroll-area {
   max-height: min(32rem, 60vh);
 }
