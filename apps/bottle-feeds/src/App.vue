@@ -68,8 +68,6 @@ const emailInput = ref('')
 const showMergePrompt = ref(false)
 const guestDataForMerge = ref<AppData | null>(null)
 
-// Import feedback
-const importFeedback = ref<'success' | 'error' | null>(null)
 const importFileRef = ref<HTMLInputElement | null>(null)
 
 // ---------------------------------------------------------------------------
@@ -370,6 +368,11 @@ function exportData() {
   a.download = `little-sips-export-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+  toast.add({
+    title: t.value.exportData,
+    description: t.value.exportSuccess,
+    color: 'success',
+  })
 }
 
 function triggerImport() {
@@ -377,7 +380,6 @@ function triggerImport() {
 }
 
 async function handleImportFile(event: Event) {
-  importFeedback.value = null
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
@@ -390,7 +392,11 @@ async function handleImportFile(event: Event) {
       !Array.isArray((parsed as AppData).feeds) ||
       !Array.isArray((parsed as AppData).weights)
     ) {
-      importFeedback.value = 'error'
+      toast.add({
+        title: t.value.importData,
+        description: t.value.importError,
+        color: 'error',
+      })
       return
     }
     const now = new Date().toISOString()
@@ -405,9 +411,17 @@ async function handleImportFile(event: Event) {
     const merged = mergeAppData(current, toMerge)
     data.feeds = merged.feeds
     data.weights = merged.weights
-    importFeedback.value = 'success'
+    toast.add({
+      title: t.value.importData,
+      description: t.value.importSuccess,
+      color: 'success',
+    })
   } catch {
-    importFeedback.value = 'error'
+    toast.add({
+      title: t.value.importData,
+      description: t.value.importError,
+      color: 'error',
+    })
   } finally {
     input.value = ''
   }
@@ -542,12 +556,6 @@ const syncLabel = computed(() => {
               :aria-label="t.importData"
               @change="handleImportFile"
             />
-            <span v-if="importFeedback === 'success'" class="import-feedback import-feedback--ok">
-              {{ t.importSuccess }}
-            </span>
-            <span v-else-if="importFeedback === 'error'" class="import-feedback import-feedback--err">
-              {{ t.importError }}
-            </span>
           </div>
         </template>
 
