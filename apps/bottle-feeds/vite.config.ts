@@ -148,7 +148,25 @@ export default defineConfig({
       },
     },
   },
-  plugins: lazyPlugins(() => [tailwindcss(), ui(), vue(), vueDevTools()]),
+  plugins: lazyPlugins(() => [
+    tailwindcss(),
+    ui({
+      // The app has a single, intentionally light "cosy" theme, so we opt out
+      // of Nuxt UI's automatic light/dark color mode switching.
+      colorMode: false,
+      ui: {
+        colors: {
+          primary: 'coral',
+          secondary: 'mint',
+          // Nuxt UI's neutral prop only accepts its built-in neutrals; we pick
+          // 'slate' here and override the neutral CSS vars to our sage ramp in style.css.
+          neutral: 'slate',
+        },
+      },
+    }),
+    vue(),
+    vueDevTools(),
+  ]),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
