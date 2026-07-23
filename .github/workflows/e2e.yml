@@ -17,6 +17,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+
       - name: Set up Vite+
         uses: voidzero-dev/setup-vp@v1.15.0
         with:
