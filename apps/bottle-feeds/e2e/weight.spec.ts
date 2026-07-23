@@ -2,13 +2,16 @@ import { test, expect } from '@playwright/test'
 import { seedDatabase } from './helpers/seed-db'
 import { fullAppData, sampleWeights } from './fixtures/test-data'
 
+const MINT_500_RGB = 'rgb(114, 183, 160)'
+const SAGE_800_RGB = 'rgb(52, 64, 60)'
+
 test.describe('Weight recording', () => {
   test('records a new weight and shows it in the history', async ({ page }) => {
     await page.goto('/')
 
     const saveButton = page.locator('.weight-card').getByRole('button', { name: 'Save weight' })
-    await expect(saveButton).toHaveCSS('background-color', 'rgb(114, 183, 160)')
-    await expect(saveButton).toHaveCSS('color', 'rgb(52, 64, 60)')
+    await expect(saveButton).toHaveCSS('background-color', MINT_500_RGB)
+    await expect(saveButton).toHaveCSS('color', SAGE_800_RGB)
 
     await page.locator('.weight-card input[type="number"]').fill('4.2')
     await page.locator('.weight-card input[type="date"]').fill('2026-07-15')

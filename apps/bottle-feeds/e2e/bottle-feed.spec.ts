@@ -2,13 +2,16 @@ import { test, expect } from '@playwright/test'
 import { seedDatabase } from './helpers/seed-db'
 import { fullAppData, minimalAppData } from './fixtures/test-data'
 
+const CORAL_500_RGB = 'rgb(239, 131, 118)'
+const SAGE_800_RGB = 'rgb(52, 64, 60)'
+
 test.describe('Bottle feed recording', () => {
   test('records a new bottle and shows it in the history', async ({ page }) => {
     await page.goto('/')
 
     const saveButton = page.locator('.feed-card').getByRole('button', { name: 'Save bottle' })
-    await expect(saveButton).toHaveCSS('background-color', 'rgb(239, 131, 118)')
-    await expect(saveButton).toHaveCSS('color', 'rgb(52, 64, 60)')
+    await expect(saveButton).toHaveCSS('background-color', CORAL_500_RGB)
+    await expect(saveButton).toHaveCSS('color', SAGE_800_RGB)
 
     // Fill in the feed form
     await page.locator('.feed-card input[type="number"]').fill('120')
