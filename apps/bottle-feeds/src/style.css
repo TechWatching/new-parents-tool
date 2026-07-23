@@ -1,6 +1,33 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+/* ---------------------------------------------------------------------------
+ * Nuxt UI neutral palette
+ *
+ * Nuxt UI ships a cool "slate" neutral scale by default. Its base layer sets
+ * `body { color: var(--ui-text) }` (derived from `--ui-color-neutral-700`),
+ * which overrides the app's warm green-grey ink and makes every neutral Nuxt UI
+ * component (tabs, neutral buttons, locale select, borders) read cold and
+ * clash with the cosy "Little Sips" identity.
+ *
+ * Nuxt UI injects its scale inside `@layer theme` (the lowest-priority Tailwind
+ * layer), so these unlayered `:root` declarations win and retune the whole
+ * neutral ramp to a green-grey tuned to the brand colours below.
+ * --------------------------------------------------------------------------- */
+:root {
+  --ui-color-neutral-50: oklch(98.4% 0.004 165);
+  --ui-color-neutral-100: oklch(97% 0.005 165);
+  --ui-color-neutral-200: oklch(92.6% 0.008 164);
+  --ui-color-neutral-300: oklch(87.5% 0.011 166);
+  --ui-color-neutral-400: oklch(70.5% 0.015 170);
+  --ui-color-neutral-500: oklch(57% 0.017 173);
+  --ui-color-neutral-600: oklch(48.5% 0.018 174);
+  --ui-color-neutral-700: oklch(38.5% 0.02 174);
+  --ui-color-neutral-800: oklch(30.6% 0.021 176);
+  --ui-color-neutral-900: oklch(23.5% 0.02 176);
+  --ui-color-neutral-950: oklch(15.5% 0.018 177);
+}
+
 :root {
   --color-coral: #ef8376;
   --color-coral-rgb: 239, 131, 118;
