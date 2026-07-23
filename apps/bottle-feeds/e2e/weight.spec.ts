@@ -6,9 +6,13 @@ test.describe('Weight recording', () => {
   test('records a new weight and shows it in the history', async ({ page }) => {
     await page.goto('/')
 
+    const saveButton = page.locator('.weight-card').getByRole('button', { name: 'Save weight' })
+    await expect(saveButton).toHaveCSS('background-color', 'rgb(114, 183, 160)')
+    await expect(saveButton).toHaveCSS('color', 'rgb(52, 64, 60)')
+
     await page.locator('.weight-card input[type="number"]').fill('4.2')
     await page.locator('.weight-card input[type="date"]').fill('2026-07-15')
-    await page.locator('.weight-card').getByRole('button', { name: 'Save weight' }).click()
+    await saveButton.click()
 
     // Toast notification appears
     await expect(page.getByText('Weight recorded', { exact: true })).toBeVisible()

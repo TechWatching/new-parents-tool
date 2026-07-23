@@ -35,7 +35,7 @@ const date = defineModel<string>('date', { required: true })
       {{ t.date }}
       <input v-model="date" class="field" type="date" required />
     </label>
-    <UButton class="mt-5 font-semibold" type="submit" color="secondary" block size="lg">
+    <UButton class="mt-5 font-semibold text-sage-800" type="submit" color="secondary" block size="lg">
       {{ t.saveWeight }}
     </UButton>
   </form>

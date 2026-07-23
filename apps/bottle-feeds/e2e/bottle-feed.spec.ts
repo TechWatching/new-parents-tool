@@ -6,12 +6,16 @@ test.describe('Bottle feed recording', () => {
   test('records a new bottle and shows it in the history', async ({ page }) => {
     await page.goto('/')
 
+    const saveButton = page.locator('.feed-card').getByRole('button', { name: 'Save bottle' })
+    await expect(saveButton).toHaveCSS('background-color', 'rgb(239, 131, 118)')
+    await expect(saveButton).toHaveCSS('color', 'rgb(52, 64, 60)')
+
     // Fill in the feed form
     await page.locator('.feed-card input[type="number"]').fill('120')
     await page.locator('.feed-card input[type="date"]').fill('2026-07-15')
     await page.locator('.feed-card input[inputmode="numeric"]').fill('10:30')
     await page.locator('.feed-card input[maxlength="160"]').fill('Drank quickly')
-    await page.locator('.feed-card').getByRole('button', { name: 'Save bottle' }).click()
+    await saveButton.click()
 
     // Toast notification appears
     await expect(page.getByText('Bottle recorded', { exact: true })).toBeVisible()
