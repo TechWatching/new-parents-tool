@@ -212,7 +212,7 @@ const deleteDialogDescription = computed(() => {
               </button>
               <div
                 v-else-if="item.feed"
-                class="measure-tree-entry grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-sage-100 py-2.5 pl-[34px] pr-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                class="measure-tree-entry tree-entry"
               >
                 <form v-if="editingFeedId === item.feed.id" class="col-span-full grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="saveFeed(item.feed)">
                   <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2">
@@ -292,7 +292,7 @@ const deleteDialogDescription = computed(() => {
               </button>
               <div
                 v-else-if="item.weight"
-                class="measure-tree-entry grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-sage-100 py-2.5 pl-[34px] pr-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                class="measure-tree-entry tree-entry"
               >
                 <form v-if="editingWeightId === item.weight.id" class="col-span-full grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="saveWeight(item.weight)">
                   <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2">

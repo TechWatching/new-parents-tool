@@ -111,6 +111,11 @@
   @apply w-full rounded-lg border border-default bg-sage-50/50 px-3 py-2.5 text-sm text-highlighted transition-[color,border-color,box-shadow] placeholder:text-dimmed focus-visible:border-coral-400 focus-visible:bg-white focus-visible:ring-3 focus-visible:ring-coral-500/15 focus-visible:outline-none;
 }
 
+/* A single row in the measure history tree (feed or weight entry). */
+@utility tree-entry {
+  @apply grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-sage-100 py-2.5 pl-[34px] pr-2 sm:grid-cols-[minmax(0,1fr)_auto_auto];
+}
+
 /* Chart plotting surface: subtle horizontal gridlines + baseline. */
 @utility chart-plot {
   @apply relative border-b border-sage-200;
