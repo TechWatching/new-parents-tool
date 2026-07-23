@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { messages } from '../i18n'
 import { formatRelativeTime } from '../utils/format'
 

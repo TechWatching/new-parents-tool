@@ -25,26 +25,27 @@
     "jspdf-autotable": "5.0.8",
     "tailwindcss": "4.3.3",
     "unstorage": "^1.17.5",
-    "vue": "^3.5.38",
+    "vue": "^3.5.40",
     "vue-router": "5.2.0"
   },
   "devDependencies": {
-    "@playwright/cli": "0.1.17",
     "@playwright/test": "1.61.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
-    "@types/node": "^24.13.2",
-    "@vitejs/plugin-vue": "^6.0.7",
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.9.1",
+    "eslint-plugin-playwright": "^2.10.5",
     "jiti": "^2.7.0",
     "jsdom": "^29.1.1",
     "npm-run-all2": "^9.0.2",
     "typescript": "~6.0.0",
     "vite": "catalog:",
-    "vite-plugin-vue-devtools": "^8.1.2",
-    "vitest": "4.1.10",
-    "vue-tsc": "^3.3.5"
+    "vite-plugin-vue-devtools": "^8.1.5",
+    "vite-plus": "catalog:",
+    "vue-eslint-parser": "^10.4.1",
+    "vue-tsc": "^3.3.7"
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"
