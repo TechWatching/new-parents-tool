@@ -140,6 +140,14 @@ export default defineConfig({
       },
     ],
   },
+  run: {
+    tasks: {
+      'build-all': {
+        command: 'echo Build complete',
+        dependsOn: ['type-check', 'build-only'],
+      },
+    },
+  },
   plugins: lazyPlugins(() => [tailwindcss(), ui(), vue(), vueDevTools()]),
   resolve: {
     alias: {

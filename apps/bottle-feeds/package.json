@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "vp run type-check && vp build",
+    "build": "vp run build-all",
     "preview": "vp preview",
     "test:unit": "vp test",
     "test:e2e": "playwright test",
