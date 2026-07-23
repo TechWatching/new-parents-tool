@@ -5,7 +5,14 @@ import UButton from '@nuxt/ui/components/Button.vue'
 import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
-import { loadData, saveData, GUEST_NAMESPACE, type Namespace } from './storage'
+import {
+  clearData,
+  loadData,
+  saveData,
+  saveDataStrict,
+  GUEST_NAMESPACE,
+  type Namespace,
+} from './storage'
 import { isSupabaseConfigured } from './supabase'
 import {
   initAuth,
@@ -19,6 +26,7 @@ import {
 } from './auth'
 import { syncNow, onLocalMutation, syncStatus, syncError, lastSyncedAt } from './sync'
 import { mergeAppData } from './merge'
+import { deleteAllCloudData } from './remote'
 import type { AppData, Feed, Weight } from './types'
 import {
   dateFromOccurredAt,
@@ -79,6 +87,8 @@ const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
 
 // Auth form
 const emailInput = ref('')
+const showDeleteCloudConfirm = ref(false)
+const deletingCloudData = ref(false)
 
 // Guest merge prompt
 const showMergePrompt = ref(false)
@@ -502,6 +512,41 @@ async function handleSignOut() {
   await loadNamespace(GUEST_NAMESPACE)
 }
 
+async function handleDeleteCloudData() {
+  const uid = authUser.value?.id
+  if (!uid || deletingCloudData.value || syncStatus.value === 'syncing') return
+
+  deletingCloudData.value = true
+  const localSnapshot: AppData = {
+    feeds: activeFeeds.value.map((feed) => ({ ...feed })),
+    weights: activeWeights.value.map((weight) => ({ ...weight })),
+  }
+
+  try {
+    const guestData = await loadData(GUEST_NAMESPACE)
+    const localCopy = mergeAppData(guestData, localSnapshot)
+    await saveDataStrict(localCopy, GUEST_NAMESPACE)
+    await clearData(currentNamespace.value)
+    await deleteAllCloudData(uid)
+    await signOut()
+    await loadNamespace(GUEST_NAMESPACE)
+    showDeleteCloudConfirm.value = false
+    toast.add({
+      title: t.value.deleteCloudData,
+      description: t.value.deleteCloudSuccess,
+      color: 'success',
+    })
+  } catch {
+    toast.add({
+      title: t.value.deleteCloudData,
+      description: t.value.deleteCloudError,
+      color: 'error',
+    })
+  } finally {
+    deletingCloudData.value = false
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Sync
 // ---------------------------------------------------------------------------
@@ -553,13 +598,13 @@ const syncLabel = computed(() => {
     <main>
       <!--
         When Supabase is configured we show the more detailed 'localOnly' message
-        which explicitly mentions "Enable cloud sync to back them up."
+        which explains that clearing site data erases local records and signing in enables sync.
         When Supabase is NOT configured we show the simpler 'privacy' note (no
         mention of cloud sync since there is no cloud option available).
       -->
       <div class="privacy-note local-only-note">
         <span aria-hidden="true">⌁</span>
-        {{ isSupabaseConfigured ? t.localOnly : t.privacy }}
+        {{ !isSupabaseConfigured ? t.privacy : isAuthenticated ? t.cloudEnabled : t.localOnly }}
       </div>
 
       <p v-if="lastBottleSummary" class="last-bottle-banner" role="status" aria-live="polite">
@@ -635,12 +680,56 @@ const syncLabel = computed(() => {
         </div>
 
         <template v-if="isAuthenticated">
-          <p>
-            {{ t.signedInAs }} <strong>{{ authUser?.email }}</strong>
-          </p>
-          <UButton type="button" color="neutral" variant="ghost" size="sm" @click="handleSignOut">
-            {{ t.signOut }}
-          </UButton>
+          <p>{{ t.signedInAs }} <strong>{{ authUser?.email }}</strong></p>
+          <div class="auth-actions">
+            <UButton type="button" color="neutral" variant="ghost" size="sm" @click="handleSignOut">
+              {{ t.signOut }}
+            </UButton>
+            <UButton
+              type="button"
+              color="error"
+              variant="ghost"
+              size="sm"
+              :disabled="syncStatus === 'syncing'"
+              :aria-expanded="showDeleteCloudConfirm"
+              aria-controls="cloud-delete-confirm"
+              @click="showDeleteCloudConfirm = true"
+            >
+              {{ t.deleteCloudData }}
+            </UButton>
+          </div>
+
+          <div
+            v-if="showDeleteCloudConfirm"
+            id="cloud-delete-confirm"
+            class="cloud-delete-confirm"
+            role="alert"
+          >
+            <strong>{{ t.deleteCloudTitle }}</strong>
+            <p>{{ t.deleteCloudBody }}</p>
+            <p class="cloud-delete-warning">{{ t.deleteCloudWarning }}</p>
+            <div class="auth-actions">
+              <UButton
+                type="button"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                :disabled="deletingCloudData"
+                @click="showDeleteCloudConfirm = false"
+              >
+                {{ t.deleteCloudCancel }}
+              </UButton>
+              <UButton
+                type="button"
+                color="error"
+                size="sm"
+                :loading="deletingCloudData"
+                @click="handleDeleteCloudData"
+              >
+                {{ deletingCloudData ? t.deleteCloudDeleting : t.deleteCloudConfirm }}
+              </UButton>
+            </div>
+          </div>
         </template>
 
         <template v-else-if="authStep === 'check-email'">

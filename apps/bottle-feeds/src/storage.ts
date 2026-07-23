@@ -129,6 +129,24 @@ export async function saveData(
   }
 }
 
+/** Persist app data and surface failures to callers that require confirmation. */
+export async function saveDataStrict(
+  data: AppData,
+  namespace: Namespace = GUEST_NAMESPACE,
+): Promise<void> {
+  const storage = await getStorage(namespace)
+  await storage.setItem(DATA_KEY, data)
+}
+
+/** Remove all app and sync data for one local namespace. */
+export async function clearData(namespace: Namespace): Promise<void> {
+  const storage = await getStorage(namespace)
+  await Promise.all([
+    storage.removeItem(DATA_KEY),
+    storage.removeItem(SYNC_DIRTY_KEY),
+  ])
+}
+
 // ---------------------------------------------------------------------------
 // Sync dirty flag
 // ---------------------------------------------------------------------------

@@ -6,7 +6,9 @@ export const messages = {
     tagline: 'Bottle and growth tracker',
     privacy: 'Private by design — everything stays in this browser.',
     localOnly:
-      'Records are stored in this browser only. Clearing site data will erase them. Enable cloud sync to back them up.',
+      "Records stay in this browser and will be erased if you clear this site's data. Sign in to sync them across devices.",
+    cloudEnabled:
+      'Records are stored in this browser and synced to your account. You can remove the cloud copy at any time.',
     language: 'Français',
     languageSelector: 'Language',
     addFeed: 'Record a bottle',
@@ -118,6 +120,17 @@ export const messages = {
     signedInAs: 'Signed in as',
     signOut: 'Sign out',
     authError: 'Sign-in failed',
+    deleteCloudData: 'Delete cloud copy',
+    deleteCloudTitle: 'Delete your cloud copy?',
+    deleteCloudBody:
+      'Your records will stay on this device. You will be signed out so they are not uploaded again.',
+    deleteCloudWarning:
+      'This permanently deletes all bottle and weight records from your cloud account.',
+    deleteCloudConfirm: 'Permanently delete cloud copy',
+    deleteCloudCancel: 'Cancel',
+    deleteCloudDeleting: 'Deleting cloud copy…',
+    deleteCloudSuccess: 'Cloud copy deleted. Your records are still on this device.',
+    deleteCloudError: 'Cloud data could not be deleted. Please try again.',
     // Sync status
     syncing: 'Syncing…',
     syncPending: 'Changes pending sync',
@@ -137,7 +150,9 @@ export const messages = {
     tagline: 'Suivi des biberons et de la croissance',
     privacy: 'Vos données restent privées dans ce navigateur.',
     localOnly:
-      'Les enregistrements sont stockés uniquement dans ce navigateur. Effacer les données du site les supprimera. Activez la synchronisation cloud pour les sauvegarder.',
+      'Les enregistrements restent dans ce navigateur et seront effacés si vous supprimez les données de ce site. Connectez-vous pour les synchroniser entre vos appareils.',
+    cloudEnabled:
+      'Les enregistrements sont stockés dans ce navigateur et synchronisés avec votre compte. Vous pouvez supprimer la copie cloud à tout moment.',
     language: 'English',
     languageSelector: 'Langue',
     addFeed: 'Noter un biberon',
@@ -251,6 +266,17 @@ export const messages = {
     signedInAs: 'Connecté en tant que',
     signOut: 'Se déconnecter',
     authError: 'Connexion échouée',
+    deleteCloudData: 'Supprimer la copie cloud',
+    deleteCloudTitle: 'Supprimer votre copie cloud ?',
+    deleteCloudBody:
+      'Vos enregistrements resteront sur cet appareil. Vous serez déconnecté afin qu’ils ne soient pas téléversés à nouveau.',
+    deleteCloudWarning:
+      'Cette action supprime définitivement tous les biberons et toutes les mesures de poids de votre compte cloud.',
+    deleteCloudConfirm: 'Supprimer définitivement la copie cloud',
+    deleteCloudCancel: 'Annuler',
+    deleteCloudDeleting: 'Suppression de la copie cloud…',
+    deleteCloudSuccess: 'Copie cloud supprimée. Vos enregistrements sont toujours sur cet appareil.',
+    deleteCloudError: 'Les données cloud n’ont pas pu être supprimées. Veuillez réessayer.',
     // Sync status
     syncing: 'Synchronisation…',
     syncPending: 'Modifications en attente de sync',
@@ -270,7 +296,9 @@ export const messages = {
     tagline: 'Registro de biberones y crecimiento',
     privacy: 'Tus datos permanecen privados en este navegador.',
     localOnly:
-      'Los registros se guardan solo en este navegador. Si borras los datos del sitio, se eliminarán. Activa la sincronización en la nube para hacer una copia de seguridad.',
+      'Los registros permanecen en este navegador y se borrarán si eliminas los datos de este sitio. Inicia sesión para sincronizarlos entre dispositivos.',
+    cloudEnabled:
+      'Los registros se guardan en este navegador y se sincronizan con tu cuenta. Puedes eliminar la copia en la nube en cualquier momento.',
     language: 'Español',
     languageSelector: 'Idioma',
     addFeed: 'Registrar un biberón',
@@ -384,6 +412,18 @@ export const messages = {
     signedInAs: 'Sesión iniciada como',
     signOut: 'Cerrar sesión',
     authError: 'Error al iniciar sesión',
+    deleteCloudData: 'Eliminar copia en la nube',
+    deleteCloudTitle: '¿Eliminar tu copia en la nube?',
+    deleteCloudBody:
+      'Tus registros permanecerán en este dispositivo. Se cerrará tu sesión para que no vuelvan a subirse.',
+    deleteCloudWarning:
+      'Esto elimina permanentemente todos los registros de biberones y pesos de tu cuenta en la nube.',
+    deleteCloudConfirm: 'Eliminar permanentemente la copia en la nube',
+    deleteCloudCancel: 'Cancelar',
+    deleteCloudDeleting: 'Eliminando copia en la nube…',
+    deleteCloudSuccess:
+      'Copia en la nube eliminada. Tus registros siguen en este dispositivo.',
+    deleteCloudError: 'No se pudieron eliminar los datos de la nube. Inténtalo de nuevo.',
     syncing: 'Sincronizando…',
     syncPending: 'Cambios pendientes de sincronización',
     syncError: 'Error de sincronización',
@@ -401,7 +441,9 @@ export const messages = {
     tagline: 'Flaschen- und Wachstumstracker',
     privacy: 'Deine Daten bleiben privat in diesem Browser.',
     localOnly:
-      'Die Aufzeichnungen werden nur in diesem Browser gespeichert. Wenn du die Websitedaten löschst, werden sie entfernt. Aktiviere die Cloud-Synchronisierung, um sie zu sichern.',
+      'Die Aufzeichnungen bleiben in diesem Browser und werden gelöscht, wenn du die Daten dieser Website löschst. Melde dich an, um sie geräteübergreifend zu synchronisieren.',
+    cloudEnabled:
+      'Die Aufzeichnungen werden in diesem Browser gespeichert und mit deinem Konto synchronisiert. Du kannst die Cloud-Kopie jederzeit löschen.',
     language: 'Deutsch',
     languageSelector: 'Sprache',
     addFeed: 'Fläschchen eintragen',
@@ -515,6 +557,19 @@ export const messages = {
     signedInAs: 'Angemeldet als',
     signOut: 'Abmelden',
     authError: 'Anmeldung fehlgeschlagen',
+    deleteCloudData: 'Cloud-Kopie löschen',
+    deleteCloudTitle: 'Deine Cloud-Kopie löschen?',
+    deleteCloudBody:
+      'Deine Aufzeichnungen bleiben auf diesem Gerät. Du wirst abgemeldet, damit sie nicht erneut hochgeladen werden.',
+    deleteCloudWarning:
+      'Dadurch werden alle Fläschchen- und Gewichtsaufzeichnungen dauerhaft aus deinem Cloud-Konto gelöscht.',
+    deleteCloudConfirm: 'Cloud-Kopie dauerhaft löschen',
+    deleteCloudCancel: 'Abbrechen',
+    deleteCloudDeleting: 'Cloud-Kopie wird gelöscht…',
+    deleteCloudSuccess:
+      'Cloud-Kopie gelöscht. Deine Aufzeichnungen befinden sich weiterhin auf diesem Gerät.',
+    deleteCloudError:
+      'Die Cloud-Daten konnten nicht gelöscht werden. Bitte versuche es erneut.',
     syncing: 'Synchronisierung…',
     syncPending: 'Änderungen warten auf Synchronisierung',
     syncError: 'Synchronisierung fehlgeschlagen',
