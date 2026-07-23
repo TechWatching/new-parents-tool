@@ -1,0 +1,99 @@
+[    5526ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.iconify.design/lucide.json?icons=chevron-down:0
+[    5544ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.simplesvg.com/lucide.json?icons=chevron-down:0
+[    5559ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.unisvg.com/lucide.json?icons=chevron-down:0
+[   14513ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "120", got Number with value 120. 
+  at <FeedForm amount=120 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   15158ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "120", got Number with value 120. 
+  at <FeedForm amount=120 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   15662ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "120", got Number with value 120. 
+  at <FeedForm amount=120 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   16359ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.iconify.design/lucide.json?icons=x:0
+[   16373ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.simplesvg.com/lucide.json?icons=x:0
+[   16383ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.unisvg.com/lucide.json?icons=x:0
+[   20974ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "150", got Number with value 150. 
+  at <FeedForm amount=150 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   21507ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "150", got Number with value 150. 
+  at <FeedForm amount=150 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   22010ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "150", got Number with value 150. 
+  at <FeedForm amount=150 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   23506ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "110", got Number with value 110. 
+  at <FeedForm amount=110 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   24036ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "110", got Number with value 110. 
+  at <FeedForm amount=110 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   24697ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "amount". Expected String with value "110", got Number with value 110. 
+  at <FeedForm amount=110 onUpdate:amount=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   26333ms] [WARNING] [Vue warn]: Invalid prop: type check failed for prop "kilograms". Expected String with value "5.4", got Number with value 5.4. 
+  at <WeightForm kilograms=5.4 onUpdate:kilograms=fn date="2026-07-23"  ... > 
+  at <App > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App > 
+  at <AppRoot> @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.runtime.esm-bundler-BBMnuuHK.js?v=0f8cf1eb:1760
+[   35194ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.iconify.design/lucide.json?icons=check:0
+[   35202ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.simplesvg.com/lucide.json?icons=check:0
+[   35210ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.unisvg.com/lucide.json?icons=check:0
