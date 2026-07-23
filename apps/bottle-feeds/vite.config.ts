@@ -148,7 +148,21 @@ export default defineConfig({
       },
     },
   },
-  plugins: lazyPlugins(() => [tailwindcss(), ui(), vue(), vueDevTools()]),
+  plugins: lazyPlugins(() => [
+    tailwindcss(),
+    ui({
+      colorMode: false,
+      ui: {
+        colors: {
+          primary: 'coral',
+          secondary: 'mint',
+          neutral: 'slate',
+        },
+      },
+    }),
+    vue(),
+    vueDevTools(),
+  ]),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

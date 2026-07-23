@@ -20,24 +20,37 @@ function onTimeInput(event: Event) {
 </script>
 
 <template>
-  <form class="card form-card feed-card" @submit.prevent="emit('submit')">
-    <div class="section-heading">
-      <span class="icon coral" aria-hidden="true">＋</span>
-      <h2>{{ t.addFeed }}</h2>
+  <form class="feed-card surface border-t-[3px] border-t-coral-500 p-5 sm:p-6" @submit.prevent="emit('submit')">
+    <div class="flex items-center gap-2.5">
+      <span
+        class="grid size-8 place-items-center rounded-[10px] bg-coral-50 text-lg font-extrabold text-coral-600"
+        aria-hidden="true"
+      >＋</span>
+      <h2 class="text-lg font-extrabold text-highlighted">{{ t.addFeed }}</h2>
     </div>
-    <div class="form-grid">
-      <label>
+    <div class="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-[1fr_1.4fr]">
+      <label class="flex flex-col gap-2 text-sm font-semibold text-toned">
         {{ t.amount }}
-        <input v-model="amount" type="number" min="1" max="2000" step="1" required inputmode="decimal" />
+        <input
+          v-model="amount"
+          class="field"
+          type="number"
+          min="1"
+          max="2000"
+          step="1"
+          required
+          inputmode="decimal"
+        />
       </label>
-      <label>
+      <label class="flex flex-col gap-2 text-sm font-semibold text-toned">
         {{ t.date }}
-        <input v-model="date" type="date" required />
+        <input v-model="date" class="field" type="date" required />
       </label>
-      <label>
+      <label class="flex flex-col gap-2 text-sm font-semibold text-toned">
         {{ t.time }}
         <input
           :value="time"
+          class="field"
           type="text"
           inputmode="numeric"
           :pattern="timePattern.source"
@@ -47,11 +60,19 @@ function onTimeInput(event: Event) {
           @input="onTimeInput"
         />
       </label>
-      <label class="full-width">
+      <label class="flex flex-col gap-2 text-sm font-semibold text-toned sm:col-span-2">
         {{ t.comment }}
-        <input v-model="comment" type="text" maxlength="160" :placeholder="t.commentPlaceholder" />
+        <input
+          v-model="comment"
+          class="field"
+          type="text"
+          maxlength="160"
+          :placeholder="t.commentPlaceholder"
+        />
       </label>
     </div>
-    <UButton class="primary-button" type="submit">{{ t.saveFeed }}</UButton>
+    <UButton class="mt-5 font-semibold" type="submit" block size="lg">
+      {{ t.saveFeed }}
+    </UButton>
   </form>
 </template>

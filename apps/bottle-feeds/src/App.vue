@@ -571,61 +571,83 @@ const syncLabel = computed(() => {
 
 <template>
   <!-- Loading overlay -->
-  <div v-if="loading" class="loading-overlay" role="status" :aria-label="t.loading">
-    <span class="loading-spinner" aria-hidden="true">◒</span>
+  <div
+    v-if="loading"
+    class="flex min-h-dvh items-center justify-center gap-3 text-lg text-muted"
+    role="status"
+    :aria-label="t.loading"
+  >
+    <span class="inline-block text-2xl text-coral-500 motion-safe:animate-spin" aria-hidden="true">◒</span>
     <span>{{ t.loading }}</span>
   </div>
 
   <template v-else>
-    <header class="site-header">
+    <header
+      class="sticky top-0 z-20 flex items-center justify-between border-b border-sage-200/70 bg-white/90 px-[max(1.5rem,calc((100vw-1180px)/2))] py-5 backdrop-blur-md max-[500px]:px-4 max-[500px]:py-4"
+    >
       <div>
-        <a class="brand" href="#">
-          <span class="brand-mark" aria-hidden="true">◒</span>
+        <a
+          class="flex items-center gap-2.5 text-2xl font-extrabold text-highlighted no-underline outline-none focus-visible:ring-3 focus-visible:ring-coral-500/30 focus-visible:rounded-lg max-[500px]:text-xl"
+          href="#"
+        >
+          <span
+            class="grid size-[34px] -rotate-[25deg] place-items-center rounded-full bg-coral-500 text-white"
+            aria-hidden="true"
+            >◒</span
+          >
           <span>{{ t.appName }}</span>
         </a>
-        <p>{{ t.tagline }}</p>
+        <p class="ml-[43px] mt-0.5 text-[13px] text-muted max-[500px]:hidden">{{ t.tagline }}</p>
       </div>
       <ULocaleSelect
         v-model="languageSelection"
-        class="language-select"
+        class="min-w-[8.5rem]"
         :aria-label="t.languageSelector"
         :locales="availableLocales"
-        :ui="{ content: 'z-20' }"
+        :ui="{ content: 'z-30' }"
         variant="outline"
       />
     </header>
 
-    <main>
+    <main class="mx-auto w-[min(1180px,calc(100%-2rem))] pb-[60px] pt-5 max-[500px]:pt-3.5">
       <!--
         When Supabase is configured we show the more detailed 'localOnly' message
         which explains that clearing site data erases local records and signing in enables sync.
         When Supabase is NOT configured we show the simpler 'privacy' note (no
         mention of cloud sync since there is no cloud option available).
       -->
-      <div class="privacy-note local-only-note">
-        <span aria-hidden="true">⌁</span>
+      <div class="mb-[18px] text-center text-[13px] text-muted">
+        <span class="font-bold text-mint-600" aria-hidden="true">⌁</span>
         {{ !isSupabaseConfigured ? t.privacy : isAuthenticated ? t.cloudEnabled : t.localOnly }}
       </div>
 
-      <p v-if="lastBottleSummary" class="last-bottle-banner" role="status" aria-live="polite">
+      <p
+        v-if="lastBottleSummary"
+        class="last-bottle-banner mb-[18px] grid justify-items-center gap-0.5 rounded-full border border-mint-100 bg-mint-50/40 px-4 py-2.5 text-center text-[13px] font-semibold text-mint-800"
+        role="status"
+        aria-live="polite"
+      >
         <span>{{ lastBottleSummary.relativeTime }}</span>
-        <span>{{ lastBottleSummary.details }}</span>
+        <span class="font-medium text-muted">{{ lastBottleSummary.details }}</span>
       </p>
 
       <!-- Sync status bar -->
       <div
         v-if="isSupabaseConfigured && isAuthenticated && syncStatus !== 'idle'"
-        class="sync-bar"
-        :class="{
-          'sync-bar--error': syncStatus === 'error',
-          'sync-bar--pending': syncStatus === 'pending',
-        }"
+        class="mb-3 flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm"
+        :class="
+          syncStatus === 'error'
+            ? 'bg-red-50 text-red-800'
+            : syncStatus === 'pending'
+              ? 'bg-amber-50 text-amber-800'
+              : 'bg-sky-50 text-sky-800'
+        "
       >
         <span>{{ syncLabel }}</span>
         <UButton
           v-if="syncStatus === 'error' || syncStatus === 'pending'"
           type="button"
-          class="sync-retry"
+          class="ml-auto"
           color="neutral"
           variant="outline"
           size="xs"
@@ -633,55 +655,41 @@ const syncLabel = computed(() => {
         >
           {{ t.syncRetry }}
         </UButton>
-        <span v-if="syncError && syncStatus === 'error'" class="sync-error-detail">{{
+        <span v-if="syncError && syncStatus === 'error'" class="ml-2 text-xs opacity-80">{{
           syncError
         }}</span>
       </div>
 
       <!-- Export / Import -->
-      <div class="toolbar-actions">
-        <div class="data-actions">
-          <UButton
-            type="button"
-            class="action-button"
-            color="neutral"
-            variant="outline"
-            @click="exportData"
-          >
-            {{ t.exportData }}
-          </UButton>
-          <UButton
-            type="button"
-            class="action-button"
-            color="neutral"
-            variant="outline"
-            @click="triggerImport"
-          >
-            {{ t.importData }}
-          </UButton>
-          <input
-            ref="importFileRef"
-            type="file"
-            accept="application/json,.json"
-            class="sr-only"
-            :aria-label="t.importData"
-            @change="handleImportFile"
-          />
-        </div>
+      <div class="mb-[18px] flex flex-wrap items-center gap-2">
+        <UButton type="button" color="neutral" variant="outline" @click="exportData">
+          {{ t.exportData }}
+        </UButton>
+        <UButton type="button" color="neutral" variant="outline" @click="triggerImport">
+          {{ t.importData }}
+        </UButton>
+        <input
+          ref="importFileRef"
+          type="file"
+          accept="application/json,.json"
+          class="sr-only"
+          :aria-label="t.importData"
+          @change="handleImportFile"
+        />
 
         <ReportGenerator :feeds="activeFeeds" :weights="activeWeights" :t="t" :locale="locale" />
       </div>
 
       <!-- Cloud sync / Auth section -->
-      <section v-if="isSupabaseConfigured" class="card auth-card" :aria-label="t.cloudSync">
-        <div class="section-heading">
-          <span class="icon blue" aria-hidden="true">☁</span>
-          <h2>{{ t.cloudSync }}</h2>
+      <section v-if="isSupabaseConfigured" class="surface mb-6 p-5 sm:p-6" :aria-label="t.cloudSync">
+        <div class="flex items-center gap-2.5">
+          <span class="grid size-8 place-items-center rounded-[10px] bg-sky-50 text-lg font-extrabold text-sky-700" aria-hidden="true">☁</span>
+          <h2 class="text-lg font-extrabold text-highlighted">{{ t.cloudSync }}</h2>
         </div>
 
         <template v-if="isAuthenticated">
-          <p>{{ t.signedInAs }} <strong>{{ authUser?.email }}</strong></p>
-          <div class="auth-actions">
+          <p class="mt-3 text-sm text-toned">{{ t.signedInAs }} <strong class="text-highlighted">{{ authUser?.email }}</strong></p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
             <UButton type="button" color="neutral" variant="ghost" size="sm" @click="handleSignOut">
               {{ t.signOut }}
             </UButton>
@@ -702,13 +710,13 @@ const syncLabel = computed(() => {
           <div
             v-if="showDeleteCloudConfirm"
             id="cloud-delete-confirm"
-            class="cloud-delete-confirm"
+            class="mt-3.5 max-w-2xl rounded-xl border border-coral-200 bg-coral-50/50 p-3.5 text-sm text-coral-900"
             role="alert"
           >
             <strong>{{ t.deleteCloudTitle }}</strong>
-            <p>{{ t.deleteCloudBody }}</p>
-            <p class="cloud-delete-warning">{{ t.deleteCloudWarning }}</p>
-            <div class="auth-actions">
+            <p class="my-1.5">{{ t.deleteCloudBody }}</p>
+            <p class="my-1.5 font-semibold">{{ t.deleteCloudWarning }}</p>
+            <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
               <UButton
                 type="button"
                 color="neutral"
@@ -733,26 +741,26 @@ const syncLabel = computed(() => {
         </template>
 
         <template v-else-if="authStep === 'check-email'">
-          <p>{{ t.checkEmail }}</p>
+          <p class="mt-3 text-sm text-toned">{{ t.checkEmail }}</p>
         </template>
 
         <template v-else>
-          <form @submit.prevent="handleSendMagicLink">
-            <label class="auth-email-label" for="auth-email">{{ t.emailLabel }}</label>
-            <div class="auth-row">
+          <form class="mt-3" @submit.prevent="handleSendMagicLink">
+            <label class="mb-2 block text-sm text-muted" for="auth-email">{{ t.emailLabel }}</label>
+            <div class="flex items-center gap-2.5">
               <input
                 id="auth-email"
                 v-model="emailInput"
                 type="email"
                 required
                 autocomplete="email"
-                class="auth-email-input"
+                class="field flex-1"
               />
               <UButton type="submit" size="sm" :loading="authStep === 'sending'">
                 {{ t.sendMagicLink }}
               </UButton>
             </div>
-            <p v-if="authStep === 'error' && authError" class="auth-error">
+            <p v-if="authStep === 'error' && authError" class="mt-2 text-sm text-red-700">
               {{ t.authError }}: {{ authError }}
             </p>
           </form>
@@ -762,14 +770,14 @@ const syncLabel = computed(() => {
       <!-- Guest merge prompt modal -->
       <div
         v-if="showMergePrompt"
-        class="modal-overlay"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
         role="dialog"
         :aria-label="t.guestMergeTitle"
       >
-        <div class="modal-card card">
-          <h2>{{ t.guestMergeTitle }}</h2>
-          <p>{{ t.guestMergeBody }}</p>
-          <div class="modal-actions">
+        <div class="surface w-full max-w-[480px] p-5 sm:p-6">
+          <h2 class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
+          <p class="mb-4 text-sm text-muted">{{ t.guestMergeBody }}</p>
+          <div class="flex flex-wrap gap-2.5">
             <UButton type="button" size="sm" @click="handleGuestMerge('merge')">
               {{ t.guestMergeYes }}
             </UButton>
@@ -786,7 +794,7 @@ const syncLabel = computed(() => {
         </div>
       </div>
 
-      <section class="entry-grid" aria-label="Data entry">
+      <section class="entry-grid grid grid-cols-1 gap-[18px] md:grid-cols-[1.7fr_1fr]" aria-label="Data entry">
         <FeedForm
           v-model:amount="feedForm.amount"
           v-model:date="feedForm.date"
@@ -809,9 +817,10 @@ const syncLabel = computed(() => {
         :daily-guide="dailyGuide"
         :t="t"
         :locale="locale"
+        class="mt-[18px]"
       />
 
-      <p class="disclaimer">{{ t.disclaimer }}</p>
+      <p class="mx-auto my-3 w-[min(700px,100%)] text-center text-[11px] text-dimmed">{{ t.disclaimer }}</p>
 
       <TrendsCharts
         :feeds="activeFeeds"
@@ -826,6 +835,7 @@ const syncLabel = computed(() => {
         :weights="sortedWeights"
         :t="t"
         :locale="locale"
+        class="mt-[18px]"
         @save-feed="saveFeed"
         @remove-feed="removeFeed"
         @save-weight="saveWeight"

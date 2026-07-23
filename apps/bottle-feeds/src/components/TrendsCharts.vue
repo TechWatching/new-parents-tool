@@ -242,63 +242,84 @@ const rollingIntakePolyline = computed(() =>
 </script>
 
 <template>
-  <section class="card trends">
-    <div class="trends-header">
-      <div class="section-heading">
-        <span class="icon blue" aria-hidden="true">⌁</span>
-        <h2>{{ t.overview }}</h2>
+  <section class="surface mt-[18px] p-5 sm:p-6">
+    <div class="flex items-center justify-between gap-3.5 max-[500px]:flex-col max-[500px]:items-start">
+      <div class="flex items-center gap-2.5">
+        <span class="grid size-8 place-items-center rounded-[10px] bg-sky-50 text-lg font-extrabold text-sky-700" aria-hidden="true">⌁</span>
+        <h2 class="text-lg font-extrabold text-highlighted">{{ t.overview }}</h2>
       </div>
-      <div class="range-toggle">
-        <button type="button" :class="{ active: range === '24h' }" @click="range = '24h'">
+      <div class="range-toggle flex rounded-[9px] bg-sage-100 p-[3px] max-[500px]:w-full">
+        <button
+          type="button"
+          class="rounded-[7px] px-3 py-[7px] text-xs font-bold transition-colors max-[500px]:flex-1"
+          :class="range === '24h' ? 'bg-white text-highlighted shadow-sm' : 'text-muted'"
+          @click="range = '24h'"
+        >
           {{ t.twentyFourHours }}
         </button>
-        <button type="button" :class="{ active: range === '7d' }" @click="range = '7d'">
+        <button
+          type="button"
+          class="rounded-[7px] px-3 py-[7px] text-xs font-bold transition-colors max-[500px]:flex-1"
+          :class="range === '7d' ? 'bg-white text-highlighted shadow-sm' : 'text-muted'"
+          @click="range = '7d'"
+        >
           {{ t.sevenDays }}
         </button>
-        <button type="button" :class="{ active: range === 'all' }" @click="range = 'all'">
+        <button
+          type="button"
+          class="rounded-[7px] px-3 py-[7px] text-xs font-bold transition-colors max-[500px]:flex-1"
+          :class="range === 'all' ? 'bg-white text-highlighted shadow-sm' : 'text-muted'"
+          @click="range = 'all'"
+        >
           {{ t.allTime }}
         </button>
-        <button type="button" :class="{ active: range === 'custom' }" @click="range = 'custom'">
+        <button
+          type="button"
+          class="rounded-[7px] px-3 py-[7px] text-xs font-bold transition-colors max-[500px]:flex-1"
+          :class="range === 'custom' ? 'bg-white text-highlighted shadow-sm' : 'text-muted'"
+          @click="range = 'custom'"
+        >
           {{ t.customRange }}
         </button>
       </div>
     </div>
-    <div v-if="range === 'custom'" class="custom-range">
-      <label>
+    <div v-if="range === 'custom'" class="mt-3.5 flex gap-3 max-[500px]:w-full">
+      <label class="grid gap-1 text-xs font-bold text-muted max-[500px]:flex-1">
         {{ t.startDate }}
-        <input v-model="customRange.start" type="date" :max="customRange.end || undefined" />
+        <input v-model="customRange.start" class="field py-1.5" type="date" :max="customRange.end || undefined" />
       </label>
-      <label>
+      <label class="grid gap-1 text-xs font-bold text-muted max-[500px]:flex-1">
         {{ t.endDate }}
-        <input v-model="customRange.end" type="date" :min="customRange.start || undefined" />
+        <input v-model="customRange.end" class="field py-1.5" type="date" :min="customRange.start || undefined" />
       </label>
     </div>
 
-    <div class="charts-grid">
+    <div class="mt-[22px] grid grid-cols-1 gap-7 md:grid-cols-[1.2fr_1fr] md:gap-[42px]">
       <article>
-        <h3>{{ t.intake }}</h3>
-        <div class="bar-chart" role="img" :aria-label="t.intake">
-          <div v-for="point in intakePoints" :key="point.label" class="bar-column">
-            <span v-if="point.amount" class="bar-value">{{ point.amount }}</span>
+        <h3 class="mb-3.5 text-[13px] text-muted">{{ t.intake }}</h3>
+        <div class="chart-plot flex h-[200px] items-end gap-[9px] px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.intake">
+          <div v-for="point in intakePoints" :key="point.label" class="relative flex h-full flex-1 flex-col items-center justify-end">
+            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
             <i
+              class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
               :style="{
                 height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
               }"
             ></i>
-            <small>{{ point.label }}</small>
+            <small class="absolute top-[calc(100%+8px)] text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
           <div
             v-if="dailyGuide && range === '7d'"
-            class="guide-line"
+            class="absolute inset-x-0 z-[2] border-t border-dashed border-amber-500/70"
             :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }"
           >
-            <span>{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
+            <span class="absolute bottom-0.5 right-0 text-[9px] text-amber-700">{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
           </div>
         </div>
       </article>
       <article>
-        <h3>{{ t.growth }}</h3>
-        <div v-if="visibleWeights.length" class="line-chart">
+        <h3 class="mb-3.5 text-[13px] text-muted">{{ t.growth }}</h3>
+        <div v-if="visibleWeights.length" class="chart-plot chart-line h-[200px]">
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" :aria-label="t.growth">
             <polyline v-if="visibleWeights.length > 1" :points="weightPolyline" />
             <circle
@@ -309,30 +330,31 @@ const rollingIntakePolyline = computed(() =>
               r="1.2"
             />
           </svg>
-          <div class="weight-range">
+          <div class="flex justify-between text-[10px] text-muted">
             <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
             <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
           </div>
         </div>
-        <div v-else class="chart-empty">{{ t.noChartData }}</div>
+        <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noChartData }}</div>
       </article>
       <article>
-        <h3>{{ t.bottlesPerDay }}</h3>
-        <div class="bar-chart bottle-count-chart" role="img" :aria-label="t.bottlesPerDay">
-          <div v-for="point in bottleCountPoints" :key="point.label" class="bar-column">
-            <span v-if="point.amount" class="bar-value">{{ point.amount }}</span>
+        <h3 class="mb-3.5 text-[13px] text-muted">{{ t.bottlesPerDay }}</h3>
+        <div class="bottle-count-chart chart-plot flex h-[200px] items-end gap-[9px] px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
+          <div v-for="point in bottleCountPoints" :key="point.label" class="relative flex h-full flex-1 flex-col items-center justify-end">
+            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
             <i
+              class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
               :style="{
                 height: `${Math.max((point.amount / bottleCountMax) * 100, point.amount ? 4 : 0)}%`,
               }"
             ></i>
-            <small>{{ point.label }}</small>
+            <small class="absolute top-[calc(100%+8px)] text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
         </div>
       </article>
-      <article class="full-width">
-        <h3>{{ t.rollingIntake }}</h3>
-        <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="line-chart rolling-intake-chart">
+      <article class="full-width md:col-span-2">
+        <h3 class="mb-3.5 text-[13px] text-muted">{{ t.rollingIntake }}</h3>
+        <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="rolling-intake-chart chart-plot chart-line h-[200px]">
           <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
             <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
             <template v-for="(point, i) in rollingIntakePoints" :key="i">
@@ -340,17 +362,18 @@ const rollingIntakePolyline = computed(() =>
                 v-if="point.amount > 0"
                 :cx="rollingIntakeX(i)"
                 :cy="rollingIntakeY(point.amount)"
+                r="1.5"
               />
             </template>
           </svg>
-          <div class="rolling-intake-labels">
-            <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col">
-              <span class="rolling-intake-amount">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
-              <span>{{ point.label }}</span>
+          <div class="rolling-intake-labels flex justify-between px-[5%] pt-1">
+            <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col flex min-w-0 flex-col items-center gap-px">
+              <span class="rolling-intake-amount text-[9px] text-muted">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
+              <span class="text-[10px] text-dimmed">{{ point.label }}</span>
             </div>
           </div>
         </div>
-        <div v-else class="chart-empty">{{ t.noChartData }}</div>
+        <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noChartData }}</div>
       </article>
     </div>
   </section>
