@@ -115,8 +115,6 @@ test.describe('PDF report generation', () => {
 
     await page.getByRole('button', { name: 'Share PDF' }).click()
 
-    await expect(
-      page.getByText('The start date must be on or before the end date.'),
-    ).toBeVisible()
+    await expect(page.getByText('The start date must be on or before the end date.')).toBeVisible()
   })
 })

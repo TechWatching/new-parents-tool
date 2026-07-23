@@ -21,11 +21,7 @@ import type { AppData } from '../../src/types'
  * Usage: call `await seedDatabase(page, data)` instead of `await page.goto('/')`.
  * The function navigates to `/`, writes to IndexedDB, then reloads the page.
  */
-export async function seedDatabase(
-  page: Page,
-  data: AppData,
-  frozenNow?: Date,
-): Promise<void> {
+export async function seedDatabase(page: Page, data: AppData, frozenNow?: Date): Promise<void> {
   if (frozenNow) {
     // Inject a Date override that persists for every subsequent navigation
     // (addInitScript runs before any page script on each load/reload).
