@@ -189,39 +189,39 @@ const deleteDialogDescription = computed(() => {
 </script>
 
 <template>
-  <section class="card measure-card" :aria-label="t.measures">
-    <h2>{{ t.measures }}</h2>
+  <section class="measure-card border border-border-light rounded-[18px] bg-white shadow-[0_5px_22px_rgba(45,72,62,0.05)] mt-4 p-5" :aria-label="t.measures">
+    <h2 class="m-0 text-[19px] font-extrabold">{{ t.measures }}</h2>
     <UTabs
       v-model="measureTab"
-      class="measure-tabs"
+      class="mt-4"
       :items="tabItems"
     >
       <template #feeds>
-        <p v-if="!feeds.length" class="empty-state">{{ t.emptyHistory }}</p>
-        <UScrollArea v-else class="measure-scroll-area" shadow>
-          <UTree :items="feedTreeItems" :get-key="(item) => item.id" class="measure-tree">
+        <p v-if="!feeds.length" class="empty-state my-7 text-[#919b97] text-[13px] text-center">{{ t.emptyHistory }}</p>
+        <UScrollArea v-else class="max-h-[min(32rem,60vh)]" shadow>
+          <UTree :items="feedTreeItems" :get-key="(item) => item.id" class="pr-2">
             <template #item-wrapper="{ item, expanded }">
               <button
                 v-if="item.kind === 'day'"
-                class="measure-day-button"
+                class="measure-day-button flex items-center gap-2 w-full border-0 rounded-lg px-2.5 py-2 text-[#45534f] bg-[#f5f8f6] font-bold text-left cursor-pointer hover:bg-[#edf3ef]"
                 type="button"
                 :aria-expanded="expanded"
               >
-                <span aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
+                <span class="w-4 text-[#6f8179] text-center" aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
                 {{ item.label }}
               </button>
-              <div v-else-if="item.feed" class="measure-tree-entry">
-                <form v-if="editingFeedId === item.feed.id" @submit.prevent="saveFeed(item.feed)">
-                  <div class="measure-fields">
-                    <label for="edit-feed-amount">
+              <div v-else-if="item.feed" class="measure-tree-entry grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center w-full px-2 py-2.5 pl-8 border-b border-[#edf0ee] max-md:grid-cols-[minmax(0,1fr)_auto]">
+                <form v-if="editingFeedId === item.feed.id" class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center col-span-full max-md:grid-cols-1" @submit.prevent="saveFeed(item.feed)">
+                  <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2 max-md:grid-cols-1">
+                    <label class="flex flex-col gap-1.5 text-[#56635f] text-[13px] font-semibold" for="edit-feed-amount">
                       {{ t.amount }}
-                      <input id="edit-feed-amount" v-model="editingFeed.amount" type="number" min="1" max="2000" required />
+                      <input id="edit-feed-amount" v-model="editingFeed.amount" type="number" min="1" max="2000" required class="w-full border border-[#d9e1dd] rounded-[10px] px-2 py-2 text-text-primary bg-[#fbfcfb] outline-none" />
                     </label>
-                    <label for="edit-feed-date">
+                    <label class="flex flex-col gap-1.5 text-[#56635f] text-[13px] font-semibold" for="edit-feed-date">
                       {{ t.date }}
-                      <input id="edit-feed-date" v-model="editingFeed.date" type="date" required />
+                      <input id="edit-feed-date" v-model="editingFeed.date" type="date" required class="w-full border border-[#d9e1dd] rounded-[10px] px-2 py-2 text-text-primary bg-[#fbfcfb] outline-none" />
                     </label>
-                    <label for="edit-feed-time">
+                    <label class="flex flex-col gap-1.5 text-[#56635f] text-[13px] font-semibold" for="edit-feed-time">
                       {{ t.time }}
                       <input
                         id="edit-feed-time"
@@ -232,15 +232,16 @@ const deleteDialogDescription = computed(() => {
                         placeholder="14:30"
                         maxlength="5"
                         required
+                        class="w-full border border-[#d9e1dd] rounded-[10px] px-2 py-2 text-text-primary bg-[#fbfcfb] outline-none"
                         @input="onEditingFeedTimeInput"
                       />
                     </label>
-                    <label for="edit-feed-comment">
+                    <label class="flex flex-col gap-1.5 text-[#56635f] text-[13px] font-semibold" for="edit-feed-comment">
                       {{ t.comment }}
-                      <input id="edit-feed-comment" v-model="editingFeed.comment" type="text" maxlength="160" />
+                      <input id="edit-feed-comment" v-model="editingFeed.comment" type="text" maxlength="160" class="w-full border border-[#d9e1dd] rounded-[10px] px-2 py-2 text-text-primary bg-[#fbfcfb] outline-none" />
                     </label>
                   </div>
-                  <div class="measure-actions">
+                  <div class="flex gap-2 max-md:justify-end">
                     <UButton type="submit" color="neutral" variant="soft" size="xs">{{ t.save }}</UButton>
                     <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
                       {{ t.cancel }}
@@ -248,10 +249,10 @@ const deleteDialogDescription = computed(() => {
                   </div>
                 </form>
                 <template v-else>
-                  <div class="measure-details">
-                    <strong>{{ item.feed.amount }} {{ t.ml }}</strong>
-                    <span>{{ formatDate(item.feed.occurredAt, locale) }}</span>
-                    <small v-if="item.feed.comment">{{ item.feed.comment }}</small>
+                  <div class="flex min-w-0 gap-2.5 items-baseline flex-wrap">
+                    <strong class="text-sm">{{ item.feed.amount }} {{ t.ml }}</strong>
+                    <span class="text-[#83908b] text-[11px]">{{ formatDate(item.feed.occurredAt, locale) }}</span>
+                    <small v-if="item.feed.comment" class="text-[#83908b] text-[11px]">{{ item.feed.comment }}</small>
                   </div>
                   <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(item.feed)">
                     {{ t.edit }}
@@ -273,32 +274,32 @@ const deleteDialogDescription = computed(() => {
         </UScrollArea>
       </template>
       <template #weights>
-        <p v-if="!weights.length" class="empty-state">{{ t.emptyWeights }}</p>
-        <UScrollArea v-else class="measure-scroll-area" shadow>
-          <UTree :items="weightTreeItems" :get-key="(item) => item.id" class="measure-tree">
+        <p v-if="!weights.length" class="empty-state my-7 text-[#919b97] text-[13px] text-center">{{ t.emptyWeights }}</p>
+        <UScrollArea v-else class="max-h-[min(32rem,60vh)]" shadow>
+          <UTree :items="weightTreeItems" :get-key="(item) => item.id" class="pr-2">
             <template #item-wrapper="{ item, expanded }">
               <button
                 v-if="item.kind === 'day'"
-                class="measure-day-button"
+                class="measure-day-button flex items-center gap-2 w-full border-0 rounded-lg px-2.5 py-2 text-[#45534f] bg-[#f5f8f6] font-bold text-left cursor-pointer hover:bg-[#edf3ef]"
                 type="button"
                 :aria-expanded="expanded"
               >
-                <span aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
+                <span class="w-4 text-[#6f8179] text-center" aria-hidden="true">{{ expanded ? '⌄' : '›' }}</span>
                 {{ item.label }}
               </button>
-              <div v-else-if="item.weight" class="measure-tree-entry">
-                <form v-if="editingWeightId === item.weight.id" @submit.prevent="saveWeight(item.weight)">
-                  <div class="measure-fields">
-                    <label for="edit-weight-kilograms">
+              <div v-else-if="item.weight" class="measure-tree-entry grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center w-full px-2 py-2.5 pl-8 border-b border-[#edf0ee] max-md:grid-cols-[minmax(0,1fr)_auto]">
+                <form v-if="editingWeightId === item.weight.id" class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center col-span-full max-md:grid-cols-1" @submit.prevent="saveWeight(item.weight)">
+                  <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2 max-md:grid-cols-1">
+                    <label class="flex flex-col gap-1.5 text-[#56635f] text-[13px] font-semibold" for="edit-weight-kilograms">
                       {{ t.weight }}
-                      <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required />
+                      <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" type="number" min="0.1" max="50" step="0.01" required class="w-full border border-[#d9e1dd] rounded-[10px] px-2 py-2 text-text-primary bg-[#fbfcfb] outline-none" />
                     </label>
-                    <label for="edit-weight-date">
+                    <label class="flex flex-col gap-1.5 text-[#56635f] text-[13px] font-semibold" for="edit-weight-date">
                       {{ t.date }}
-                      <input id="edit-weight-date" v-model="editingWeight.date" type="date" required />
+                      <input id="edit-weight-date" v-model="editingWeight.date" type="date" required class="w-full border border-[#d9e1dd] rounded-[10px] px-2 py-2 text-text-primary bg-[#fbfcfb] outline-none" />
                     </label>
                   </div>
-                  <div class="measure-actions">
+                  <div class="flex gap-2 max-md:justify-end">
                     <UButton type="submit" color="neutral" variant="soft" size="xs">{{ t.save }}</UButton>
                     <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
                       {{ t.cancel }}
@@ -306,9 +307,9 @@ const deleteDialogDescription = computed(() => {
                   </div>
                 </form>
                 <template v-else>
-                  <div class="measure-details">
-                    <strong>{{ item.weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong>
-                    <span>{{ formatDateOnly(item.weight.occurredAt, locale) }}</span>
+                  <div class="flex min-w-0 gap-2.5 items-baseline flex-wrap">
+                    <strong class="text-sm">{{ item.weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong>
+                    <span class="text-[#83908b] text-[11px]">{{ formatDateOnly(item.weight.occurredAt, locale) }}</span>
                   </div>
                   <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(item.weight)">
                     {{ t.edit }}
