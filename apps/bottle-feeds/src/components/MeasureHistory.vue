@@ -215,7 +215,7 @@ const deleteDialogDescription = computed(() => {
                 class="measure-tree-entry tree-entry"
               >
                 <form v-if="editingFeedId === item.feed.id" class="col-span-full grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="saveFeed(item.feed)">
-                  <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2">
+                  <div class="grid grid-cols-1 gap-2">
                     <label class="flex flex-col gap-2 text-sm font-semibold text-toned" for="edit-feed-amount">
                       {{ t.amount }}
                       <input id="edit-feed-amount" v-model="editingFeed.amount" class="field py-2" type="number" min="1" max="2000" required />
@@ -295,7 +295,7 @@ const deleteDialogDescription = computed(() => {
                 class="measure-tree-entry tree-entry"
               >
                 <form v-if="editingWeightId === item.weight.id" class="col-span-full grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="saveWeight(item.weight)">
-                  <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2">
+                  <div class="grid grid-cols-1 gap-2">
                     <label class="flex flex-col gap-2 text-sm font-semibold text-toned" for="edit-weight-kilograms">
                       {{ t.weight }}
                       <input id="edit-weight-kilograms" v-model="editingWeight.kilograms" class="field py-2" type="number" min="0.1" max="50" step="0.01" required />

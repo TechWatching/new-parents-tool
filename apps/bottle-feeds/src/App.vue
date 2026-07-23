@@ -661,11 +661,23 @@ const syncLabel = computed(() => {
       </div>
 
       <!-- Export / Import -->
-      <div class="mb-[18px] flex flex-wrap items-center gap-2">
-        <UButton type="button" color="neutral" variant="outline" @click="exportData">
+      <div class="mb-[18px] flex flex-wrap items-stretch gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          class="min-w-0 flex-1 basis-0 justify-center whitespace-normal text-center"
+          @click="exportData"
+        >
           {{ t.exportData }}
         </UButton>
-        <UButton type="button" color="neutral" variant="outline" @click="triggerImport">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          class="min-w-0 flex-1 basis-0 justify-center whitespace-normal text-center"
+          @click="triggerImport"
+        >
           {{ t.importData }}
         </UButton>
         <input

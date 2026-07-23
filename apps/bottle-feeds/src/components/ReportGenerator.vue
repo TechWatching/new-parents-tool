@@ -91,6 +91,7 @@ async function handleShare() {
       type="button"
       color="neutral"
       variant="outline"
+      class="min-w-0 flex-1 basis-0 justify-center whitespace-normal text-center"
       :aria-expanded="isOpen"
       aria-controls="report-panel"
       @click="isOpen = !isOpen"
