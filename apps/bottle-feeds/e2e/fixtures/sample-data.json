@@ -1,0 +1,589 @@
+{
+  "feeds": [
+    {
+      "id": "a4875dba-42ae-4d82-8792-0f3dbfa7cd54",
+      "amount": 65,
+      "occurredAt": "2026-07-22T21:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:08.417Z"
+    },
+    {
+      "id": "52fb33ef-30f5-445a-a729-1e297dd41bc8",
+      "amount": 70,
+      "occurredAt": "2026-07-22T18:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:08.194Z"
+    },
+    {
+      "id": "9c48156b-a777-4810-984c-95bff9259aa6",
+      "amount": 65,
+      "occurredAt": "2026-07-22T15:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:07.985Z"
+    },
+    {
+      "id": "f36bfb48-e67c-43be-a9bb-05b7714e8f8a",
+      "amount": 65,
+      "occurredAt": "2026-07-22T12:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:07.720Z"
+    },
+    {
+      "id": "b02608f6-7cda-4edc-a9f9-1104ce04c21b",
+      "amount": 70,
+      "occurredAt": "2026-07-22T09:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:07.543Z"
+    },
+    {
+      "id": "8fcdbb5c-edc3-475c-a60e-6db45d6f6559",
+      "amount": 60,
+      "occurredAt": "2026-07-22T06:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:07.332Z"
+    },
+    {
+      "id": "0c6bae51-148b-4b61-a383-92dc3fd14270",
+      "amount": 65,
+      "occurredAt": "2026-07-22T03:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:07.138Z"
+    },
+    {
+      "id": "a28547de-8fc0-4884-8421-90d7c4ce1936",
+      "amount": 65,
+      "occurredAt": "2026-07-22T00:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:06.853Z"
+    },
+    {
+      "id": "d76432fa-ff7b-4e58-9418-68143a5c1def",
+      "amount": 60,
+      "occurredAt": "2026-07-21T21:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:06.634Z"
+    },
+    {
+      "id": "f1e0bb67-adb5-4262-80ab-926ab23744e0",
+      "amount": 65,
+      "occurredAt": "2026-07-21T18:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:06.417Z"
+    },
+    {
+      "id": "e0cb80f3-b75e-41e9-a960-dcfd8d24e46d",
+      "amount": 65,
+      "occurredAt": "2026-07-21T15:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:06.219Z"
+    },
+    {
+      "id": "0cadb99c-e032-47ca-97f2-2bf1478e6fd1",
+      "amount": 60,
+      "occurredAt": "2026-07-21T12:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:06.006Z"
+    },
+    {
+      "id": "588c457b-af16-4c1a-bf4a-9abab4825477",
+      "amount": 65,
+      "occurredAt": "2026-07-21T09:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:05.833Z"
+    },
+    {
+      "id": "527e2ecc-b6c0-412c-888e-043c31bbc1bf",
+      "amount": 65,
+      "occurredAt": "2026-07-21T06:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:05.650Z"
+    },
+    {
+      "id": "6385e37c-9198-4000-b555-a045fe1bfa6a",
+      "amount": 60,
+      "occurredAt": "2026-07-21T03:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:05.415Z"
+    },
+    {
+      "id": "8a58e568-7271-4737-9116-398ff9483fdf",
+      "amount": 65,
+      "occurredAt": "2026-07-21T00:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:05.175Z"
+    },
+    {
+      "id": "e1ffecd3-ec08-43b7-8f20-02ceada301c3",
+      "amount": 60,
+      "occurredAt": "2026-07-20T18:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:04.984Z"
+    },
+    {
+      "id": "a4352109-e543-4d0f-b1f0-d581f2146099",
+      "amount": 65,
+      "occurredAt": "2026-07-20T15:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:04.784Z"
+    },
+    {
+      "id": "cd875fb3-f991-4d97-888f-b2e7ed7cce26",
+      "amount": 60,
+      "occurredAt": "2026-07-20T12:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:04.588Z"
+    },
+    {
+      "id": "4677a283-13c8-4690-8179-5f0080cf47a5",
+      "amount": 65,
+      "occurredAt": "2026-07-20T09:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:04.404Z"
+    },
+    {
+      "id": "424df4c9-65ae-456f-9e93-15810c72b814",
+      "amount": 60,
+      "occurredAt": "2026-07-20T06:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:04.216Z"
+    },
+    {
+      "id": "077774e2-8405-43eb-b336-09f2b547bef9",
+      "amount": 65,
+      "occurredAt": "2026-07-20T03:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:04.014Z"
+    },
+    {
+      "id": "9ae326ed-ddf8-4b5b-a21a-0bd832bc6984",
+      "amount": 60,
+      "occurredAt": "2026-07-20T00:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:03.800Z"
+    },
+    {
+      "id": "c9e2f137-40f8-4253-976d-fae3cb7d148e",
+      "amount": 60,
+      "occurredAt": "2026-07-19T21:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:03.532Z"
+    },
+    {
+      "id": "e1db117f-19da-4ac2-8fde-79dfef9a1d81",
+      "amount": 65,
+      "occurredAt": "2026-07-19T18:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:03.350Z"
+    },
+    {
+      "id": "233092f2-a0f3-48fb-8b39-68817e356305",
+      "amount": 60,
+      "occurredAt": "2026-07-19T15:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:03.143Z"
+    },
+    {
+      "id": "f48e219c-ba93-4965-8a4f-488aec98be32",
+      "amount": 60,
+      "occurredAt": "2026-07-19T12:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:02.927Z"
+    },
+    {
+      "id": "57eff83e-8b18-4ec8-834a-92bb0c72ad8c",
+      "amount": 65,
+      "occurredAt": "2026-07-19T09:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:02.749Z"
+    },
+    {
+      "id": "bd8b0f0e-65ed-4d01-8727-a3de3421b495",
+      "amount": 55,
+      "occurredAt": "2026-07-19T06:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:02.566Z"
+    },
+    {
+      "id": "aeb743ff-00b8-4de9-8e5a-4d590cf7a9bc",
+      "amount": 60,
+      "occurredAt": "2026-07-19T03:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:02.377Z"
+    },
+    {
+      "id": "90187ba6-72e4-43c5-83e9-55b651dc830c",
+      "amount": 60,
+      "occurredAt": "2026-07-19T00:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:02.135Z"
+    },
+    {
+      "id": "b1947e9e-0d54-4d23-b8b8-066fd1b23c98",
+      "amount": 55,
+      "occurredAt": "2026-07-18T21:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:01.866Z"
+    },
+    {
+      "id": "c062a0b3-0d44-4445-8ff2-fffdf71e3385",
+      "amount": 60,
+      "occurredAt": "2026-07-18T18:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:01.652Z"
+    },
+    {
+      "id": "64d9bf8c-a139-4a61-a102-c336baba72b2",
+      "amount": 60,
+      "occurredAt": "2026-07-18T15:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:01.410Z"
+    },
+    {
+      "id": "ad526d84-9012-4bdb-8d1b-dbcf9dae7dc6",
+      "amount": 55,
+      "occurredAt": "2026-07-18T12:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:01.210Z"
+    },
+    {
+      "id": "9ac54ea5-531d-4b4e-b1c2-6ff2e455190a",
+      "amount": 60,
+      "occurredAt": "2026-07-18T09:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:01.014Z"
+    },
+    {
+      "id": "a4c27cfd-1e6f-4160-9d5a-ed78449b875e",
+      "amount": 60,
+      "occurredAt": "2026-07-18T06:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:00.795Z"
+    },
+    {
+      "id": "cc674864-aa92-409a-b600-a909b0c4c229",
+      "amount": 55,
+      "occurredAt": "2026-07-18T03:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:00.594Z"
+    },
+    {
+      "id": "db0c8cb5-d21e-4bed-9d4e-3b6cf9c93108",
+      "amount": 60,
+      "occurredAt": "2026-07-18T00:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:00.374Z"
+    },
+    {
+      "id": "d6f94c67-adcd-4a2c-8e22-7b8a296c4f7b",
+      "amount": 50,
+      "occurredAt": "2026-07-17T23:45:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:17:00.176Z"
+    },
+    {
+      "id": "8a574d34-ebde-4da7-a219-28971f039482",
+      "amount": 55,
+      "occurredAt": "2026-07-17T21:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:59.993Z"
+    },
+    {
+      "id": "da7bfd27-3b9b-410e-a640-84a7bf5d3baf",
+      "amount": 60,
+      "occurredAt": "2026-07-17T18:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:59.817Z"
+    },
+    {
+      "id": "bed99f39-fb48-4421-baeb-9949846bcfc8",
+      "amount": 60,
+      "occurredAt": "2026-07-17T15:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:59.554Z"
+    },
+    {
+      "id": "47665df4-2f5b-4186-b39f-1e74940c48b4",
+      "amount": 55,
+      "occurredAt": "2026-07-17T12:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:59.356Z"
+    },
+    {
+      "id": "dbfe9a07-fa15-4777-b065-4eb1afad71f0",
+      "amount": 60,
+      "occurredAt": "2026-07-17T09:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:59.052Z"
+    },
+    {
+      "id": "a7d71d1b-cfb1-4438-9912-ee1de663f695",
+      "amount": 55,
+      "occurredAt": "2026-07-17T06:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:58.843Z"
+    },
+    {
+      "id": "f7643274-cf55-40e5-b99c-d2ebe00cca8d",
+      "amount": 60,
+      "occurredAt": "2026-07-17T03:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:58.650Z"
+    },
+    {
+      "id": "e8a08eb9-5954-4809-b5a1-5ce44cda1ccf",
+      "amount": 55,
+      "occurredAt": "2026-07-17T00:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:58.409Z"
+    },
+    {
+      "id": "87c9fbfd-43bc-4392-a781-00e4262ed7d4",
+      "amount": 55,
+      "occurredAt": "2026-07-16T21:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:58.218Z"
+    },
+    {
+      "id": "49ad83d5-a163-4cca-a465-9b8cc8e7b7ef",
+      "amount": 60,
+      "occurredAt": "2026-07-16T18:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:57.869Z"
+    },
+    {
+      "id": "8a009479-7e9a-4da0-9610-ff0846685506",
+      "amount": 55,
+      "occurredAt": "2026-07-16T15:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:57.649Z"
+    },
+    {
+      "id": "7a271f1d-8c26-4bd9-9581-2f97ee8ca07c",
+      "amount": 55,
+      "occurredAt": "2026-07-16T12:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:57.464Z"
+    },
+    {
+      "id": "aab11580-72c0-4d54-8c4c-a86b684ab7bf",
+      "amount": 60,
+      "occurredAt": "2026-07-16T09:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:57.274Z"
+    },
+    {
+      "id": "f7ce2139-1960-4ad7-b4be-eaae190d8d9c",
+      "amount": 50,
+      "occurredAt": "2026-07-16T06:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:57.095Z"
+    },
+    {
+      "id": "58d959f0-3413-416a-b227-1f394fadd82a",
+      "amount": 55,
+      "occurredAt": "2026-07-16T03:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:56.825Z"
+    },
+    {
+      "id": "cf947402-e592-4bf7-8735-0cfbac6a2323",
+      "amount": 55,
+      "occurredAt": "2026-07-16T00:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:56.598Z"
+    },
+    {
+      "id": "227d28b0-9cc0-4cef-878d-0913d6a65ec3",
+      "amount": 50,
+      "occurredAt": "2026-07-15T21:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:56.394Z"
+    },
+    {
+      "id": "a4babb66-21f1-4fb6-910b-d376901298ae",
+      "amount": 55,
+      "occurredAt": "2026-07-15T18:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:56.197Z"
+    },
+    {
+      "id": "903d396c-dd64-4205-811e-760e7e1dcf08",
+      "amount": 55,
+      "occurredAt": "2026-07-15T15:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:55.971Z"
+    },
+    {
+      "id": "da74c63a-19bb-4cee-b0c3-db81370e4a65",
+      "amount": 50,
+      "occurredAt": "2026-07-15T12:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:55.779Z"
+    },
+    {
+      "id": "9c335ed2-2314-4198-a6fb-59b4ca2d4b9b",
+      "amount": 55,
+      "occurredAt": "2026-07-15T09:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:55.574Z"
+    },
+    {
+      "id": "f6b73045-ceea-441d-b819-c718219bb533",
+      "amount": 55,
+      "occurredAt": "2026-07-15T06:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:55.378Z"
+    },
+    {
+      "id": "c246986e-1ac2-4565-8a29-51dfd38ac1be",
+      "amount": 50,
+      "occurredAt": "2026-07-15T03:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:55.183Z"
+    },
+    {
+      "id": "bae5f71d-cb91-4149-baa8-ec14e2158034",
+      "amount": 55,
+      "occurredAt": "2026-07-15T00:00:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:54.943Z"
+    },
+    {
+      "id": "babaca61-cd14-4c80-8abe-e70904e2afbf",
+      "amount": 50,
+      "occurredAt": "2026-07-14T21:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:54.721Z"
+    },
+    {
+      "id": "22f6accb-ec51-43c6-95e3-9fbdba514040",
+      "amount": 55,
+      "occurredAt": "2026-07-14T18:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:54.499Z"
+    },
+    {
+      "id": "adae7ff7-25bd-445f-a960-ea02f5335d67",
+      "amount": 50,
+      "occurredAt": "2026-07-14T15:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:54.310Z"
+    },
+    {
+      "id": "2d6e720a-4549-4dbb-8935-8724d320f022",
+      "amount": 55,
+      "occurredAt": "2026-07-14T12:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:54.116Z"
+    },
+    {
+      "id": "acc6e8f0-415d-43bc-85d6-29b9268f58fe",
+      "amount": 55,
+      "occurredAt": "2026-07-14T09:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:53.902Z"
+    },
+    {
+      "id": "d94a5384-6bcb-4045-8027-5bf5a7d32c43",
+      "amount": 50,
+      "occurredAt": "2026-07-14T06:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:53.700Z"
+    },
+    {
+      "id": "3c2c1c43-8794-4af8-b9de-9601d43d1a8c",
+      "amount": 55,
+      "occurredAt": "2026-07-14T03:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:53.476Z"
+    },
+    {
+      "id": "1543549d-7c53-4c8d-9a58-bba065090dd4",
+      "amount": 50,
+      "occurredAt": "2026-07-14T00:15:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:53.203Z"
+    },
+    {
+      "id": "6568a890-8260-4690-bd47-0b2430028173",
+      "amount": 55,
+      "occurredAt": "2026-07-13T18:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:52.954Z"
+    },
+    {
+      "id": "1aca70f0-077a-4d12-896e-609684f04de1",
+      "amount": 50,
+      "occurredAt": "2026-07-13T15:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:52.750Z"
+    },
+    {
+      "id": "b5990353-ee6d-4819-885f-a4afb4b25f69",
+      "amount": 55,
+      "occurredAt": "2026-07-13T12:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:52.533Z"
+    },
+    {
+      "id": "c43f203e-58fa-4450-bc59-b3ced1c4532f",
+      "amount": 50,
+      "occurredAt": "2026-07-13T09:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:52.341Z"
+    },
+    {
+      "id": "0e48b503-dbfa-419d-bd65-8c4011b45bf0",
+      "amount": 55,
+      "occurredAt": "2026-07-13T06:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:52.178Z"
+    },
+    {
+      "id": "b1f70d3f-aee9-478f-91a0-73a3815da6d8",
+      "amount": 50,
+      "occurredAt": "2026-07-13T03:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:51.846Z"
+    },
+    {
+      "id": "b1339228-8124-47c0-b11e-3312a2116b0c",
+      "amount": 50,
+      "occurredAt": "2026-07-13T00:30:00.000Z",
+      "comment": "",
+      "updatedAt": "2026-07-23T20:16:51.584Z"
+    }
+  ],
+  "weights": [
+    {
+      "id": "4b9e5e8d-bdb1-48dc-b2ee-c0fdf2656280",
+      "kilograms": 3.68,
+      "occurredAt": "2026-07-22T00:00:00.000Z",
+      "updatedAt": "2026-07-23T20:17:19.808Z"
+    },
+    {
+      "id": "0c43d061-2a3e-401d-96d7-2201d1ce61d1",
+      "kilograms": 3.62,
+      "occurredAt": "2026-07-20T00:00:00.000Z",
+      "updatedAt": "2026-07-23T20:17:14.467Z"
+    },
+    {
+      "id": "6ae73a51-f6f4-41cc-b73b-473a61bfac75",
+      "kilograms": 3.56,
+      "occurredAt": "2026-07-18T00:00:00.000Z",
+      "updatedAt": "2026-07-23T20:17:14.282Z"
+    },
+    {
+      "id": "74cfc3c4-764b-4afe-be28-57757471d5a1",
+      "kilograms": 3.5,
+      "occurredAt": "2026-07-16T00:00:00.000Z",
+      "updatedAt": "2026-07-23T20:17:14.022Z"
+    },
+    {
+      "id": "95ce95ba-6a1a-420c-b467-0e75a810c457",
+      "kilograms": 3.45,
+      "occurredAt": "2026-07-14T00:00:00.000Z",
+      "updatedAt": "2026-07-23T20:17:13.860Z"
+    }
+  ]
+}
