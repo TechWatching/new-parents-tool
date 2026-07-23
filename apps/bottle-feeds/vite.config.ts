@@ -120,6 +120,7 @@ export default defineConfig({
           'vitest/no-standalone-expect': 'error',
           'vitest/no-unneeded-async-expect-function': 'error',
           'vitest/prefer-called-exactly-once-with': 'error',
+          'vitest/require-mock-type-parameters': 'off',
           'vitest/require-local-test-context-for-concurrent-snapshots': 'error',
           'vitest/valid-describe-callback': 'error',
           'vitest/valid-expect': 'error',

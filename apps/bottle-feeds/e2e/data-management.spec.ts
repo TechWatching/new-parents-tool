@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { seedDatabase } from './helpers/seed-db'
 import { fullAppData } from './fixtures/test-data'
-import type { AppData } from '../../src/types'
-import * as path from 'path'
-import * as fs from 'fs'
-import * as os from 'os'
+import type { AppData } from '../src/types'
+import * as path from 'node:path'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
 
 test.describe('Data export', () => {
   test('exports data as a JSON file', async ({ page }) => {

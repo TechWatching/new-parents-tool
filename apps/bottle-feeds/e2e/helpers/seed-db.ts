@@ -33,20 +33,15 @@ export async function seedDatabase(
     await page.addInitScript((time: number) => {
       const OriginalDate = window.Date
       class FrozenDate extends OriginalDate {
-        constructor(...args: ConstructorParameters<typeof Date>) {
-          if (args.length === 0) {
-            super(time)
-          } else {
-            super(...args)
-          }
+        constructor(...args: unknown[]) {
+          super(time)
+          if (args.length > 0) return Reflect.construct(OriginalDate, args) as FrozenDate
         }
         static now() {
           return time
         }
       }
-      FrozenDate.parse = OriginalDate.parse
-      FrozenDate.UTC = OriginalDate.UTC
-      ;(window as unknown as { Date: typeof Date }).Date = FrozenDate
+      window.Date = FrozenDate as DateConstructor
     }, frozenMs)
   }
 
