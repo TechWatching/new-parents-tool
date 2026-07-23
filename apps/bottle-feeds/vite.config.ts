@@ -142,7 +142,7 @@ export default defineConfig({
   },
   run: {
     tasks: {
-      'build-all': {
+      'build-parallel': {
         command: 'echo Build complete',
         dependsOn: ['type-check', 'build-only'],
       },
