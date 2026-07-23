@@ -264,11 +264,11 @@ const rollingIntakePolyline = computed(() =>
     <div v-if="range === 'custom'" class="flex gap-3 mt-3.5 max-sm:w-full">
       <label class="grid gap-1 text-[#6e7b77] text-xs font-bold max-sm:flex-1">
         {{ t.startDate }}
-        <input v-model="customRange.start" type="date" :max="customRange.end || undefined" class="px-2 py-1.5 border border-[#dfe6e2] rounded-[7px] text-[#45534f] bg-white font-inherit" />
+        <input v-model="customRange.start" type="date" :max="customRange.end || undefined" class="px-2 py-1.5 border border-[#dfe6e2] rounded-[7px] text-[#45534f] bg-white font-[inherit]" />
       </label>
       <label class="grid gap-1 text-[#6e7b77] text-xs font-bold max-sm:flex-1">
         {{ t.endDate }}
-        <input v-model="customRange.end" type="date" :min="customRange.start || undefined" class="px-2 py-1.5 border border-[#dfe6e2] rounded-[7px] text-[#45534f] bg-white font-inherit" />
+        <input v-model="customRange.end" type="date" :min="customRange.start || undefined" class="px-2 py-1.5 border border-[#dfe6e2] rounded-[7px] text-[#45534f] bg-white font-[inherit]" />
       </label>
     </div>
 
