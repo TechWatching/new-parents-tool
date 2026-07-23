@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    vite-plus:
+      specifier: 0.2.4
+      version: 0.2.4
+
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.4
 
