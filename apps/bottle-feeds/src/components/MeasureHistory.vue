@@ -241,7 +241,7 @@ const deleteDialogDescription = computed(() => {
                     </label>
                   </div>
                   <div class="measure-actions">
-                    <UButton type="submit" size="xs">{{ t.save }}</UButton>
+                    <UButton type="submit" color="neutral" variant="soft" size="xs">{{ t.save }}</UButton>
                     <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingFeedId = null">
                       {{ t.cancel }}
                     </UButton>
@@ -299,7 +299,7 @@ const deleteDialogDescription = computed(() => {
                     </label>
                   </div>
                   <div class="measure-actions">
-                    <UButton type="submit" size="xs">{{ t.save }}</UButton>
+                    <UButton type="submit" color="neutral" variant="soft" size="xs">{{ t.save }}</UButton>
                     <UButton type="button" color="neutral" variant="ghost" size="xs" @click="editingWeightId = null">
                       {{ t.cancel }}
                     </UButton>
@@ -342,7 +342,7 @@ const deleteDialogDescription = computed(() => {
         <UButton type="button" color="neutral" variant="ghost" @click="closeDeleteDialog">
           {{ t.cancel }}
         </UButton>
-        <UButton type="button" color="error" @click="confirmDeletion">
+        <UButton type="button" color="error" variant="soft" @click="confirmDeletion">
           {{ t.deleteMeasureConfirm }}
         </UButton>
       </template>
