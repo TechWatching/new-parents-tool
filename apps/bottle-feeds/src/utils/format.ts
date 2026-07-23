@@ -40,6 +40,12 @@ function stringsFor(locale: string): RelativeTimeStrings {
   return language === 'fr' ? RELATIVE_TIME_STRINGS.fr : RELATIVE_TIME_STRINGS.en
 }
 
+/** True while the elapsed time since `value` is still within the "now" display threshold. */
+export function isRelativeTimeNow(value: string, now = Date.now()) {
+  const elapsedMilliseconds = Math.max(0, now - Date.parse(value))
+  return Math.floor(elapsedMilliseconds / 1000) < NOW_DISPLAY_THRESHOLD_SECONDS
+}
+
 export function formatRelativeTime(value: string, locale: string, now = Date.now()) {
   const strings = stringsFor(locale)
   const elapsedMilliseconds = Math.max(0, now - Date.parse(value))

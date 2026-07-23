@@ -28,7 +28,7 @@ import {
   LATEST_ENTRY_DATE_DURATION,
   occurredAt,
 } from './utils/time'
-import { formatDate, formatDateOnly, formatRelativeTime } from './utils/format'
+import { formatDate, formatDateOnly, formatRelativeTime, isRelativeTimeNow } from './utils/format'
 import FeedForm from './components/FeedForm.vue'
 import WeightForm from './components/WeightForm.vue'
 import SummaryMetrics from './components/SummaryMetrics.vue'
@@ -361,9 +361,12 @@ const lastBottleSummary = computed(() => {
 
   const relativeTime = formatRelativeTime(latestFeed.value.occurredAt, locale.value, now.value)
   const exactTimestamp = formatDate(latestFeed.value.occurredAt, locale.value)
+  const isNow = isRelativeTimeNow(latestFeed.value.occurredAt, now.value)
 
   return {
-    relativeTime: t.value.timeSinceLastBottleFormat.replace('{relativeTime}', relativeTime),
+    relativeTime: isNow
+      ? t.value.timeSinceLastBottleNow
+      : t.value.timeSinceLastBottleFormat.replace('{relativeTime}', relativeTime),
     details: t.value.lastBottleDetailsFormat
       .replace('{timestamp}', exactTimestamp)
       .replace('{amount}', latestFeed.value.amount.toLocaleString(locale.value)),

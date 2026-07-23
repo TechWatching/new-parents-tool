@@ -185,7 +185,7 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      expect(wrapper.text()).toContain('now after the last bottle')
+      expect(wrapper.text()).toContain('Just fed')
       expect(wrapper.text()).toContain('14 Jul, 14:30')
 
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000)
@@ -216,7 +216,7 @@ describe('App', () => {
       await saveData(preloaded, GUEST_NAMESPACE)
       const wrapper = await mountApp()
 
-      expect(wrapper.text()).toContain('now after the last bottle')
+      expect(wrapper.text()).toContain('Just fed')
 
       // Simulate the tab being backgrounded for a full day: the periodic
       // interval never fires (as browsers typically throttle/pause timers
@@ -226,7 +226,7 @@ describe('App', () => {
       await nextTick()
 
       expect(wrapper.text()).toContain('1 day')
-      expect(wrapper.text()).not.toContain('now after the last bottle')
+      expect(wrapper.text()).not.toContain('Just fed')
     } finally {
       vi.useRealTimers()
     }
