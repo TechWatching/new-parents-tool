@@ -20,7 +20,10 @@ describe('deleteAllCloudData', () => {
     supabaseSpies.from.mockImplementation((table: string) => ({
       delete: () => ({
         eq: async (column: string, userId: string) => {
+          // Oxlint cannot associate assertions inside the deferred mock callback with the test.
+          // oxlint-disable-next-line vitest/no-standalone-expect
           expect(column).toBe('user_id')
+          // oxlint-disable-next-line vitest/no-standalone-expect
           expect(userId).toBe('user-123')
           return supabaseSpies.results.get(table) ?? { error: null }
         },

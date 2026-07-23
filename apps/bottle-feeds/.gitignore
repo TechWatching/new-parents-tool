@@ -36,6 +36,10 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
+# Playwright
+test-results/
+playwright-report/
+
 # Nuxt UI
 auto-imports.d.ts
 components.d.ts

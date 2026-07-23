@@ -21,11 +21,7 @@ import type { AppData } from '../../src/types'
  * Usage: call `await seedDatabase(page, data)` instead of `await page.goto('/')`.
  * The function navigates to `/`, writes to IndexedDB, then reloads the page.
  */
-export async function seedDatabase(
-  page: Page,
-  data: AppData,
-  frozenNow?: Date,
-): Promise<void> {
+export async function seedDatabase(page: Page, data: AppData, frozenNow?: Date): Promise<void> {
   if (frozenNow) {
     // Inject a Date override that persists for every subsequent navigation
     // (addInitScript runs before any page script on each load/reload).
@@ -33,20 +29,15 @@ export async function seedDatabase(
     await page.addInitScript((time: number) => {
       const OriginalDate = window.Date
       class FrozenDate extends OriginalDate {
-        constructor(...args: ConstructorParameters<typeof Date>) {
-          if (args.length === 0) {
-            super(time)
-          } else {
-            super(...args)
-          }
+        constructor(...args: unknown[]) {
+          super(time)
+          if (args.length > 0) return Reflect.construct(OriginalDate, args) as FrozenDate
         }
         static now() {
           return time
         }
       }
-      FrozenDate.parse = OriginalDate.parse
-      FrozenDate.UTC = OriginalDate.UTC
-      ;(window as unknown as { Date: typeof Date }).Date = FrozenDate
+      window.Date = FrozenDate as DateConstructor
     }, frozenMs)
   }
 

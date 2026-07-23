@@ -35,7 +35,7 @@ export function maskTimeInput(event: Event, setValue: (value: string) => void) {
   const digitsBeforeCursor = target.value.slice(0, cursor).replace(/\D/g, '').length
   const masked = maskTimeValue(target.value)
   setValue(masked)
-  nextTick(() => {
+  void nextTick(() => {
     const position = cursorPositionForDigitCount(masked, digitsBeforeCursor)
     target.setSelectionRange(position, position)
   })
