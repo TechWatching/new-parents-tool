@@ -24,6 +24,7 @@
   --color-coral-800: #904038;
   --color-coral-900: #72302a;
   --color-coral-950: #441915;
+  --color-primary: var(--color-coral-500);
 
   /* Mint — secondary (weight / growth) */
   --color-mint-50: #edf9f4;
@@ -37,6 +38,7 @@
   --color-mint-800: #326858;
   --color-mint-900: #255144;
   --color-mint-950: #122f26;
+  --color-secondary: var(--color-mint-500);
 
   /* Sage — green-tinted neutral used for text, surfaces and borders */
   --color-sage-50: #effaf6;

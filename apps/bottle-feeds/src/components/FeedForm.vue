@@ -71,7 +71,7 @@ function onTimeInput(event: Event) {
         />
       </label>
     </div>
-    <UButton class="mt-5 font-semibold" type="submit" block size="lg">
+    <UButton class="mt-5 font-semibold text-sage-800" type="submit" block size="lg">
       {{ t.saveFeed }}
     </UButton>
   </form>
