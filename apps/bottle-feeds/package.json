@@ -39,7 +39,6 @@
     "eslint-plugin-playwright": "^2.10.5",
     "jiti": "^2.7.0",
     "jsdom": "^29.1.1",
-    "npm-run-all2": "^9.0.2",
     "typescript": "~6.0.0",
     "vite": "catalog:",
     "vite-plugin-vue-devtools": "^8.1.5",
