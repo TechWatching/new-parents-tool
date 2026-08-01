@@ -101,6 +101,13 @@ export function formatDate(value: string, locale: string) {
   }).format(new Date(value))
 }
 
+export function formatTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
 export function formatDateOnly(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     day: 'numeric',

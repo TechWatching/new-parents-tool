@@ -7,7 +7,7 @@ import UTabs from '@nuxt/ui/components/Tabs.vue'
 import UTree from '@nuxt/ui/components/Tree.vue'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
-import { formatDate, formatDateOnly } from '../utils/format'
+import { formatDate, formatDateOnly, formatTime } from '../utils/format'
 import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTimeInput, occurredAt, timePattern } from '../utils/time'
 
 const props = defineProps<{
@@ -254,22 +254,24 @@ const deleteDialogDescription = computed(() => {
                 <template v-else>
                   <div class="flex min-w-0 flex-wrap items-baseline gap-2.5">
                     <strong class="text-sm font-bold text-highlighted">{{ item.feed.amount }} {{ t.ml }}</strong>
-                    <span class="text-[11px] text-muted">{{ formatDate(item.feed.occurredAt, locale) }}</span>
+                    <span class="text-[11px] text-muted">{{ formatTime(item.feed.occurredAt, locale) }}</span>
                     <small v-if="item.feed.comment" class="text-[11px] text-muted">{{ item.feed.comment }}</small>
                   </div>
-                  <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(item.feed)">
-                    {{ t.edit }}
-                  </UButton>
-                  <UButton
-                    type="button"
-                    color="error"
-                    variant="soft"
-                    size="xs"
-                    :aria-label="`${t.delete} ${item.feed.amount} ${t.ml}`"
-                    @click="requestFeedDeletion(item.feed)"
-                  >
-                    {{ t.delete }}
-                  </UButton>
+                  <div class="flex gap-2 max-sm:justify-end sm:contents">
+                    <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(item.feed)">
+                      {{ t.edit }}
+                    </UButton>
+                    <UButton
+                      type="button"
+                      color="error"
+                      variant="soft"
+                      size="xs"
+                      :aria-label="`${t.delete} ${item.feed.amount} ${t.ml}`"
+                      @click="requestFeedDeletion(item.feed)"
+                    >
+                      {{ t.delete }}
+                    </UButton>
+                  </div>
                 </template>
               </div>
             </template>
@@ -315,21 +317,22 @@ const deleteDialogDescription = computed(() => {
                 <template v-else>
                   <div class="flex min-w-0 flex-wrap items-baseline gap-2.5">
                     <strong class="text-sm font-bold text-highlighted">{{ item.weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</strong>
-                    <span class="text-[11px] text-muted">{{ formatDateOnly(item.weight.occurredAt, locale) }}</span>
                   </div>
-                  <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(item.weight)">
-                    {{ t.edit }}
-                  </UButton>
-                  <UButton
-                    type="button"
-                    color="error"
-                    variant="soft"
-                    size="xs"
-                    :aria-label="`${t.delete} ${item.weight.kilograms} ${t.kg}`"
-                    @click="requestWeightDeletion(item.weight)"
-                  >
-                    {{ t.delete }}
-                  </UButton>
+                  <div class="flex gap-2 max-sm:justify-end sm:contents">
+                    <UButton type="button" color="neutral" variant="soft" size="xs" @click="editWeight(item.weight)">
+                      {{ t.edit }}
+                    </UButton>
+                    <UButton
+                      type="button"
+                      color="error"
+                      variant="soft"
+                      size="xs"
+                      :aria-label="`${t.delete} ${item.weight.kilograms} ${t.kg}`"
+                      @click="requestWeightDeletion(item.weight)"
+                    >
+                      {{ t.delete }}
+                    </UButton>
+                  </div>
                 </template>
               </div>
             </template>
