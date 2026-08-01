@@ -332,9 +332,14 @@ const rollingIntakePolyline = computed(() =>
               <title>{{ weight.kilograms }} {{ t.kg }}</title>
             </circle>
           </svg>
-          <div class="flex justify-between text-[10px] text-muted">
-            <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
-            <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
+          <div class="weight-chart-values mt-2 flex gap-2 overflow-x-auto px-1 pb-1 text-[10px] text-muted">
+            <span
+              v-for="weight in visibleWeights"
+              :key="weight.id"
+              class="weight-chart-value shrink-0 rounded-full bg-sage-50 px-2 py-1"
+            >
+              {{ chartDateLabel(new Date(weight.occurredAt)) }}: {{ weight.kilograms }} {{ t.kg }}
+            </span>
           </div>
         </div>
         <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noWeightChartData }}</div>
