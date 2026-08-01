@@ -147,4 +147,17 @@
     stroke-width: 1.4;
     vector-effect: non-scaling-stroke;
   }
+  & .weight-chart-point {
+    cursor: pointer;
+  }
+  & .weight-chart-point:focus-visible {
+    outline: none;
+  }
+  & .weight-chart-point:focus-visible circle:not(.weight-chart-hit-area) {
+    stroke-width: 3;
+  }
+  & .weight-chart-hit-area {
+    fill: transparent;
+    stroke: transparent;
+  }
 }

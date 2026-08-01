@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import TrendsCharts from '../components/TrendsCharts.vue'
 import { messages } from '../i18n'
 
@@ -8,7 +9,7 @@ describe('TrendsCharts', () => {
     vi.useRealTimers()
   })
 
-  it('shows each weight when its chart point is hovered', () => {
+  it('shows the selected weight when its chart point is activated', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-19T12:00:00.000Z'))
 
@@ -27,6 +28,11 @@ describe('TrendsCharts', () => {
 
     expect(wrapper.findAll('.chart-line circle title').map((title) => title.text())).toEqual(['4.2 kg', '4.5 kg'])
     expect(wrapper.findAll('.weight-chart-value')).toHaveLength(0)
+
+    await wrapper.findAll('.weight-chart-point')[1]!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.weight-chart-detail').text()).toBe('19 Jul 2026: 4.5 kg')
   })
 
   it('uses a weight-only empty state for the weight chart', () => {

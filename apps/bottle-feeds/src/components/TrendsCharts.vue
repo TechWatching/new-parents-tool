@@ -17,6 +17,7 @@ type TrendRange = '24h' | '7d' | 'all' | 'custom'
 
 const range = ref<TrendRange>('7d')
 const customRange = reactive({ start: '', end: '' })
+const selectedWeight = ref<Weight | null>(null)
 
 interface ChartPoint {
   label: string
@@ -163,10 +164,18 @@ function weightPosition(weight: Weight, axis: 'x' | 'y') {
   return 88 - ((weight.kilograms - min) / (max - min)) * 76
 }
 
+function selectWeight(weight: Weight) {
+  selectedWeight.value = weight
+}
+
 const weightPolyline = computed(() =>
   visibleWeights.value
     .map((weight) => `${weightPosition(weight, 'x')},${weightPosition(weight, 'y')}`)
     .join(' '),
+)
+
+const selectedVisibleWeight = computed(() =>
+  selectedWeight.value && visibleWeights.value.includes(selectedWeight.value) ? selectedWeight.value : null,
 )
 
 // ---------------------------------------------------------------------------
@@ -306,7 +315,7 @@ const rollingIntakePolyline = computed(() =>
             v-for="point in intakePoints"
             :key="point.label"
             class="relative flex h-full flex-1 flex-col items-center justify-end"
-            :class="{ 'max-sm:min-w-16': range === 'all' }"
+            :class="{ 'min-w-16': range === 'all' }"
           >
             <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
             <i
@@ -315,7 +324,7 @@ const rollingIntakePolyline = computed(() =>
                 height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
               }"
             ></i>
-            <small class="absolute top-[calc(100%+8px)] text-[10px] text-dimmed">{{ point.label }}</small>
+            <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
           <div
             v-if="dailyGuide && range === '7d'"
@@ -331,19 +340,31 @@ const rollingIntakePolyline = computed(() =>
         <div v-if="visibleWeights.length" class="chart-plot chart-line h-[200px]">
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" :aria-label="t.growth">
             <polyline v-if="visibleWeights.length > 1" :points="weightPolyline" />
-            <circle
+            <g
               v-for="weight in visibleWeights"
               :key="weight.id"
-              :cx="weightPosition(weight, 'x')"
-              :cy="weightPosition(weight, 'y')"
-              r="1.2"
+              class="weight-chart-point"
+              role="button"
+              tabindex="0"
+              :aria-label="`${chartDateLabel(new Date(weight.occurredAt))}: ${weight.kilograms} ${t.kg}`"
+              @click="selectWeight(weight)"
+              @keydown.enter.prevent="selectWeight(weight)"
+              @keydown.space.prevent="selectWeight(weight)"
             >
-              <title>{{ weight.kilograms }} {{ t.kg }}</title>
-            </circle>
+              <circle class="weight-chart-hit-area" :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="7" />
+              <circle :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="1.2">
+                <title>{{ weight.kilograms }} {{ t.kg }}</title>
+              </circle>
+            </g>
           </svg>
-          <div class="flex justify-between text-[10px] text-muted">
-            <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
-            <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
+          <div class="flex justify-between text-[10px] text-muted" aria-live="polite">
+            <span v-if="selectedVisibleWeight" class="weight-chart-detail">
+              {{ chartDateLabel(new Date(selectedVisibleWeight.occurredAt)) }}: {{ selectedVisibleWeight.kilograms }} {{ t.kg }}
+            </span>
+            <template v-else>
+              <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
+              <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
+            </template>
           </div>
         </div>
         <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noWeightChartData }}</div>
@@ -355,7 +376,7 @@ const rollingIntakePolyline = computed(() =>
             v-for="point in bottleCountPoints"
             :key="point.label"
             class="relative flex h-full flex-1 flex-col items-center justify-end"
-            :class="{ 'max-sm:min-w-16': range === 'all' }"
+            :class="{ 'min-w-16': range === 'all' }"
           >
             <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
             <i
@@ -364,7 +385,7 @@ const rollingIntakePolyline = computed(() =>
                 height: `${Math.max((point.amount / bottleCountMax) * 100, point.amount ? 4 : 0)}%`,
               }"
             ></i>
-            <small class="absolute top-[calc(100%+8px)] text-[10px] text-dimmed">{{ point.label }}</small>
+            <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
         </div>
       </article>
