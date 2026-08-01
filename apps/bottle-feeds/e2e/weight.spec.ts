@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { clearDatabase, seedDatabase } from './helpers/seed-db'
+import { seedDatabase } from './helpers/seed-db'
 import { fullAppData, sampleWeights } from './fixtures/test-data'
 
 const MINT_500_RGB = 'rgb(114, 183, 160)'
@@ -46,31 +46,6 @@ test.describe('Weight recording', () => {
     const guideCard = page.locator('.guide-card')
     await expect(guideCard.locator('strong')).toContainText('620')
     await expect(page.getByText('Estimated theoretical daily quantity')).toBeVisible()
-  })
-
-  test('shows every chart weight without requiring hover on a mobile viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 })
-    await page.goto('/')
-    await clearDatabase(page)
-    await page.reload()
-    await page.locator('.feed-card').waitFor({ state: 'visible' })
-
-    const weightForm = page.locator('.weight-card')
-    const saveWeight = weightForm.getByRole('button', { name: 'Save weight' })
-    for (const kilograms of ['3.45', '3.5', '3.56', '3.62', '3.68']) {
-      await weightForm.locator('input[type="number"]').fill(kilograms)
-      await saveWeight.click()
-      await expect(weightForm.locator('input[type="number"]')).toHaveValue('')
-    }
-
-    const chartValues = page.locator('.weight-chart-values')
-    await expect(chartValues).toBeVisible()
-    await expect(chartValues.locator('.weight-chart-value')).toHaveCount(5)
-    await expect(chartValues).toContainText('3.45 kg')
-    await expect(chartValues).toContainText('3.68 kg')
-    await expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-      .toBe(true)
   })
 
   test('displays weight history in the weights tab', async ({ page }) => {

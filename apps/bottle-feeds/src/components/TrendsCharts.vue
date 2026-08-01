@@ -222,10 +222,14 @@ const rollingIntakeMax = computed(() =>
   Math.max(...rollingIntakePoints.value.map((p) => p.amount), 1),
 )
 
+const rollingIntakeChartWidth = computed(() =>
+  Math.max(300, rollingIntakePoints.value.length * 64),
+)
+
 function rollingIntakeX(index: number) {
   // Guard against division by zero when there are 0 or 1 points.
   const denominator = Math.max(rollingIntakePoints.value.length - 1, 1)
-  return 15 + (index / denominator) * 270
+  return 15 + (index / denominator) * (rollingIntakeChartWidth.value - 30)
 }
 
 function rollingIntakeY(amount: number) {
@@ -297,8 +301,13 @@ const rollingIntakePolyline = computed(() =>
     <div class="mt-[22px] grid grid-cols-1 gap-7 md:grid-cols-[1.2fr_1fr] md:gap-[42px]">
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.intake }}</h3>
-        <div class="chart-plot flex h-[200px] items-end gap-[9px] px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.intake">
-          <div v-for="point in intakePoints" :key="point.label" class="relative flex h-full flex-1 flex-col items-center justify-end">
+        <div class="chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.intake">
+          <div
+            v-for="point in intakePoints"
+            :key="point.label"
+            class="relative flex h-full flex-1 flex-col items-center justify-end"
+            :class="{ 'max-sm:min-w-16': range === 'all' }"
+          >
             <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
@@ -332,22 +341,22 @@ const rollingIntakePolyline = computed(() =>
               <title>{{ weight.kilograms }} {{ t.kg }}</title>
             </circle>
           </svg>
-          <div class="weight-chart-values mt-2 flex gap-2 overflow-x-auto px-1 pb-1 text-[10px] text-muted">
-            <span
-              v-for="weight in visibleWeights"
-              :key="weight.id"
-              class="weight-chart-value shrink-0 rounded-full bg-sage-50 px-2 py-1"
-            >
-              {{ chartDateLabel(new Date(weight.occurredAt)) }}: {{ weight.kilograms }} {{ t.kg }}
-            </span>
+          <div class="flex justify-between text-[10px] text-muted">
+            <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
+            <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
           </div>
         </div>
         <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noWeightChartData }}</div>
       </article>
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.bottlesPerDay }}</h3>
-        <div class="bottle-count-chart chart-plot flex h-[200px] items-end gap-[9px] px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
-          <div v-for="point in bottleCountPoints" :key="point.label" class="relative flex h-full flex-1 flex-col items-center justify-end">
+        <div class="bottle-count-chart chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
+          <div
+            v-for="point in bottleCountPoints"
+            :key="point.label"
+            class="relative flex h-full flex-1 flex-col items-center justify-end"
+            :class="{ 'max-sm:min-w-16': range === 'all' }"
+          >
             <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
@@ -361,22 +370,27 @@ const rollingIntakePolyline = computed(() =>
       </article>
       <article class="full-width md:col-span-2">
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.rollingIntake }}</h3>
-        <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="rolling-intake-chart chart-plot chart-line h-[200px]">
-          <svg viewBox="0 0 300 100" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
-            <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
-            <template v-for="(point, i) in rollingIntakePoints" :key="i">
-              <circle
-                v-if="point.amount > 0"
-                :cx="rollingIntakeX(i)"
-                :cy="rollingIntakeY(point.amount)"
-                r="1.5"
-              />
-            </template>
-          </svg>
-          <div class="rolling-intake-labels flex justify-between px-[5%] pt-1">
-            <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col flex min-w-0 flex-col items-center gap-px">
-              <span class="rolling-intake-amount text-[9px] text-muted">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
-              <span class="text-[10px] text-dimmed">{{ point.label }}</span>
+        <div v-if="rollingIntakePoints.some((p) => p.amount > 0)" class="overflow-x-auto">
+          <div
+            class="rolling-intake-chart chart-plot chart-line h-[200px]"
+            :style="{ minWidth: range === 'all' ? `${rollingIntakeChartWidth}px` : undefined }"
+          >
+            <svg :viewBox="`0 0 ${rollingIntakeChartWidth} 100`" preserveAspectRatio="none" role="img" :aria-label="t.rollingIntake">
+              <polyline v-if="rollingIntakePolyline" :points="rollingIntakePolyline" />
+              <template v-for="(point, i) in rollingIntakePoints" :key="i">
+                <circle
+                  v-if="point.amount > 0"
+                  :cx="rollingIntakeX(i)"
+                  :cy="rollingIntakeY(point.amount)"
+                  r="1.5"
+                />
+              </template>
+            </svg>
+            <div class="rolling-intake-labels flex justify-between px-[5%] pt-1">
+              <div v-for="(point, i) in rollingIntakePoints" :key="i" class="rolling-intake-col flex min-w-0 flex-col items-center gap-px">
+                <span class="rolling-intake-amount text-[9px] text-muted">{{ point.amount ? `${point.amount} ${t.ml}` : '' }}</span>
+                <span class="text-[10px] text-dimmed">{{ point.label }}</span>
+              </div>
             </div>
           </div>
         </div>

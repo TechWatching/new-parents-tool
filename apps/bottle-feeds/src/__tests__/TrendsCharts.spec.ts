@@ -8,7 +8,7 @@ describe('TrendsCharts', () => {
     vi.useRealTimers()
   })
 
-  it('shows every weight below the chart', () => {
+  it('shows each weight when its chart point is hovered', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-19T12:00:00.000Z'))
 
@@ -25,10 +25,8 @@ describe('TrendsCharts', () => {
       },
     })
 
-    expect(wrapper.findAll('.weight-chart-value').map((value) => value.text())).toEqual([
-      '18 Jul 2026: 4.2 kg',
-      '19 Jul 2026: 4.5 kg',
-    ])
+    expect(wrapper.findAll('.chart-line circle title').map((title) => title.text())).toEqual(['4.2 kg', '4.5 kg'])
+    expect(wrapper.findAll('.weight-chart-value')).toHaveLength(0)
   })
 
   it('uses a weight-only empty state for the weight chart', () => {
