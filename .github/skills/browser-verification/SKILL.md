@@ -106,10 +106,10 @@ that was never seen failing is not a verified fix.
 ## Evidence rules
 
 - Screenshots, snapshots, and console logs go to `.playwright-cli/`, which is
-  git-ignored at any depth. Never commit verification
-  screenshots to the repository; the only images tracked in git are the
-  documentation screenshots under `docs/images/`, and those are updated only
-  when the documented screen itself changed.
+  git-ignored at any depth. Never commit verification screenshots to the
+  repository; the only images tracked in git are the documentation screenshots
+  under `docs/images/`, and those are updated only when the documented screen
+  itself changed.
 - Never present a screenshot of a state you did not actually reach, and never
   describe a verification you did not run.
 - If verification fails, report the failure and the observed state. A red
