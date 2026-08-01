@@ -48,3 +48,8 @@ declared in `apm.yml` and installed with [apm](https://github.com/microsoft/apm)
 ```sh
 apm install
 ```
+
+This deploys genesis to `.agents/skills` (git-ignored, like `node_modules`).
+Copilot's cloud agent gets the same install from
+`.github/workflows/copilot-setup-steps.yml`, because its firewall blocks
+`api.github.com` for commands the agent runs itself but not for setup steps.
