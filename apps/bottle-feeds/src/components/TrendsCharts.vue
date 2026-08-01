@@ -328,14 +328,16 @@ const rollingIntakePolyline = computed(() =>
               :cx="weightPosition(weight, 'x')"
               :cy="weightPosition(weight, 'y')"
               r="1.2"
-            />
+            >
+              <title>{{ weight.kilograms }} {{ t.kg }}</title>
+            </circle>
           </svg>
           <div class="flex justify-between text-[10px] text-muted">
             <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
             <span>{{ visibleWeights[visibleWeights.length - 1]?.kilograms }} {{ t.kg }}</span>
           </div>
         </div>
-        <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noChartData }}</div>
+        <div v-else class="grid h-[200px] place-items-center text-center text-xs text-dimmed">{{ t.noWeightChartData }}</div>
       </article>
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.bottlesPerDay }}</h3>
