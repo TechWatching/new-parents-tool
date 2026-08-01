@@ -33,3 +33,18 @@ vp run --recursive lint
 vp run --filter bottle-feeds test:unit -- --run
 vp run --recursive build
 ```
+
+## Agent primitives
+
+Agent-facing primitives live in `.github`: always-attached rules in
+`.github/instructions` and skills in `.github/skills`. The
+`browser-verification` skill requires every browser-observable bug or feature
+to be reproduced and verified with `playwright-cli`, with screenshot evidence
+published on the pull request or issue.
+
+They are designed with [genesis](https://github.com/danielmeppiel/genesis),
+declared in `apm.yml` and installed with [apm](https://github.com/microsoft/apm):
+
+```sh
+apm install
+```
