@@ -33,3 +33,23 @@ vp run --recursive lint
 vp run --filter bottle-feeds test:unit -- --run
 vp run --recursive build
 ```
+
+## Agent primitives
+
+Agent-facing primitives live in `.github`: always-attached rules in
+`.github/instructions` and skills in `.github/skills`. The
+`browser-verification` skill requires every browser-observable bug or feature
+to be reproduced and verified with `playwright-cli`, with screenshot evidence
+published on the pull request or issue.
+
+They are designed with [genesis](https://github.com/danielmeppiel/genesis),
+declared in `apm.yml` and installed with [apm](https://github.com/microsoft/apm):
+
+```sh
+apm install
+```
+
+This deploys genesis to `.agents/skills` (git-ignored, like `node_modules`).
+Copilot's cloud agent gets the same install from
+`.github/workflows/copilot-setup-steps.yml`, because its firewall blocks
+`api.github.com` for commands the agent runs itself but not for setup steps.

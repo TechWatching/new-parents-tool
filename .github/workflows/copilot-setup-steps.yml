@@ -28,3 +28,10 @@ jobs:
 
       - name: Install Playwright browsers
         run: vp exec --filter bottle-feeds playwright install --with-deps chromium
+
+      # The agent firewall blocks api.github.com for processes the agent starts
+      # itself, so `apm install` cannot run from an agent session. Setup steps
+      # are exempt, so the primitives declared in apm.yml are installed here and
+      # are already on disk when the session starts.
+      - name: Install agent primitives
+        uses: microsoft/apm-action@v1.10.0

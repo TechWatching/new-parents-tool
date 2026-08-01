@@ -1,0 +1,13 @@
+name: new-parents-tool
+version: 1.0.0
+description: Agentic primitives for the new-parents-tool monorepo
+author: TechWatching
+targets:
+  - copilot
+
+dependencies:
+  apm:
+    - danielmeppiel/genesis
+  mcp: []
+includes: auto
+scripts: {}
