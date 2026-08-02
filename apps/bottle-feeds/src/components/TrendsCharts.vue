@@ -165,7 +165,7 @@ function weightPosition(weight: Weight, axis: 'x' | 'y') {
 }
 
 function selectWeight(weight: Weight) {
-  selectedWeight.value = weight
+  selectedWeight.value = selectedWeight.value === weight ? null : weight
 }
 
 const weightPolyline = computed(() =>
@@ -344,6 +344,7 @@ const rollingIntakePolyline = computed(() =>
               v-for="weight in visibleWeights"
               :key="weight.id"
               class="weight-chart-point"
+              :class="{ selected: weight === selectedVisibleWeight }"
               role="button"
               tabindex="0"
               :aria-label="`${chartDateLabel(new Date(weight.occurredAt))}: ${weight.kilograms.toLocaleString(locale)} ${t.kg}`"
@@ -353,7 +354,7 @@ const rollingIntakePolyline = computed(() =>
             >
               <title>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</title>
               <circle class="weight-chart-hit-area" :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="7" />
-              <circle :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="1.2" />
+              <circle :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="2.5" />
             </g>
           </svg>
           <div class="flex justify-between text-[10px] text-muted" aria-live="polite">
