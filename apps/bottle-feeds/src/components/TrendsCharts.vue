@@ -346,20 +346,19 @@ const rollingIntakePolyline = computed(() =>
               class="weight-chart-point"
               role="button"
               tabindex="0"
-              :aria-label="`${chartDateLabel(new Date(weight.occurredAt))}: ${weight.kilograms} ${t.kg}`"
+              :aria-label="`${chartDateLabel(new Date(weight.occurredAt))}: ${weight.kilograms.toLocaleString(locale)} ${t.kg}`"
               @click="selectWeight(weight)"
               @keydown.enter.prevent="selectWeight(weight)"
               @keydown.space.prevent="selectWeight(weight)"
             >
+              <title>{{ weight.kilograms.toLocaleString(locale) }} {{ t.kg }}</title>
               <circle class="weight-chart-hit-area" :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="7" />
-              <circle :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="1.2">
-                <title>{{ weight.kilograms }} {{ t.kg }}</title>
-              </circle>
+              <circle :cx="weightPosition(weight, 'x')" :cy="weightPosition(weight, 'y')" r="1.2" />
             </g>
           </svg>
           <div class="flex justify-between text-[10px] text-muted" aria-live="polite">
             <span v-if="selectedVisibleWeight" class="weight-chart-detail">
-              {{ chartDateLabel(new Date(selectedVisibleWeight.occurredAt)) }}: {{ selectedVisibleWeight.kilograms }} {{ t.kg }}
+              {{ chartDateLabel(new Date(selectedVisibleWeight.occurredAt)) }}: {{ selectedVisibleWeight.kilograms.toLocaleString(locale) }} {{ t.kg }}
             </span>
             <template v-else>
               <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>

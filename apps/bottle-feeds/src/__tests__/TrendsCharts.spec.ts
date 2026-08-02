@@ -26,7 +26,7 @@ describe('TrendsCharts', () => {
       },
     })
 
-    expect(wrapper.findAll('.chart-line circle title').map((title) => title.text())).toEqual(['4.2 kg', '4.5 kg'])
+    expect(wrapper.findAll('.weight-chart-point title').map((title) => title.text())).toEqual(['4.2 kg', '4.5 kg'])
     expect(wrapper.findAll('.weight-chart-value')).toHaveLength(0)
 
     await wrapper.findAll('.weight-chart-point')[1]!.trigger('click')
