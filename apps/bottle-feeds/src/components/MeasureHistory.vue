@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import UModal from '@nuxt/ui/components/Modal.vue'
 import UScrollArea from '@nuxt/ui/components/ScrollArea.vue'
@@ -13,6 +13,8 @@ import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTim
 const props = defineProps<{
   feeds: Feed[]
   weights: Weight[]
+  quickEditFeedId?: string | null
+  quickEditFeedNonce?: number
   t: Messages
   locale: string
 }>()
@@ -25,6 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const measureTab = ref<'feeds' | 'weights'>('feeds')
+const rootRef = ref<HTMLElement | null>(null)
 const tabItems = computed(() => [
   { label: props.t.quantities, value: 'feeds', slot: 'feeds' },
   { label: props.t.weights, value: 'weights', slot: 'weights' },
@@ -114,6 +117,7 @@ function onTimeInput(form: { time: string }, event: Event) {
 function onEditingFeedTimeInput(event: Event) {
   onTimeInput(editingFeed, event)
 }
+
 function editFeed(feed: Feed) {
   editingFeedId.value = feed.id
   Object.assign(editingFeed, {
@@ -129,6 +133,18 @@ function saveFeed(feed: Feed) {
   if (!amount || amount <= 0 || !recordedAt) return
   emit('save-feed', { id: feed.id, amount, occurredAt: recordedAt, comment: editingFeed.comment.trim() })
   editingFeedId.value = null
+}
+
+async function openQuickEditFeed(feedId: string) {
+  const feed = props.feeds.find((candidate) => candidate.id === feedId)
+  if (!feed) return
+  measureTab.value = 'feeds'
+  editFeed(feed)
+  await nextTick()
+  const entry = Array.from(
+    rootRef.value?.querySelectorAll<HTMLElement>('[data-feed-entry-id]') ?? [],
+  ).find((element) => element.dataset.feedEntryId === feedId)
+  entry?.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
 
 function editWeight(weight: Weight) {
@@ -186,10 +202,18 @@ const deleteDialogDescription = computed(() => {
     .replace('{measure}', pendingDeletion.value.measure)
     .replace('{date}', pendingDeletion.value.date)
 })
+
+watch(
+  () => [props.quickEditFeedNonce, props.quickEditFeedId] as const,
+  ([nonce, feedId]) => {
+    if (!nonce || !feedId) return
+    void openQuickEditFeed(feedId)
+  },
+)
 </script>
 
 <template>
-  <section class="measure-card surface mt-[18px] p-5 sm:p-6" :aria-label="t.measures">
+  <section ref="rootRef" class="measure-card surface mt-[18px] p-5 sm:p-6" :aria-label="t.measures">
     <h2 class="text-lg font-extrabold text-highlighted">{{ t.measures }}</h2>
     <UTabs
       v-model="measureTab"
@@ -213,6 +237,7 @@ const deleteDialogDescription = computed(() => {
               <div
                 v-else-if="item.feed"
                 class="measure-tree-entry tree-entry"
+                :data-feed-entry-id="item.feed.id"
               >
                 <form v-if="editingFeedId === item.feed.id" class="col-span-full grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="saveFeed(item.feed)">
                   <div class="grid grid-cols-1 gap-2">
