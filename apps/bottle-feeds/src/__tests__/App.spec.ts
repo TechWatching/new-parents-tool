@@ -197,6 +197,42 @@ describe('App', () => {
     }
   })
 
+  it('opens quick edit for the latest bottle from the top banner', async () => {
+    const scrollIntoViewSpy = vi.fn()
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewSpy,
+    })
+    const preloaded: AppData = {
+      feeds: [
+        {
+          id: 'feed-latest',
+          amount: 120,
+          occurredAt: '2026-07-14T14:30:00.000Z',
+          comment: '',
+          updatedAt: '2026-07-14T14:30:00.000Z',
+        },
+        {
+          id: 'feed-older',
+          amount: 90,
+          occurredAt: '2026-07-13T14:30:00.000Z',
+          comment: '',
+          updatedAt: '2026-07-13T14:30:00.000Z',
+        },
+      ],
+      weights: [],
+    }
+    await saveData(preloaded, GUEST_NAMESPACE)
+    const wrapper = await mountApp()
+
+    await wrapper.get('[aria-label="Edit latest bottle"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.measure-tree-entry form').exists()).toBe(true)
+    expect((wrapper.get('#edit-feed-amount').element as HTMLInputElement).value).toBe('120')
+    expect(scrollIntoViewSpy).toHaveBeenCalled()
+  })
+
   it('formats longer elapsed times as hours and minutes', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-14T14:30:00.000Z'))

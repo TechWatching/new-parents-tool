@@ -381,6 +381,8 @@ const sortedWeights = computed(() =>
 )
 const latestWeight = computed(() => sortedWeights.value[0])
 const latestFeed = computed(() => sortedFeeds.value[0])
+const latestFeedQuickEditId = ref<string | null>(null)
+const latestFeedQuickEditNonce = ref(0)
 const lastBottleSummary = computed(() => {
   if (!latestFeed.value) return null
 
@@ -397,6 +399,13 @@ const lastBottleSummary = computed(() => {
 const dailyGuide = computed(() =>
   latestWeight.value ? Math.round((latestWeight.value.kilograms * 1000) / 10 + 200) : null,
 )
+
+function quickEditLatestFeed() {
+  const feed = latestFeed.value
+  if (!feed) return
+  latestFeedQuickEditId.value = feed.id
+  latestFeedQuickEditNonce.value += 1
+}
 
 // ---------------------------------------------------------------------------
 // Export / Import
@@ -628,7 +637,20 @@ const syncLabel = computed(() => {
         aria-live="polite"
       >
         <span>{{ lastBottleSummary.relativeTime }}</span>
-        <span class="font-medium text-muted">{{ lastBottleSummary.details }}</span>
+        <span class="flex items-center gap-1 font-medium text-muted">
+          <span>{{ lastBottleSummary.details }}</span>
+          <UButton
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            class="h-auto min-h-0 min-w-0 px-1 py-0.5 leading-none"
+            :aria-label="t.editLatestBottle"
+            @click="quickEditLatestFeed"
+          >
+            ✎
+          </UButton>
+        </span>
       </p>
 
       <!-- Sync status bar -->
@@ -845,6 +867,8 @@ const syncLabel = computed(() => {
       <MeasureHistory
         :feeds="sortedFeeds"
         :weights="sortedWeights"
+        :quick-edit-feed-id="latestFeedQuickEditId"
+        :quick-edit-feed-nonce="latestFeedQuickEditNonce"
         :t="t"
         :locale="locale"
         class="mt-[18px]"
