@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { seedDatabase } from './helpers/seed-db'
-import { fullAppData, sampleWeights } from './fixtures/test-data'
+import { fullAppData, REFERENCE_DATE, sampleWeights } from './fixtures/test-data'
 
 const MINT_500_RGB = 'rgb(114, 183, 160)'
 const SAGE_800_RGB = 'rgb(52, 64, 60)'
@@ -46,6 +46,27 @@ test.describe('Weight recording', () => {
     const guideCard = page.locator('.guide-card')
     await expect(guideCard.locator('strong')).toContainText('620')
     await expect(page.getByText('Estimated theoretical daily quantity')).toBeVisible()
+  })
+
+  test('keeps all-time chart labels readable and supports selecting a weight on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await seedDatabase(page, fullAppData, new Date(REFERENCE_DATE))
+    await page.getByRole('button', { name: 'All time' }).click()
+
+    const bottleChart = page.locator('.bottle-count-chart')
+    await expect
+      .poll(() => bottleChart.evaluate((chart) => chart.scrollWidth > chart.clientWidth))
+      .toBe(true)
+    await expect
+      .poll(() => bottleChart.locator('small').first().evaluate((label) => getComputedStyle(label).whiteSpace))
+      .toBe('nowrap')
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true)
+
+    const weightChart = page.locator('.chart-line').first()
+    await weightChart.locator('.weight-chart-point').nth(1).click()
+    await expect(weightChart.locator('.weight-chart-detail')).toHaveText('8 Jul 2026: 4 kg')
   })
 
   test('displays weight history in the weights tab', async ({ page }) => {

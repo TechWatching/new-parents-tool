@@ -115,7 +115,7 @@
 
 /* A single row in the measure history tree (feed or weight entry). */
 @utility tree-entry {
-  @apply grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-sage-100 py-2.5 pl-[34px] pr-2 sm:grid-cols-[minmax(0,1fr)_auto_auto];
+  @apply grid w-full grid-cols-1 items-center gap-3 border-b border-sage-100 py-2.5 pl-[34px] pr-2 sm:grid-cols-[minmax(0,1fr)_auto_auto];
 }
 
 /* Chart plotting surface: subtle horizontal gridlines + baseline. */
@@ -146,5 +146,22 @@
     stroke: var(--color-mint-600);
     stroke-width: 1.4;
     vector-effect: non-scaling-stroke;
+  }
+  & .weight-chart-point {
+    cursor: pointer;
+  }
+  & .weight-chart-point:focus-visible {
+    outline: none;
+  }
+  & .weight-chart-point:focus-visible circle:not(.weight-chart-hit-area) {
+    stroke-width: 3;
+  }
+  & .weight-chart-point.selected circle:not(.weight-chart-hit-area) {
+    fill: var(--color-mint-600);
+    r: 3.5;
+  }
+  & .weight-chart-hit-area {
+    fill: transparent;
+    stroke: transparent;
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { messages } from '../i18n'
-import { formatRelativeTime } from '../utils/format'
+import { formatRelativeTime, formatTime } from '../utils/format'
 
 describe('formatRelativeTime', () => {
   const now = Date.parse('2024-01-01T12:00:00Z')
@@ -8,6 +8,12 @@ describe('formatRelativeTime', () => {
   it('formats in English when locale is en-GB', () => {
     const value = new Date(now - 2 * 60 * 60 * 1000).toISOString()
     expect(formatRelativeTime(value, 'en-GB', now)).toBe('2 hours')
+  })
+
+  describe('formatTime', () => {
+    it('formats a time without repeating the date', () => {
+      expect(formatTime('2024-01-01T14:30:00', 'en-GB')).toBe('14:30')
+    })
   })
 
   describe('translations', () => {
