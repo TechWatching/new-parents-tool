@@ -371,7 +371,7 @@ const rollingIntakePolyline = computed(() =>
       </article>
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.bottlesPerDay }}</h3>
-        <div class="bottle-count-chart chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
+        <div class="bottle-count-chart chart-plot flex h-[240px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
           <div
             v-for="point in bottleCountPoints"
             :key="point.label"

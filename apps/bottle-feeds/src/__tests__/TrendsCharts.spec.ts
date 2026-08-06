@@ -64,6 +64,20 @@ describe('TrendsCharts', () => {
     expect(point.classes()).not.toContain('selected')
   })
 
+  it('uses a taller bottle count chart so the largest bars remain fully visible', () => {
+    const wrapper = mount(TrendsCharts, {
+      props: {
+        feeds: [],
+        weights: [],
+        dailyGuide: null,
+        t: messages.en,
+        locale: 'en-GB',
+      },
+    })
+
+    expect(wrapper.find('.bottle-count-chart').classes()).toContain('h-[240px]')
+  })
+
   it('uses a weight-only empty state for the weight chart', () => {
     const wrapper = mount(TrendsCharts, {
       props: {
