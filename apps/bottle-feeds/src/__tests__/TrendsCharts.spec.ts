@@ -79,20 +79,32 @@ describe('TrendsCharts', () => {
   })
 
   it('keeps bottle-count bar values visible by giving each bar a minimum width and unclipped text', () => {
-    const wrapper = mount(TrendsCharts, {
-      props: {
-        feeds: [],
-        weights: [],
-        dailyGuide: null,
-        t: messages.en,
-        locale: 'en-GB',
-      },
-    })
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T12:00:00.000Z'))
 
-    const firstBar = wrapper.find('.bottle-count-chart > div')
-    expect(firstBar.classes()).toContain('min-w-[44px]')
-    expect(firstBar.classes()).toContain('overflow-visible')
-    expect(wrapper.find('.bottle-count-chart .bar-value').classes()).toContain('whitespace-nowrap')
+    try {
+      const wrapper = mount(TrendsCharts, {
+        props: {
+          feeds: [{ id: 'feed-1', amount: 9, occurredAt: '2026-07-19T12:00:00.000Z', comment: '', updatedAt: '2026-07-19T12:00:00.000Z' }],
+          weights: [],
+          dailyGuide: null,
+          t: messages.en,
+          locale: 'en-GB',
+        },
+      })
+
+      const intakeChart = wrapper.findAll('.chart-plot')[0]
+      const firstIntakeBar = intakeChart.findAll('div')[0]
+      expect(firstIntakeBar.classes()).toContain('min-w-[44px]')
+      expect(firstIntakeBar.classes()).toContain('overflow-visible')
+
+      const firstBottleBar = wrapper.find('.bottle-count-chart > div')
+      expect(firstBottleBar.classes()).toContain('min-w-[44px]')
+      expect(firstBottleBar.classes()).toContain('overflow-visible')
+      expect(wrapper.find('.bottle-count-chart .bar-value').classes()).toContain('whitespace-nowrap')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('uses a weight-only empty state for the weight chart', () => {
