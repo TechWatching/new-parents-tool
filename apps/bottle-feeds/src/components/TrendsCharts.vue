@@ -314,10 +314,10 @@ const rollingIntakePolyline = computed(() =>
           <div
             v-for="point in intakePoints"
             :key="point.label"
-            class="relative flex h-full flex-1 flex-col items-center justify-end"
+            class="relative flex h-full min-w-[44px] flex-1 flex-col items-center justify-end overflow-visible"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 max-w-full shrink-0 whitespace-nowrap text-[10px] font-semibold leading-none text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
               :style="{
@@ -375,17 +375,17 @@ const rollingIntakePolyline = computed(() =>
           <div
             v-for="point in bottleCountPoints"
             :key="point.label"
-            class="relative flex h-full flex-1 flex-col items-center justify-end"
+            class="relative flex h-full min-w-[44px] flex-1 flex-col items-center justify-end overflow-visible"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 max-w-full shrink-0 whitespace-nowrap text-[10px] font-semibold leading-none text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
               :style="{
                 height: `${Math.max((point.amount / bottleCountMax) * 100, point.amount ? 4 : 0)}%`,
               }"
             ></i>
-            <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
+            <small class="absolute top-[calc(100%+8px)] max-w-full whitespace-nowrap text-center text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
         </div>
       </article>

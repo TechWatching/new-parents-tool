@@ -78,6 +78,23 @@ describe('TrendsCharts', () => {
     expect(wrapper.find('.bottle-count-chart').classes()).toContain('h-[240px]')
   })
 
+  it('keeps bottle-count bar values visible by giving each bar a minimum width and unclipped text', () => {
+    const wrapper = mount(TrendsCharts, {
+      props: {
+        feeds: [],
+        weights: [],
+        dailyGuide: null,
+        t: messages.en,
+        locale: 'en-GB',
+      },
+    })
+
+    const firstBar = wrapper.find('.bottle-count-chart > div')
+    expect(firstBar.classes()).toContain('min-w-[44px]')
+    expect(firstBar.classes()).toContain('overflow-visible')
+    expect(wrapper.find('.bottle-count-chart .bar-value').classes()).toContain('whitespace-nowrap')
+  })
+
   it('uses a weight-only empty state for the weight chart', () => {
     const wrapper = mount(TrendsCharts, {
       props: {
