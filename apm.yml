@@ -8,6 +8,9 @@ targets:
 dependencies:
   apm:
     - danielmeppiel/genesis
+    - git: jongio/skills
+      skills:
+        - repo-ready
   mcp: []
 includes: auto
 scripts: {}
