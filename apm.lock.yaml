@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-08-01T21:58:41.072816+00:00'
+generated_at: '2026-08-31T10:44:38.949190+00:00'
 apm_version: 0.14.0
 dependencies:
 - repo_url: danielmeppiel/genesis
@@ -9,3 +9,12 @@ dependencies:
   deployed_files:
   - .agents/skills/genesis
   content_hash: sha256:3f941a3e288053f7c0d8111d5febcd2f94de6f9dada7e8479fa676736975a272
+- repo_url: jongio/skills
+  host: github.com
+  resolved_commit: f7403dc03a9b464bc1fea71d5012a4a4a4a31f67
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/repo-ready
+  content_hash: sha256:051beaf6246805b86e9f264b1520c4b75f4d280c45503e765496ebf1819a23cb
+  skill_subset:
+  - repo-ready
