@@ -48,6 +48,38 @@ test.describe('Weight recording', () => {
     await expect(page.getByText('Estimated theoretical daily quantity')).toBeVisible()
   })
 
+  test('aligns the theoretical quantity landmark with the intake chart scale', async ({ page }) => {
+    await seedDatabase(
+      page,
+      {
+        feeds: [
+          {
+            id: 'feed-700',
+            amount: 700,
+            occurredAt: REFERENCE_DATE,
+            comment: '',
+            updatedAt: REFERENCE_DATE,
+          },
+        ],
+        weights: [sampleWeights[0]!],
+      },
+      new Date(REFERENCE_DATE),
+    )
+
+    const intakeChart = page.locator('.chart-plot').first()
+    const guideLine = intakeChart.locator('.intake-guide-line')
+    const maximumBar = intakeChart.locator('i').last()
+    await intakeChart.scrollIntoViewIfNeeded()
+
+    const [lineBox, barBox] = await Promise.all([guideLine.boundingBox(), maximumBar.boundingBox()])
+    expect(lineBox).not.toBeNull()
+    expect(barBox).not.toBeNull()
+
+    const expectedLineTop = barBox!.y + barBox!.height * (1 - 620 / 700)
+    const lineCenter = lineBox!.y + lineBox!.height / 2
+    expect(Math.abs(lineCenter - expectedLineTop)).toBeLessThan(1)
+  })
+
   test('keeps all-time chart labels readable and supports selecting a weight on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await seedDatabase(page, fullAppData, new Date(REFERENCE_DATE))

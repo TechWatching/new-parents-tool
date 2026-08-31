@@ -104,6 +104,13 @@ const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
 )
 
+const intakeGuidePosition = computed(() => {
+  const ratio = (props.dailyGuide ?? 0) / intakeMax.value
+  const chartPadding = 42
+  const chartBottomPadding = 30
+  return `calc(${ratio * 100}% + ${chartBottomPadding - ratio * chartPadding}px)`
+})
+
 const bottleCountPoints = computed<ChartPoint[]>(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -328,8 +335,8 @@ const rollingIntakePolyline = computed(() =>
           </div>
           <div
             v-if="dailyGuide && range === '7d'"
-            class="absolute inset-x-0 z-[2] border-t border-dashed border-amber-500/70"
-            :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }"
+            class="intake-guide-line absolute inset-x-0 z-[2] border-t border-dashed border-amber-500/70"
+            :style="{ bottom: intakeGuidePosition }"
           >
             <span class="absolute bottom-0.5 right-0 text-[9px] text-amber-700">{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
           </div>
