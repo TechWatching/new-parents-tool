@@ -1,6 +1,12 @@
 node_modules/
 dist/
+coverage/
+playwright-report/
 *.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
 test-results/
 .playwright-cli/
 apm_modules/

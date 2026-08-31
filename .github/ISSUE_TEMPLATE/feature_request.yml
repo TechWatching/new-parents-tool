@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an improvement to New Parents Tool.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for suggesting an improvement.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem or need would this feature address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome
+      description: Describe what you would like to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternatives or workarounds you considered.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any relevant examples, mockups, or screenshots.
