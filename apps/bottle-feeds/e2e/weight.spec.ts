@@ -112,13 +112,28 @@ test.describe('Weight recording', () => {
 
     const intakeChart = page.locator('.chart-plot').first()
     const maximumValue = intakeChart.locator('.bar-value', { hasText: '670' })
-    const [chartBox, valueBox] = await Promise.all([intakeChart.boundingBox(), maximumValue.boundingBox()])
+    const guideLabel = intakeChart.locator('.intake-guide-line span')
+    const [chartBox, valueBox, guideBox] = await Promise.all([
+      intakeChart.boundingBox(),
+      maximumValue.boundingBox(),
+      guideLabel.boundingBox(),
+    ])
 
     expect(chartBox).not.toBeNull()
     expect(valueBox).not.toBeNull()
+    expect(guideBox).not.toBeNull()
     expect(valueBox!.y).toBeGreaterThanOrEqual(chartBox!.y)
+    expect(valueBox!.x).toBeGreaterThanOrEqual(chartBox!.x)
+    expect(valueBox!.y + valueBox!.height).toBeLessThanOrEqual(chartBox!.y + chartBox!.height)
+    expect(valueBox!.x + valueBox!.width).toBeLessThanOrEqual(chartBox!.x + chartBox!.width)
+    const labelsOverlap =
+      valueBox!.x < guideBox!.x + guideBox!.width &&
+      valueBox!.x + valueBox!.width > guideBox!.x &&
+      valueBox!.y < guideBox!.y + guideBox!.height &&
+      valueBox!.y + valueBox!.height > guideBox!.y
+    expect(labelsOverlap).toBe(false)
     await expect(maximumValue).toBeVisible()
-    await expect(intakeChart.locator('.intake-guide-line')).toContainText('640 ml')
+    await expect(guideLabel).toContainText('640 ml')
   })
 
   test('keeps all-time chart labels readable and supports selecting a weight on mobile', async ({ page }) => {

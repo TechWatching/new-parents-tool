@@ -325,7 +325,12 @@ const rollingIntakePolyline = computed(() =>
     <div class="mt-[22px] grid grid-cols-1 gap-7 md:grid-cols-[1.2fr_1fr] md:gap-[42px]">
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.intake }}</h3>
-        <div class="chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.intake">
+        <div
+          class="chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto pb-[30px] pl-[5px] pt-3"
+          :class="dailyGuide && range === '7d' ? 'pr-16' : 'pr-[5px]'"
+          role="img"
+          :aria-label="t.intake"
+        >
           <div
             v-for="point in intakePoints"
             :key="point.label"
@@ -341,10 +346,10 @@ const rollingIntakePolyline = computed(() =>
           </div>
           <div
             v-if="dailyGuide && range === '7d'"
-            class="intake-guide-line absolute inset-x-0 z-[2] border-t border-dashed border-amber-500/70"
+            class="intake-guide-line absolute left-0 right-16 z-[2] border-t border-dashed border-amber-500/70"
             :style="{ bottom: intakeGuidePosition }"
           >
-            <span class="absolute bottom-0.5 right-0 text-[9px] text-amber-700">{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
+            <span class="absolute bottom-0.5 left-full ml-1 whitespace-nowrap text-[9px] text-amber-700">{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
           </div>
         </div>
       </article>
