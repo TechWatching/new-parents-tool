@@ -80,6 +80,47 @@ test.describe('Weight recording', () => {
     expect(Math.abs(lineCenter - expectedLineTop)).toBeLessThan(1)
   })
 
+  test('keeps the maximum intake value visible above its bar', async ({ page }) => {
+    const dailyAmounts = [500, 450, 480, 400, 500, 430, 670]
+    const feeds = dailyAmounts.map((amount, index) => {
+      const occurredAt = new Date('2026-07-09T12:00:00.000Z')
+      occurredAt.setUTCDate(occurredAt.getUTCDate() + index)
+      return {
+        id: `feed-${amount}-${index}`,
+        amount,
+        occurredAt: occurredAt.toISOString(),
+        comment: '',
+        updatedAt: occurredAt.toISOString(),
+      }
+    })
+
+    await seedDatabase(
+      page,
+      {
+        feeds,
+        weights: [
+          {
+            id: 'weight-guide-640',
+            kilograms: 4.4,
+            occurredAt: REFERENCE_DATE,
+            updatedAt: REFERENCE_DATE,
+          },
+        ],
+      },
+      new Date(REFERENCE_DATE),
+    )
+
+    const intakeChart = page.locator('.chart-plot').first()
+    const maximumValue = intakeChart.locator('.bar-value', { hasText: '670' })
+    const [chartBox, valueBox] = await Promise.all([intakeChart.boundingBox(), maximumValue.boundingBox()])
+
+    expect(chartBox).not.toBeNull()
+    expect(valueBox).not.toBeNull()
+    expect(valueBox!.y).toBeGreaterThanOrEqual(chartBox!.y)
+    await expect(maximumValue).toBeVisible()
+    await expect(intakeChart.locator('.intake-guide-line')).toContainText('640 ml')
+  })
+
   test('keeps all-time chart labels readable and supports selecting a weight on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await seedDatabase(page, fullAppData, new Date(REFERENCE_DATE))

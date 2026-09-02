@@ -104,12 +104,20 @@ const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
 )
 
+const INTAKE_VALUE_LABEL_HEIGHT = 18
+
 const intakeGuidePosition = computed(() => {
   const ratio = (props.dailyGuide ?? 0) / intakeMax.value
-  const chartPadding = 42
+  const chartPadding = 42 + INTAKE_VALUE_LABEL_HEIGHT
   const chartBottomPadding = 30
   return `calc(${ratio * 100}% + ${chartBottomPadding - ratio * chartPadding}px)`
 })
+
+function intakeBarHeight(amount: number) {
+  if (!amount) return '0'
+  const ratio = amount / intakeMax.value
+  return `max(calc((100% - ${INTAKE_VALUE_LABEL_HEIGHT}px) * ${ratio}), 4px)`
+}
 
 const bottleCountPoints = computed<ChartPoint[]>(() => {
   const today = new Date()
@@ -324,12 +332,10 @@ const rollingIntakePolyline = computed(() =>
             class="relative flex h-full flex-1 flex-col items-center justify-end"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 h-[14px] shrink-0 text-[9px] leading-[14px] text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
-              :style="{
-                height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
-              }"
+              :style="{ height: intakeBarHeight(point.amount) }"
             ></i>
             <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
