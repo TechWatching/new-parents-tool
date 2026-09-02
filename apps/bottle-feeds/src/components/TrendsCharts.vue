@@ -105,12 +105,14 @@ const intakeMax = computed(() =>
 )
 
 const BAR_VALUE_LABEL_HEIGHT = 20
+const CHART_TOP_PADDING = 12
+const CHART_BOTTOM_PADDING = 30
+const CHART_VERTICAL_PADDING = CHART_TOP_PADDING + CHART_BOTTOM_PADDING
 
 const intakeGuidePosition = computed(() => {
   const ratio = (props.dailyGuide ?? 0) / intakeMax.value
-  const chartPadding = 42 + BAR_VALUE_LABEL_HEIGHT
-  const chartBottomPadding = 30
-  return `calc(${ratio * 100}% + ${chartBottomPadding - ratio * chartPadding}px)`
+  const reservedChartHeight = CHART_VERTICAL_PADDING + BAR_VALUE_LABEL_HEIGHT
+  return `calc(${ratio * 100}% + ${CHART_BOTTOM_PADDING - ratio * reservedChartHeight}px)`
 })
 
 function chartBarHeight(amount: number, maximum: number) {
