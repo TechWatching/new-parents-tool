@@ -48,6 +48,128 @@ test.describe('Weight recording', () => {
     await expect(page.getByText('Estimated theoretical daily quantity')).toBeVisible()
   })
 
+  test('aligns the theoretical quantity landmark with the intake chart scale', async ({ page }) => {
+    await seedDatabase(
+      page,
+      {
+        feeds: [
+          {
+            id: 'feed-700',
+            amount: 700,
+            occurredAt: REFERENCE_DATE,
+            comment: '',
+            updatedAt: REFERENCE_DATE,
+          },
+        ],
+        weights: [sampleWeights[0]!],
+      },
+      new Date(REFERENCE_DATE),
+    )
+
+    const intakeChart = page.locator('.chart-plot').first()
+    const guideLine = intakeChart.locator('.intake-guide-line')
+    const guideAmount = Number.parseFloat((await guideLine.locator('span').textContent())!)
+    const maximumBar = intakeChart.locator('.bar-value').filter({ hasText: /^700$/ }).locator('..').locator('i')
+    await intakeChart.scrollIntoViewIfNeeded()
+
+    const [lineBox, barBox] = await Promise.all([guideLine.boundingBox(), maximumBar.boundingBox()])
+    expect(lineBox).not.toBeNull()
+    expect(barBox).not.toBeNull()
+    expect(guideAmount).not.toBeNaN()
+
+    const expectedLineTop = barBox!.y + barBox!.height * (1 - guideAmount / 700)
+    const lineCenter = lineBox!.y + lineBox!.height / 2
+    expect(Math.abs(lineCenter - expectedLineTop)).toBeLessThan(1)
+  })
+
+  test('keeps the maximum intake value visible above its bar', async ({ page }) => {
+    const dailyAmounts = [500, 450, 480, 400, 500, 430, 670]
+    const feeds = dailyAmounts.map((amount, index) => {
+      const occurredAt = new Date('2026-07-09T12:00:00.000Z')
+      occurredAt.setUTCDate(occurredAt.getUTCDate() + index)
+      return {
+        id: `feed-${amount}-${index}`,
+        amount,
+        occurredAt: occurredAt.toISOString(),
+        comment: '',
+        updatedAt: occurredAt.toISOString(),
+      }
+    })
+
+    await seedDatabase(
+      page,
+      {
+        feeds,
+        weights: [
+          {
+            id: 'weight-guide-640',
+            kilograms: 4.4,
+            occurredAt: REFERENCE_DATE,
+            updatedAt: REFERENCE_DATE,
+          },
+        ],
+      },
+      new Date(REFERENCE_DATE),
+    )
+
+    const intakeChart = page.locator('.chart-plot').first()
+    const maximumValue = intakeChart.locator('.bar-value', { hasText: '670' })
+    const guideLabel = intakeChart.locator('.intake-guide-line span')
+    const [chartBox, valueBox, guideBox] = await Promise.all([
+      intakeChart.boundingBox(),
+      maximumValue.boundingBox(),
+      guideLabel.boundingBox(),
+    ])
+
+    expect(chartBox).not.toBeNull()
+    expect(valueBox).not.toBeNull()
+    expect(guideBox).not.toBeNull()
+    expect(chartBox!.height).toBe(220)
+    expect(valueBox!.y).toBeGreaterThanOrEqual(chartBox!.y)
+    expect(valueBox!.x).toBeGreaterThanOrEqual(chartBox!.x)
+    expect(valueBox!.y + valueBox!.height).toBeLessThanOrEqual(chartBox!.y + chartBox!.height)
+    expect(valueBox!.x + valueBox!.width).toBeLessThanOrEqual(chartBox!.x + chartBox!.width)
+    const labelsOverlap =
+      valueBox!.x < guideBox!.x + guideBox!.width &&
+      valueBox!.x + valueBox!.width > guideBox!.x &&
+      valueBox!.y < guideBox!.y + guideBox!.height &&
+      valueBox!.y + valueBox!.height > guideBox!.y
+    expect(labelsOverlap).toBe(false)
+    await expect(maximumValue).toBeVisible()
+    await expect(guideLabel).toContainText('640 ml')
+  })
+
+  test('keeps the highest bottle count visible when daily counts vary', async ({ page }) => {
+    const dailyCounts = [2, 3, 2, 4, 2, 2, 7]
+    const feeds = dailyCounts.flatMap((count, dayIndex) =>
+      Array.from({ length: count }, (_, feedIndex) => {
+        const occurredAt = new Date('2026-07-09T06:00:00.000Z')
+        occurredAt.setUTCDate(occurredAt.getUTCDate() + dayIndex)
+        occurredAt.setUTCHours(6 + feedIndex)
+        return {
+          id: `feed-${dayIndex}-${feedIndex}`,
+          amount: 100,
+          occurredAt: occurredAt.toISOString(),
+          comment: '',
+          updatedAt: occurredAt.toISOString(),
+        }
+      }),
+    )
+
+    await seedDatabase(page, { feeds, weights: [] }, new Date(REFERENCE_DATE))
+
+    const bottleCountChart = page.locator('.bottle-count-chart')
+    const highestCount = bottleCountChart.locator('.bar-value', { hasText: '7' })
+    const [chartBox, valueBox] = await Promise.all([bottleCountChart.boundingBox(), highestCount.boundingBox()])
+
+    expect(chartBox).not.toBeNull()
+    expect(valueBox).not.toBeNull()
+    expect(chartBox!.height).toBe(220)
+    expect(valueBox!.y).toBeGreaterThanOrEqual(chartBox!.y)
+    expect(valueBox!.y + valueBox!.height).toBeLessThanOrEqual(chartBox!.y + chartBox!.height)
+    await expect(highestCount).toBeVisible()
+  })
+
   test('keeps all-time chart labels readable and supports selecting a weight on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await seedDatabase(page, fullAppData, new Date(REFERENCE_DATE))

@@ -104,6 +104,23 @@ const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
 )
 
+const BAR_VALUE_LABEL_HEIGHT = 20
+const CHART_TOP_PADDING = 12
+const CHART_BOTTOM_PADDING = 30
+const CHART_VERTICAL_PADDING = CHART_TOP_PADDING + CHART_BOTTOM_PADDING
+
+const intakeGuidePosition = computed(() => {
+  const ratio = (props.dailyGuide ?? 0) / intakeMax.value
+  const reservedChartHeight = CHART_VERTICAL_PADDING + BAR_VALUE_LABEL_HEIGHT
+  return `calc(${ratio * 100}% + ${CHART_BOTTOM_PADDING - ratio * reservedChartHeight}px)`
+})
+
+function chartBarHeight(amount: number, maximum: number) {
+  if (!amount) return '0'
+  const ratio = amount / maximum
+  return `max(calc((100% - ${BAR_VALUE_LABEL_HEIGHT}px) * ${ratio}), 4px)`
+}
+
 const bottleCountPoints = computed<ChartPoint[]>(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -310,28 +327,31 @@ const rollingIntakePolyline = computed(() =>
     <div class="mt-[22px] grid grid-cols-1 gap-7 md:grid-cols-[1.2fr_1fr] md:gap-[42px]">
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.intake }}</h3>
-        <div class="chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.intake">
+        <div
+          class="chart-plot flex h-[220px] items-end gap-[9px] overflow-x-auto pb-[30px] pl-[5px] pt-3"
+          :class="dailyGuide && range === '7d' ? 'pr-16' : 'pr-[5px]'"
+          role="img"
+          :aria-label="t.intake"
+        >
           <div
             v-for="point in intakePoints"
             :key="point.label"
             class="relative flex h-full flex-1 flex-col items-center justify-end"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 h-4 shrink-0 text-[9px] leading-4 text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
-              :style="{
-                height: `${Math.max((point.amount / intakeMax) * 100, point.amount ? 4 : 0)}%`,
-              }"
+              :style="{ height: chartBarHeight(point.amount, intakeMax) }"
             ></i>
             <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
           <div
             v-if="dailyGuide && range === '7d'"
-            class="absolute inset-x-0 z-[2] border-t border-dashed border-amber-500/70"
-            :style="{ bottom: `${30 + (dailyGuide / intakeMax) * 150}px` }"
+            class="intake-guide-line absolute left-0 right-16 z-[2] border-t border-dashed border-amber-500/70"
+            :style="{ bottom: intakeGuidePosition }"
           >
-            <span class="absolute bottom-0.5 right-0 text-[9px] text-amber-700">{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
+            <span class="absolute bottom-0.5 left-full ml-1 whitespace-nowrap text-[9px] text-amber-700">{{ dailyGuide }} {{ t.ml }} {{ t.goal }}</span>
           </div>
         </div>
       </article>
@@ -371,19 +391,17 @@ const rollingIntakePolyline = computed(() =>
       </article>
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.bottlesPerDay }}</h3>
-        <div class="bottle-count-chart chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
+        <div class="bottle-count-chart chart-plot flex h-[220px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
           <div
             v-for="point in bottleCountPoints"
             :key="point.label"
             class="relative flex h-full flex-1 flex-col items-center justify-end"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 h-4 shrink-0 text-[9px] leading-4 text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
-              :style="{
-                height: `${Math.max((point.amount / bottleCountMax) * 100, point.amount ? 4 : 0)}%`,
-              }"
+              :style="{ height: chartBarHeight(point.amount, bottleCountMax) }"
             ></i>
             <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
