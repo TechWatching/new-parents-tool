@@ -104,19 +104,19 @@ const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
 )
 
-const INTAKE_VALUE_LABEL_HEIGHT = 20
+const BAR_VALUE_LABEL_HEIGHT = 20
 
 const intakeGuidePosition = computed(() => {
   const ratio = (props.dailyGuide ?? 0) / intakeMax.value
-  const chartPadding = 42 + INTAKE_VALUE_LABEL_HEIGHT
+  const chartPadding = 42 + BAR_VALUE_LABEL_HEIGHT
   const chartBottomPadding = 30
   return `calc(${ratio * 100}% + ${chartBottomPadding - ratio * chartPadding}px)`
 })
 
-function intakeBarHeight(amount: number) {
+function chartBarHeight(amount: number, maximum: number) {
   if (!amount) return '0'
-  const ratio = amount / intakeMax.value
-  return `max(calc((100% - ${INTAKE_VALUE_LABEL_HEIGHT}px) * ${ratio}), 4px)`
+  const ratio = amount / maximum
+  return `max(calc((100% - ${BAR_VALUE_LABEL_HEIGHT}px) * ${ratio}), 4px)`
 }
 
 const bottleCountPoints = computed<ChartPoint[]>(() => {
@@ -340,7 +340,7 @@ const rollingIntakePolyline = computed(() =>
             <span v-if="point.amount" class="bar-value mb-1 h-4 shrink-0 text-[9px] leading-4 text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
-              :style="{ height: intakeBarHeight(point.amount) }"
+              :style="{ height: chartBarHeight(point.amount, intakeMax) }"
             ></i>
             <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>
@@ -389,19 +389,17 @@ const rollingIntakePolyline = computed(() =>
       </article>
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.bottlesPerDay }}</h3>
-        <div class="bottle-count-chart chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
+        <div class="bottle-count-chart chart-plot flex h-[220px] items-end gap-[9px] overflow-x-auto px-[5px] pb-[30px] pt-3" role="img" :aria-label="t.bottlesPerDay">
           <div
             v-for="point in bottleCountPoints"
             :key="point.label"
             class="relative flex h-full flex-1 flex-col items-center justify-end"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 shrink-0 text-[9px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 h-4 shrink-0 text-[9px] leading-4 text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
-              :style="{
-                height: `${Math.max((point.amount / bottleCountMax) * 100, point.amount ? 4 : 0)}%`,
-              }"
+              :style="{ height: chartBarHeight(point.amount, bottleCountMax) }"
             ></i>
             <small class="absolute top-[calc(100%+8px)] whitespace-nowrap text-[10px] text-dimmed">{{ point.label }}</small>
           </div>

@@ -137,6 +137,37 @@ test.describe('Weight recording', () => {
     await expect(guideLabel).toContainText('640 ml')
   })
 
+  test('keeps the highest bottle count visible when daily counts vary', async ({ page }) => {
+    const dailyCounts = [2, 3, 2, 4, 2, 2, 7]
+    const feeds = dailyCounts.flatMap((count, dayIndex) =>
+      Array.from({ length: count }, (_, feedIndex) => {
+        const occurredAt = new Date('2026-07-09T06:00:00.000Z')
+        occurredAt.setUTCDate(occurredAt.getUTCDate() + dayIndex)
+        occurredAt.setUTCHours(6 + feedIndex)
+        return {
+          id: `feed-${dayIndex}-${feedIndex}`,
+          amount: 100,
+          occurredAt: occurredAt.toISOString(),
+          comment: '',
+          updatedAt: occurredAt.toISOString(),
+        }
+      }),
+    )
+
+    await seedDatabase(page, { feeds, weights: [] }, new Date(REFERENCE_DATE))
+
+    const bottleCountChart = page.locator('.bottle-count-chart')
+    const highestCount = bottleCountChart.locator('.bar-value', { hasText: '7' })
+    const [chartBox, valueBox] = await Promise.all([bottleCountChart.boundingBox(), highestCount.boundingBox()])
+
+    expect(chartBox).not.toBeNull()
+    expect(valueBox).not.toBeNull()
+    expect(chartBox!.height).toBe(220)
+    expect(valueBox!.y).toBeGreaterThanOrEqual(chartBox!.y)
+    expect(valueBox!.y + valueBox!.height).toBeLessThanOrEqual(chartBox!.y + chartBox!.height)
+    await expect(highestCount).toBeVisible()
+  })
+
   test('keeps all-time chart labels readable and supports selecting a weight on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await seedDatabase(page, fullAppData, new Date(REFERENCE_DATE))
