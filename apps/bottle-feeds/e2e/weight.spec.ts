@@ -68,14 +68,16 @@ test.describe('Weight recording', () => {
 
     const intakeChart = page.locator('.chart-plot').first()
     const guideLine = intakeChart.locator('.intake-guide-line')
-    const maximumBar = intakeChart.locator('i').last()
+    const guideAmount = Number.parseFloat((await guideLine.locator('span').textContent())!)
+    const maximumBar = intakeChart.locator('.bar-value').filter({ hasText: /^700$/ }).locator('..').locator('i')
     await intakeChart.scrollIntoViewIfNeeded()
 
     const [lineBox, barBox] = await Promise.all([guideLine.boundingBox(), maximumBar.boundingBox()])
     expect(lineBox).not.toBeNull()
     expect(barBox).not.toBeNull()
+    expect(guideAmount).not.toBeNaN()
 
-    const expectedLineTop = barBox!.y + barBox!.height * (1 - 620 / 700)
+    const expectedLineTop = barBox!.y + barBox!.height * (1 - guideAmount / 700)
     const lineCenter = lineBox!.y + lineBox!.height / 2
     expect(Math.abs(lineCenter - expectedLineTop)).toBeLessThan(1)
   })
