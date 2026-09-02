@@ -104,7 +104,7 @@ const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
 )
 
-const INTAKE_VALUE_LABEL_HEIGHT = 18
+const INTAKE_VALUE_LABEL_HEIGHT = 20
 
 const intakeGuidePosition = computed(() => {
   const ratio = (props.dailyGuide ?? 0) / intakeMax.value
@@ -326,7 +326,7 @@ const rollingIntakePolyline = computed(() =>
       <article>
         <h3 class="mb-3.5 text-[13px] text-muted">{{ t.intake }}</h3>
         <div
-          class="chart-plot flex h-[200px] items-end gap-[9px] overflow-x-auto pb-[30px] pl-[5px] pt-3"
+          class="chart-plot flex h-[220px] items-end gap-[9px] overflow-x-auto pb-[30px] pl-[5px] pt-3"
           :class="dailyGuide && range === '7d' ? 'pr-16' : 'pr-[5px]'"
           role="img"
           :aria-label="t.intake"
@@ -337,7 +337,7 @@ const rollingIntakePolyline = computed(() =>
             class="relative flex h-full flex-1 flex-col items-center justify-end"
             :class="{ 'min-w-16': range === 'all' }"
           >
-            <span v-if="point.amount" class="bar-value mb-1 h-[14px] shrink-0 text-[9px] leading-[14px] text-muted">{{ point.amount }}</span>
+            <span v-if="point.amount" class="bar-value mb-1 h-4 shrink-0 text-[9px] leading-4 text-muted">{{ point.amount }}</span>
             <i
               class="w-[min(36px,72%)] min-h-0 shrink-0 rounded-t-[7px] rounded-b-[2px] bg-coral-400"
               :style="{ height: intakeBarHeight(point.amount) }"

@@ -122,6 +122,7 @@ test.describe('Weight recording', () => {
     expect(chartBox).not.toBeNull()
     expect(valueBox).not.toBeNull()
     expect(guideBox).not.toBeNull()
+    expect(chartBox!.height).toBe(220)
     expect(valueBox!.y).toBeGreaterThanOrEqual(chartBox!.y)
     expect(valueBox!.x).toBeGreaterThanOrEqual(chartBox!.x)
     expect(valueBox!.y + valueBox!.height).toBeLessThanOrEqual(chartBox!.y + chartBox!.height)
