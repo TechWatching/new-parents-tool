@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import UModal from '@nuxt/ui/components/Modal.vue'
 import UScrollArea from '@nuxt/ui/components/ScrollArea.vue'
@@ -13,8 +13,6 @@ import { dateFromOccurredAt, dateOnlyOccurredAt, dateTimeFromOccurredAt, maskTim
 const props = defineProps<{
   feeds: Feed[]
   weights: Weight[]
-  quickEditFeedId?: string | null
-  quickEditFeedNonce?: number
   t: Messages
   locale: string
 }>()
@@ -118,7 +116,7 @@ function onEditingFeedTimeInput(event: Event) {
   onTimeInput(editingFeed, event)
 }
 
-function editFeed(feed: Feed) {
+function beginEditFeed(feed: Feed) {
   editingFeedId.value = feed.id
   Object.assign(editingFeed, {
     amount: String(feed.amount),
@@ -135,17 +133,20 @@ function saveFeed(feed: Feed) {
   editingFeedId.value = null
 }
 
-async function openQuickEditFeed(feedId: string) {
+/** Opens inline editing for a feed and scrolls it into view. Exposed for App.vue's "edit latest bottle" shortcut. */
+async function editFeed(feedId: string) {
   const feed = props.feeds.find((candidate) => candidate.id === feedId)
   if (!feed) return
   measureTab.value = 'feeds'
-  editFeed(feed)
+  beginEditFeed(feed)
   await nextTick()
   const entry = Array.from(
     rootRef.value?.querySelectorAll<HTMLElement>('[data-feed-entry-id]') ?? [],
   ).find((element) => element.dataset.feedEntryId === feedId)
-  entry?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  entry?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
 }
+
+defineExpose({ editFeed })
 
 function editWeight(weight: Weight) {
   editingWeightId.value = weight.id
@@ -202,14 +203,6 @@ const deleteDialogDescription = computed(() => {
     .replace('{measure}', pendingDeletion.value.measure)
     .replace('{date}', pendingDeletion.value.date)
 })
-
-watch(
-  () => [props.quickEditFeedNonce, props.quickEditFeedId] as const,
-  ([nonce, feedId]) => {
-    if (!nonce || !feedId) return
-    void openQuickEditFeed(feedId)
-  },
-)
 </script>
 
 <template>
@@ -283,7 +276,7 @@ watch(
                     <small v-if="item.feed.comment" class="text-[11px] text-muted">{{ item.feed.comment }}</small>
                   </div>
                   <div class="flex gap-2 max-sm:justify-end sm:contents">
-                    <UButton type="button" color="neutral" variant="soft" size="xs" @click="editFeed(item.feed)">
+                    <UButton type="button" color="neutral" variant="soft" size="xs" @click="beginEditFeed(item.feed)">
                       {{ t.edit }}
                     </UButton>
                     <UButton

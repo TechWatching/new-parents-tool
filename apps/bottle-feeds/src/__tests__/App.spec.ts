@@ -81,6 +81,22 @@ describe('App', () => {
     })
   })
 
+  it('opens inline edit for the latest bottle via the quick-edit shortcut', async () => {
+    const wrapper = await mountApp()
+
+    await wrapper.get('.feed-card input[type="number"]').setValue('120')
+    await wrapper.get('.feed-card input[type="date"]').setValue('2026-07-14')
+    await wrapper.get('.feed-card input[inputmode="numeric"]').setValue('14:30')
+    await wrapper.get('.feed-card').trigger('submit')
+    await flushPromises()
+
+    await wrapper.get(`[aria-label="Edit latest bottle"]`).trigger('click')
+    await flushPromises()
+
+    const amountInput = wrapper.get<HTMLInputElement>('#edit-feed-amount')
+    expect(amountInput.element.value).toBe('120')
+  })
+
   it('keeps the latest entry date as the default for five minutes', async () => {
     const wrapper = await mountApp()
     vi.useFakeTimers()

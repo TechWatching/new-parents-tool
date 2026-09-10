@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { chartDateLabel, useTrendSeries, type TrendRange } from '../composables/useTrendSeries'
 import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
-import { shortDay } from '../utils/format'
-import { dateFromOccurredAt } from '../utils/time'
 
 const props = withDefaults(defineProps<{
   feeds: Feed[]
@@ -14,101 +13,29 @@ const props = withDefaults(defineProps<{
   now?: number
 }>(), { now: () => Date.now() })
 
-type TrendRange = '24h' | '7d' | 'all' | 'custom'
-
 const range = ref<TrendRange>('7d')
 const customRange = reactive({ start: '', end: '' })
 const selectedWeight = ref<Weight | null>(null)
 
-interface ChartPoint {
-  label: string
-  amount: number
-}
+const feeds = computed(() => props.feeds)
+const weights = computed(() => props.weights)
+const locale = computed(() => props.locale)
+const now = computed(() => props.now)
 
-function chartDateLabel(date: Date) {
-  return new Intl.DateTimeFormat(props.locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
-}
+const {
+  intakePoints,
+  intakeMax: seriesIntakeMax,
+  bottleCountPoints,
+  bottleCountMax,
+  visibleWeights,
+  rollingIntakePoints,
+  rollingIntakeMax,
+  rollingIntakeChartWidth,
+} = useTrendSeries(feeds, weights, range, customRange, locale, now)
 
-const chartPeriod = computed(() => {
-  if (range.value === '24h' || range.value === '7d') {
-    if (range.value === '24h') return null
-    const today = new Date(props.now)
-    today.setHours(0, 0, 0, 0)
-    const start = new Date(today)
-    start.setDate(start.getDate() - 6)
-    const end = new Date(today)
-    end.setDate(end.getDate() + 1)
-    return { start, end }
-  }
-
-  if (range.value === 'custom') {
-    let start = customRange.start ? new Date(`${customRange.start}T00:00`) : null
-    let end = customRange.end ? new Date(`${customRange.end}T00:00`) : null
-    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
-    if (start > end) [start, end] = [end, start]
-    end.setDate(end.getDate() + 1)
-    return { start, end }
-  }
-
-  // 'all' range
-  const today = new Date(props.now)
-  today.setHours(0, 0, 0, 0)
-  const earliestRecord = [...props.feeds, ...props.weights]
-    .map((record) => Date.parse(record.occurredAt))
-    .filter((time) => Number.isFinite(time) && time <= props.now)
-    .reduce((earliest, time) => Math.min(earliest, time), Infinity)
-  if (!Number.isFinite(earliestRecord)) return null
-  const start = new Date(earliestRecord)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(today)
-  end.setDate(end.getDate() + 1)
-  return { start, end }
-})
-
-const feedBuckets = computed(() => {
-  if (range.value === '24h') {
-    return Array.from({ length: 6 }, (_, index) => {
-      const end = props.now - (5 - index) * 4 * 60 * 60 * 1000
-      const start = end - 4 * 60 * 60 * 1000
-      return {
-        label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
-        start,
-        end: index === 5 ? end + 1 : end,
-      }
-    })
-  }
-
-  const period = chartPeriod.value
-  if (!period) return []
-  const points: { label: string; start: number; end: number }[] = []
-  for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    points.push({
-      label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
-      start: date.getTime(),
-      end: Math.min(next.getTime(), props.now + 1),
-    })
-  }
-  return points
-})
-
-const bucketFeeds = computed(() => feedBuckets.value.map((bucket) => ({
-  label: bucket.label,
-  feeds: props.feeds.filter((feed) => {
-    const time = Date.parse(feed.occurredAt)
-    return time >= bucket.start && time < bucket.end
-  }),
-})))
-
-const intakePoints = computed<ChartPoint[]>(() => bucketFeeds.value.map((bucket) => ({
-  label: bucket.label,
-  amount: bucket.feeds.reduce((total, feed) => total + feed.amount, 0),
-})))
-
-const intakeMax = computed(() =>
-  Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
-)
+// dailyGuide is a display concern (the goal line), not part of the data
+// series, so it's folded into the chart's max only here, at render time.
+const intakeMax = computed(() => Math.max(seriesIntakeMax.value, props.dailyGuide || 0))
 
 const BAR_VALUE_LABEL_HEIGHT = 20
 const CHART_TOP_PADDING = 12
@@ -126,32 +53,6 @@ function chartBarHeight(amount: number, maximum: number) {
   const ratio = amount / maximum
   return `max(calc((100% - ${BAR_VALUE_LABEL_HEIGHT}px) * ${ratio}), 4px)`
 }
-
-const bottleCountPoints = computed<ChartPoint[]>(() => bucketFeeds.value.map((bucket) => ({
-  label: bucket.label,
-  amount: bucket.feeds.length,
-})))
-
-const bottleCountMax = computed(() => Math.max(...bottleCountPoints.value.map((point) => point.amount), 1))
-
-const visibleWeights = computed(() => {
-  if (range.value === '24h') {
-    const today = dateFromOccurredAt(new Date(props.now).toISOString())
-    return [...props.weights]
-      .filter((weight) => dateFromOccurredAt(weight.occurredAt) === today)
-      .sort((a, b) => dateFromOccurredAt(a.occurredAt).localeCompare(dateFromOccurredAt(b.occurredAt)))
-  }
-  const period = chartPeriod.value
-  if (!period) return []
-  const startDate = dateFromOccurredAt(period.start.toISOString())
-  const endDate = dateFromOccurredAt(period.end.toISOString())
-  return [...props.weights]
-    .filter((weight) => {
-      const date = dateFromOccurredAt(weight.occurredAt)
-      return date >= startDate && date < endDate && date <= dateFromOccurredAt(new Date(props.now).toISOString())
-    })
-    .sort((a, b) => dateFromOccurredAt(a.occurredAt).localeCompare(dateFromOccurredAt(b.occurredAt)))
-})
 
 function weightPosition(weight: Weight, axis: 'x' | 'y') {
   const points = visibleWeights.value
@@ -184,58 +85,6 @@ const selectedVisibleWeight = computed(() =>
 // Rolling intake chart: each point is the total quantity fed over the trailing
 // 24 hours ending at that point. Shown for every selected range.
 // ---------------------------------------------------------------------------
-
-const DAY_MS = 24 * 60 * 60 * 1000
-
-/** Sample points (an end time and its label) spanning the selected range. */
-const rollingIntakeSamples = computed<{ label: string; end: number }[]>(() => {
-  if (range.value === '24h') {
-    return Array.from({ length: 6 }, (_, index) => {
-      const end = props.now - (5 - index) * 4 * 60 * 60 * 1000
-      return {
-        label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
-        end,
-      }
-    })
-  }
-
-  const period = chartPeriod.value
-  if (!period) return []
-  const now = props.now
-  const samples: { label: string; end: number }[] = []
-  for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    // The trailing 24h window ends at the close of the day, capped at "now"
-    // so we never sample into the future.
-    const end = Math.min(next.getTime(), now)
-    samples.push({
-      label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
-      end,
-    })
-  }
-  return samples
-})
-
-const rollingIntakePoints = computed<ChartPoint[]>(() =>
-  rollingIntakeSamples.value.map((sample) => ({
-    label: sample.label,
-    amount: props.feeds
-      .filter((feed) => {
-        const time = Date.parse(feed.occurredAt)
-        return time >= sample.end - DAY_MS && time <= sample.end
-      })
-      .reduce((total, feed) => total + feed.amount, 0),
-  })),
-)
-
-const rollingIntakeMax = computed(() =>
-  Math.max(...rollingIntakePoints.value.map((p) => p.amount), 1),
-)
-
-const rollingIntakeChartWidth = computed(() =>
-  Math.max(300, rollingIntakePoints.value.length * 64),
-)
 
 function rollingIntakeX(index: number) {
   // Guard against division by zero when there are 0 or 1 points.
@@ -352,7 +201,7 @@ const rollingIntakePolyline = computed(() =>
               :class="{ selected: weight === selectedVisibleWeight }"
               role="button"
               tabindex="0"
-              :aria-label="`${chartDateLabel(new Date(weight.occurredAt))}: ${weight.kilograms.toLocaleString(locale)} ${t.kg}`"
+              :aria-label="`${chartDateLabel(new Date(weight.occurredAt), locale)}: ${weight.kilograms.toLocaleString(locale)} ${t.kg}`"
               @click="selectWeight(weight)"
               @keydown.enter.prevent="selectWeight(weight)"
               @keydown.space.prevent="selectWeight(weight)"
@@ -364,7 +213,7 @@ const rollingIntakePolyline = computed(() =>
           </svg>
           <div class="flex justify-between text-[10px] text-muted" aria-live="polite">
             <span v-if="selectedVisibleWeight" class="weight-chart-detail">
-              {{ chartDateLabel(new Date(selectedVisibleWeight.occurredAt)) }}: {{ selectedVisibleWeight.kilograms.toLocaleString(locale) }} {{ t.kg }}
+              {{ chartDateLabel(new Date(selectedVisibleWeight.occurredAt), locale) }}: {{ selectedVisibleWeight.kilograms.toLocaleString(locale) }} {{ t.kg }}
             </span>
             <template v-else>
               <span>{{ visibleWeights[0]?.kilograms }} {{ t.kg }}</span>
