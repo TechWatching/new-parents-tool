@@ -4,16 +4,20 @@ import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import { formatDateOnly } from '../utils/format'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   feeds: Feed[]
   latestWeight: Weight | undefined
   dailyGuide: number | null
   t: Messages
   locale: string
-}>()
+  now?: number
+}>(), { now: () => Date.now() })
 
-const cutoff24h = computed(() => Date.now() - 24 * 60 * 60 * 1000)
-const feeds24h = computed(() => props.feeds.filter((feed) => Date.parse(feed.occurredAt) >= cutoff24h.value))
+const cutoff24h = computed(() => props.now - 24 * 60 * 60 * 1000)
+const feeds24h = computed(() => props.feeds.filter((feed) => {
+  const time = Date.parse(feed.occurredAt)
+  return time >= cutoff24h.value && time <= props.now
+}))
 const total24h = computed(() => feeds24h.value.reduce((total, feed) => total + feed.amount, 0))
 </script>
 

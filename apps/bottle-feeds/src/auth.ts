@@ -13,15 +13,11 @@ export const activeNamespace = computed<Namespace>(() => {
   return uid ? (`user-${uid}` as Namespace) : GUEST_NAMESPACE
 })
 
-export type AuthStep =
-  | 'idle'
-  | 'sending'
-  | 'check-email'
-  | 'signed-in'
-  | 'error'
+export type AuthStep = 'idle' | 'sending' | 'check-email' | 'signed-in' | 'error'
 
 export const authStep = ref<AuthStep>('idle')
 export const authError = ref<string | null>(null)
+let initialization: Promise<Session | null> | null = null
 
 /**
  * Initialise auth: restore any persisted session and register the
@@ -29,16 +25,27 @@ export const authError = ref<string | null>(null)
  */
 export async function initAuth(): Promise<Session | null> {
   if (!isSupabaseConfigured || !supabase) return null
-
-  const { data } = await supabase.auth.getSession()
-  session.value = data.session
-
-  supabase.auth.onAuthStateChange((_event, newSession) => {
-    session.value = newSession
-    if (newSession) authStep.value = 'signed-in'
-  })
-
-  return session.value
+  if (initialization) return initialization
+  const client = supabase
+  initialization = (async () => {
+    let receivedAuthEvent = false
+    const { data: listener } = client.auth.onAuthStateChange((_event, newSession) => {
+      receivedAuthEvent = true
+      session.value = newSession
+      authStep.value = newSession ? 'signed-in' : 'idle'
+    })
+    try {
+      const { data, error } = await client.auth.getSession()
+      if (error) throw error
+      if (!receivedAuthEvent) session.value = data.session
+      return session.value
+    } catch (error) {
+      listener.subscription.unsubscribe()
+      initialization = null
+      throw error
+    }
+  })()
+  return initialization
 }
 
 /**
@@ -65,7 +72,8 @@ export async function signInWithEmail(email: string): Promise<void> {
 /** Sign out and clear the local session. */
 export async function signOut(): Promise<void> {
   if (!supabase) return
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
   session.value = null
   authStep.value = 'idle'
   authError.value = null

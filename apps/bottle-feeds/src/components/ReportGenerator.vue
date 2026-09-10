@@ -13,12 +13,13 @@ import {
 } from '../report/logic'
 import { generateReportPdfBlob, sharePdf } from '../report/pdf'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   feeds: Feed[]
   weights: Weight[]
   t: Messages
   locale: string
-}>()
+  now?: number
+}>(), { now: () => Date.now() })
 
 const isOpen = ref(false)
 const isGenerating = ref(false)
@@ -26,11 +27,11 @@ const showValidation = ref(false)
 const generationError = ref(false)
 const triggerRef = ref<InstanceType<typeof UButton> | null>(null)
 const headingRef = ref<HTMLHeadingElement | null>(null)
-const config = reactive(createDefaultReportConfig())
+const config = reactive(createDefaultReportConfig(new Date(props.now)))
 const toast = useToast()
 
 const validationErrors = computed(() => validateReportConfig(config))
-const snapshot = computed(() => createReportSnapshot(props.feeds, props.weights, config, new Date()))
+const snapshot = computed(() => createReportSnapshot(props.feeds, props.weights, config, new Date(props.now)))
 const hasSelectedData = computed(() => snapshot.value.feeds.length > 0 || snapshot.value.weights.length > 0)
 
 const validationMessages = computed(() => {

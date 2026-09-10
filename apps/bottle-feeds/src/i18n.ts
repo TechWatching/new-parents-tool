@@ -146,6 +146,12 @@ export const messages = {
     guestMergeYes: 'Upload and merge',
     guestMergeNo: 'Keep separate',
     loading: 'Loading…',
+    storageLoadError:
+      'Your records could not be loaded. Existing saved data has not been replaced. Please try again.',
+    storageSaveError:
+      'Your latest changes are not saved yet. Keep this page open and retry, or export a backup.',
+    storageRetry: 'Retry saving',
+    signOutError: 'Could not sign out. Please try again.',
   },
   fr: {
     appName: 'Petites Gorgées',
@@ -219,10 +225,11 @@ export const messages = {
     exportSuccess: 'L’export de vos données est prêt.',
     importData: 'Importer des données',
     importSuccess: 'Données importées avec succès.',
-    importError: "Impossible d’importer : format de fichier invalide.",
+    importError: 'Impossible d’importer : format de fichier invalide.',
     shareReport: 'Partager le rapport',
     reportOptions: 'Options du rapport',
-    reportDescription: 'Créez un PDF lisible par un professionnel de santé à partager ou télécharger. Rien n’est téléversé.',
+    reportDescription:
+      'Créez un PDF lisible par un professionnel de santé à partager ou télécharger. Rien n’est téléversé.',
     reportDateRange: 'Période',
     reportInclude: 'Inclure dans le rapport',
     reportIncludeFeeds: 'Biberons',
@@ -279,7 +286,8 @@ export const messages = {
     deleteCloudConfirm: 'Supprimer définitivement la copie cloud',
     deleteCloudCancel: 'Annuler',
     deleteCloudDeleting: 'Suppression de la copie cloud…',
-    deleteCloudSuccess: 'Copie cloud supprimée. Vos enregistrements sont toujours sur cet appareil.',
+    deleteCloudSuccess:
+      'Copie cloud supprimée. Vos enregistrements sont toujours sur cet appareil.',
     deleteCloudError: 'Les données cloud n’ont pas pu être supprimées. Veuillez réessayer.',
     // Sync status
     syncing: 'Synchronisation…',
@@ -294,6 +302,12 @@ export const messages = {
     guestMergeYes: 'Téléverser et fusionner',
     guestMergeNo: 'Conserver séparément',
     loading: 'Chargement…',
+    storageLoadError:
+      'Impossible de charger vos données. Les données enregistrées n’ont pas été remplacées. Réessayez.',
+    storageSaveError:
+      'Vos dernières modifications ne sont pas encore enregistrées. Gardez cette page ouverte et réessayez, ou exportez une sauvegarde.',
+    storageRetry: 'Réessayer l’enregistrement',
+    signOutError: 'Impossible de vous déconnecter. Réessayez.',
   },
   es: {
     appName: 'Pequeños Sorbos',
@@ -427,8 +441,7 @@ export const messages = {
     deleteCloudConfirm: 'Eliminar permanentemente la copia en la nube',
     deleteCloudCancel: 'Cancelar',
     deleteCloudDeleting: 'Eliminando copia en la nube…',
-    deleteCloudSuccess:
-      'Copia en la nube eliminada. Tus registros siguen en este dispositivo.',
+    deleteCloudSuccess: 'Copia en la nube eliminada. Tus registros siguen en este dispositivo.',
     deleteCloudError: 'No se pudieron eliminar los datos de la nube. Inténtalo de nuevo.',
     syncing: 'Sincronizando…',
     syncPending: 'Cambios pendientes de sincronización',
@@ -441,6 +454,12 @@ export const messages = {
     guestMergeYes: 'Subir y combinar',
     guestMergeNo: 'Mantener separados',
     loading: 'Cargando…',
+    storageLoadError:
+      'No se pudieron cargar los registros. Los datos guardados no se han reemplazado. Inténtalo de nuevo.',
+    storageSaveError:
+      'Los últimos cambios aún no están guardados. Mantén esta página abierta y reintenta, o exporta una copia de seguridad.',
+    storageRetry: 'Reintentar guardado',
+    signOutError: 'No se pudo cerrar la sesión. Inténtalo de nuevo.',
   },
   de: {
     appName: 'Kleine Schlucke',
@@ -576,8 +595,7 @@ export const messages = {
     deleteCloudDeleting: 'Cloud-Kopie wird gelöscht…',
     deleteCloudSuccess:
       'Cloud-Kopie gelöscht. Deine Aufzeichnungen befinden sich weiterhin auf diesem Gerät.',
-    deleteCloudError:
-      'Die Cloud-Daten konnten nicht gelöscht werden. Bitte versuche es erneut.',
+    deleteCloudError: 'Die Cloud-Daten konnten nicht gelöscht werden. Bitte versuche es erneut.',
     syncing: 'Synchronisierung…',
     syncPending: 'Änderungen warten auf Synchronisierung',
     syncError: 'Synchronisierung fehlgeschlagen',
@@ -589,6 +607,12 @@ export const messages = {
     guestMergeYes: 'Hochladen und zusammenführen',
     guestMergeNo: 'Getrennt lassen',
     loading: 'Wird geladen…',
+    storageLoadError:
+      'Die Einträge konnten nicht geladen werden. Gespeicherte Daten wurden nicht ersetzt. Bitte erneut versuchen.',
+    storageSaveError:
+      'Die letzten Änderungen sind noch nicht gespeichert. Diese Seite offen lassen und erneut versuchen oder eine Sicherung exportieren.',
+    storageRetry: 'Speichern erneut versuchen',
+    signOutError: 'Abmelden fehlgeschlagen. Bitte erneut versuchen.',
   },
 } as const
 

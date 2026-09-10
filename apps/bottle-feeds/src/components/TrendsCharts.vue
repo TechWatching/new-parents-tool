@@ -5,13 +5,14 @@ import type { Feed, Weight } from '../types'
 import { shortDay } from '../utils/format'
 import { dateFromOccurredAt } from '../utils/time'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   feeds: Feed[]
   weights: Weight[]
   dailyGuide: number | null
   t: Messages
   locale: string
-}>()
+  now?: number
+}>(), { now: () => Date.now() })
 
 type TrendRange = '24h' | '7d' | 'all' | 'custom'
 
@@ -31,7 +32,7 @@ function chartDateLabel(date: Date) {
 const chartPeriod = computed(() => {
   if (range.value === '24h' || range.value === '7d') {
     if (range.value === '24h') return null
-    const today = new Date()
+    const today = new Date(props.now)
     today.setHours(0, 0, 0, 0)
     const start = new Date(today)
     start.setDate(start.getDate() - 6)
@@ -50,11 +51,11 @@ const chartPeriod = computed(() => {
   }
 
   // 'all' range
-  const today = new Date()
+  const today = new Date(props.now)
   today.setHours(0, 0, 0, 0)
   const earliestRecord = [...props.feeds, ...props.weights]
     .map((record) => Date.parse(record.occurredAt))
-    .filter(Number.isFinite)
+    .filter((time) => Number.isFinite(time) && time <= props.now)
     .reduce((earliest, time) => Math.min(earliest, time), Infinity)
   if (!Number.isFinite(earliestRecord)) return null
   const start = new Date(earliestRecord)
@@ -64,41 +65,46 @@ const chartPeriod = computed(() => {
   return { start, end }
 })
 
-const intakePoints = computed<ChartPoint[]>(() => {
+const feedBuckets = computed(() => {
   if (range.value === '24h') {
     return Array.from({ length: 6 }, (_, index) => {
-      const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
+      const end = props.now - (5 - index) * 4 * 60 * 60 * 1000
       const start = end - 4 * 60 * 60 * 1000
       return {
         label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
-        amount: props.feeds
-          .filter((feed) => {
-            const time = Date.parse(feed.occurredAt)
-            return time > start && time <= end
-          })
-          .reduce((total, feed) => total + feed.amount, 0),
+        start,
+        end: index === 5 ? end + 1 : end,
       }
     })
   }
 
   const period = chartPeriod.value
   if (!period) return []
-  const points: ChartPoint[] = []
+  const points: { label: string; start: number; end: number }[] = []
   for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
     const next = new Date(date)
     next.setDate(next.getDate() + 1)
     points.push({
       label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
-      amount: props.feeds
-        .filter((feed) => {
-          const time = Date.parse(feed.occurredAt)
-          return time >= date.getTime() && time < next.getTime()
-        })
-        .reduce((total, feed) => total + feed.amount, 0),
+      start: date.getTime(),
+      end: Math.min(next.getTime(), props.now + 1),
     })
   }
   return points
 })
+
+const bucketFeeds = computed(() => feedBuckets.value.map((bucket) => ({
+  label: bucket.label,
+  feeds: props.feeds.filter((feed) => {
+    const time = Date.parse(feed.occurredAt)
+    return time >= bucket.start && time < bucket.end
+  }),
+})))
+
+const intakePoints = computed<ChartPoint[]>(() => bucketFeeds.value.map((bucket) => ({
+  label: bucket.label,
+  amount: bucket.feeds.reduce((total, feed) => total + feed.amount, 0),
+})))
 
 const intakeMax = computed(() =>
   Math.max(...intakePoints.value.map((point) => point.amount), props.dailyGuide || 0, 1),
@@ -121,39 +127,18 @@ function chartBarHeight(amount: number, maximum: number) {
   return `max(calc((100% - ${BAR_VALUE_LABEL_HEIGHT}px) * ${ratio}), 4px)`
 }
 
-const bottleCountPoints = computed<ChartPoint[]>(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const period =
-    range.value === '24h'
-      ? { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
-      : chartPeriod.value
-  if (!period) return []
-
-  const points: ChartPoint[] = []
-  let date = new Date(period.start)
-  while (date < period.end) {
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    points.push({
-      label: range.value === '7d' ? shortDay(date, props.locale) : chartDateLabel(date),
-      amount: props.feeds.filter((feed) => {
-        const time = Date.parse(feed.occurredAt)
-        return time >= date.getTime() && time < next.getTime()
-      }).length,
-    })
-    date = next
-  }
-  return points
-})
+const bottleCountPoints = computed<ChartPoint[]>(() => bucketFeeds.value.map((bucket) => ({
+  label: bucket.label,
+  amount: bucket.feeds.length,
+})))
 
 const bottleCountMax = computed(() => Math.max(...bottleCountPoints.value.map((point) => point.amount), 1))
 
 const visibleWeights = computed(() => {
   if (range.value === '24h') {
-    const today = dateFromOccurredAt(new Date().toISOString())
+    const today = dateFromOccurredAt(new Date(props.now).toISOString())
     return [...props.weights]
-      .filter((weight) => dateFromOccurredAt(weight.occurredAt) >= today)
+      .filter((weight) => dateFromOccurredAt(weight.occurredAt) === today)
       .sort((a, b) => dateFromOccurredAt(a.occurredAt).localeCompare(dateFromOccurredAt(b.occurredAt)))
   }
   const period = chartPeriod.value
@@ -163,7 +148,7 @@ const visibleWeights = computed(() => {
   return [...props.weights]
     .filter((weight) => {
       const date = dateFromOccurredAt(weight.occurredAt)
-      return date >= startDate && date < endDate
+      return date >= startDate && date < endDate && date <= dateFromOccurredAt(new Date(props.now).toISOString())
     })
     .sort((a, b) => dateFromOccurredAt(a.occurredAt).localeCompare(dateFromOccurredAt(b.occurredAt)))
 })
@@ -206,7 +191,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const rollingIntakeSamples = computed<{ label: string; end: number }[]>(() => {
   if (range.value === '24h') {
     return Array.from({ length: 6 }, (_, index) => {
-      const end = Date.now() - (5 - index) * 4 * 60 * 60 * 1000
+      const end = props.now - (5 - index) * 4 * 60 * 60 * 1000
       return {
         label: new Intl.DateTimeFormat(props.locale, { hour: '2-digit' }).format(new Date(end)),
         end,
@@ -216,7 +201,7 @@ const rollingIntakeSamples = computed<{ label: string; end: number }[]>(() => {
 
   const period = chartPeriod.value
   if (!period) return []
-  const now = Date.now()
+  const now = props.now
   const samples: { label: string; end: number }[] = []
   for (const date = new Date(period.start); date < period.end; date.setDate(date.getDate() + 1)) {
     const next = new Date(date)
@@ -238,7 +223,7 @@ const rollingIntakePoints = computed<ChartPoint[]>(() =>
     amount: props.feeds
       .filter((feed) => {
         const time = Date.parse(feed.occurredAt)
-        return time > sample.end - DAY_MS && time <= sample.end
+        return time >= sample.end - DAY_MS && time <= sample.end
       })
       .reduce((total, feed) => total + feed.amount, 0),
   })),

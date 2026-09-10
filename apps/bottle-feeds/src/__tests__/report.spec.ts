@@ -7,6 +7,7 @@ import {
   createReportFeedChartPoints,
   createDefaultReportConfig,
   createReportSnapshot,
+  resolveReportPeriod,
   validateReportConfig,
 } from '../report/logic'
 import { generateReportPdfBlob, sharePdf } from '../report/pdf'
@@ -140,7 +141,7 @@ describe('report logic', () => {
   })
 
   it('builds the requested report filename pattern', () => {
-    expect(buildReportFilename(new Date('2026-07-19T10:15:00.000Z'))).toBe('little-sips-report-2026-07-19-10-15.pdf')
+    expect(buildReportFilename(new Date(2026, 6, 19, 10, 15))).toBe('little-sips-report-2026-07-19-10-15.pdf')
   })
 
   it('creates chart points for feed quantity and bottle count', () => {
@@ -160,10 +161,51 @@ describe('report logic', () => {
 
     const points = createReportFeedChartPoints(snapshot, 'en-GB')
 
-    expect(points).toHaveLength(7)
-    expect(points.map((point) => point.label)).toEqual(['13 Jul', '14 Jul', '15 Jul', '16 Jul', '17 Jul', '18 Jul', '19 Jul'])
-    expect(points.map((point) => point.totalAmount)).toEqual([0, 0, 0, 0, 0, 120, 90])
-    expect(points.map((point) => point.bottleCount)).toEqual([0, 0, 0, 0, 0, 1, 1])
+    expect(points).toHaveLength(8)
+    expect(points.map((point) => point.label)).toEqual(['12 Jul', '13 Jul', '14 Jul', '15 Jul', '16 Jul', '17 Jul', '18 Jul', '19 Jul'])
+    expect(points.map((point) => point.totalAmount)).toEqual([0, 0, 0, 0, 0, 0, 120, 90])
+    expect(points.map((point) => point.bottleCount)).toEqual([0, 0, 0, 0, 0, 0, 1, 1])
+  })
+
+  it.each(['24h', '7d'] as const)('keeps %s chart totals equal to the snapshot at exact boundaries', (range) => {
+    const now = new Date('2026-09-10T12:00:00Z')
+    const start = now.getTime() - (range === '24h' ? 1 : 7) * 86_400_000
+    const boundaryFeeds = [start - 1, start, start + 4 * 3_600_000, now.getTime(), now.getTime() + 1]
+      .map((time, index) => ({
+        id: String(index), amount: 120, occurredAt: new Date(time).toISOString(), comment: '', updatedAt: '',
+      }))
+    const snapshot = createReportSnapshot(boundaryFeeds, [], { ...createDefaultReportConfig(now), range }, now)
+    const points = createReportFeedChartPoints(snapshot, 'en-GB')
+
+    expect(snapshot.feedSummary).toMatchObject({ count: 3, totalAmount: 360 })
+    expect(points.reduce((sum, point) => sum + point.totalAmount, 0)).toBe(360)
+    expect(points.reduce((sum, point) => sum + point.bottleCount, 0)).toBe(3)
+  })
+
+  it('retains the first partial day of a rolling seven-day report', () => {
+    const now = new Date('2026-09-10T12:00:00+02:00')
+    const snapshot = createReportSnapshot([
+      { id: 'partial', amount: 120, occurredAt: '2026-09-03T18:00:00+02:00', comment: '', updatedAt: '' },
+    ], [], { ...createDefaultReportConfig(now), range: '7d' }, now)
+    const points = createReportFeedChartPoints(snapshot, 'en-GB')
+
+    expect(points[0]).toMatchObject({ totalAmount: 120, bottleCount: 1 })
+    expect(points.reduce((sum, point) => sum + point.totalAmount, 0)).toBe(snapshot.feedSummary.totalAmount)
+  })
+
+  it.each(['2026-03-29', '2026-10-25'])('ends custom date %s at the following local midnight, exclusively', (date) => {
+    const config = { ...createDefaultReportConfig(), range: 'custom' as const, startDate: date, endDate: date }
+    const nextMidnight = new Date(`${date}T00:00:00`)
+    nextMidnight.setDate(nextMidnight.getDate() + 1)
+    const period = resolveReportPeriod(config)
+    expect(period.endAt?.getTime()).toBe(nextMidnight.getTime() - 1)
+
+    const snapshot = createReportSnapshot([
+      { id: 'last', amount: 120, occurredAt: new Date(nextMidnight.getTime() - 1).toISOString(), comment: '', updatedAt: '' },
+      { id: 'next', amount: 90, occurredAt: nextMidnight.toISOString(), comment: '', updatedAt: '' },
+    ], [], config)
+    expect(snapshot.feeds.map((feed) => feed.id)).toEqual(['last'])
+    expect(createReportFeedChartPoints(snapshot, 'en-GB')).toHaveLength(1)
   })
 
   it('compacts chart points for long report ranges', () => {

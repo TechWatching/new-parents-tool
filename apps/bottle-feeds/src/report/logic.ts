@@ -19,6 +19,7 @@ export type ReportValidationError =
 export interface ReportPeriod {
   range: ReportRange
   startAt: Date | null
+  /** Inclusive final instant; calendar ranges end just before the next local midnight. */
   endAt: Date | null
 }
 
@@ -137,7 +138,11 @@ export function resolveReportPeriod(config: ReportConfig, now = new Date()): Rep
     case 'custom': {
       const startAt = parseDateInput(config.startDate)
       const parsedEndDate = parseDateInput(config.endDate)
-      const endAt = parsedEndDate ? new Date(parsedEndDate.getTime() + 24 * 60 * 60 * 1000 - 1) : null
+      const endAt = parsedEndDate ? new Date(parsedEndDate) : null
+      if (endAt) {
+        endAt.setDate(endAt.getDate() + 1)
+        endAt.setMilliseconds(-1)
+      }
       return { range: config.range, startAt, endAt }
     }
   }
@@ -194,9 +199,9 @@ export function createReportFeedChartPoints(snapshot: ReportSnapshot, locale: st
   if (snapshot.period.range === '24h') {
     const windowSize = 4 * 60 * 60 * 1000
     return Array.from({ length: 6 }, (_, index) => {
-      const endTime = snapshot.generatedAt.getTime() - (5 - index) * windowSize
+      const endTime = (snapshot.period.endAt ?? snapshot.generatedAt).getTime() - (5 - index) * windowSize
       const startTime = endTime - windowSize
-      const summary = summarizeFeedsInRange(feeds, startTime, endTime)
+      const summary = summarizeFeedsInRange(feeds, startTime, index === 5 ? endTime + 1 : endTime)
       return {
         label: new Intl.DateTimeFormat(locale, { hour: '2-digit' }).format(new Date(endTime)),
         ...summary,
@@ -208,18 +213,11 @@ export function createReportFeedChartPoints(snapshot: ReportSnapshot, locale: st
   let endExclusive: Date
 
   switch (snapshot.period.range) {
-    case '7d': {
-      endExclusive = startOfDay(snapshot.generatedAt)
-      endExclusive.setDate(endExclusive.getDate() + 1)
-      startAt = new Date(endExclusive)
-      startAt.setDate(startAt.getDate() - 7)
-      break
-    }
+    case '7d':
     case 'custom': {
       if (!snapshot.period.startAt || !snapshot.period.endAt) return []
       startAt = startOfDay(snapshot.period.startAt)
-      endExclusive = startOfDay(snapshot.period.endAt)
-      endExclusive.setDate(endExclusive.getDate() + 1)
+      endExclusive = new Date(snapshot.period.endAt.getTime() + 1)
       break
     }
     case 'all': {

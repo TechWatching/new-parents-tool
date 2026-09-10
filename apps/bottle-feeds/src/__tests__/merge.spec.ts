@@ -42,6 +42,19 @@ describe('mergeFeeds', () => {
     expect(result[0]!.amount).toBe(300)
   })
 
+  it('compares update instants rather than timezone representation', () => {
+    const local = [makeFeed({ amount: 300, updatedAt: '2026-01-01T10:00:00Z' })]
+    const remote = [makeFeed({ amount: 100, updatedAt: '2026-01-01T11:00:00+02:00' })]
+    expect(mergeFeeds(local, remote)[0]!.amount).toBe(300)
+    expect(mergeFeeds(remote, local)[0]!.amount).toBe(300)
+  })
+
+  it('uses the incoming record on equal instants with different ISO formats', () => {
+    const local = [makeFeed({ amount: 300, updatedAt: '2026-01-01T10:00:00Z' })]
+    const remote = [makeFeed({ amount: 100, updatedAt: '2026-01-01T10:00:00.000Z' })]
+    expect(mergeFeeds(local, remote)[0]!.amount).toBe(100)
+  })
+
   it('tombstone propagation: keeps deleted records so other clients see them', () => {
     const local = [makeFeed({ id: 'f1', amount: 100 })]
     const remote = [
@@ -82,6 +95,29 @@ describe('mergeAppData', () => {
 })
 
 describe('mergeImport', () => {
+  it('rejects the entire import without mutating existing data when any row is invalid', () => {
+    const existing = { feeds: [makeFeed()], weights: [] }
+    const snapshot = structuredClone(existing)
+    const imported = {
+      feeds: [makeFeed({ id: 'valid' }), makeFeed({ id: 'invalid', occurredAt: 'not-a-date' })],
+      weights: [],
+    }
+    expect(() => mergeImport(existing, imported)).toThrow('Invalid app data')
+    expect(existing).toEqual(snapshot)
+  })
+
+  it('rejects duplicate imported IDs rather than silently choosing a row', () => {
+    expect(() => mergeImport({ feeds: [], weights: [] }, {
+      feeds: [makeFeed(), makeFeed({ amount: 200 })],
+      weights: [],
+    })).toThrow('duplicate record ID')
+  })
+
+  it('normalizes imported timestamps before resolving conflicts', () => {
+    const existing = { feeds: [makeFeed({ updatedAt: '2026-01-01T10:00:00Z' })], weights: [] }
+    const imported = { feeds: [makeFeed({ amount: 200, updatedAt: '2026-01-01T10:30:00+01:00' })], weights: [] }
+    expect(mergeImport(existing, imported).feeds[0]!.amount).toBe(100)
+  })
   it('backfills updatedAt from occurredAt for imported records without it', () => {
     const existing = { feeds: [], weights: [] }
     const imported = {
