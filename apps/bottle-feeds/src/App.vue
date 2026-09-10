@@ -322,8 +322,7 @@ const sortedWeights = computed(() =>
 )
 const latestWeight = computed(() => sortedWeights.value[0])
 const latestFeed = computed(() => sortedFeeds.value[0])
-const latestFeedQuickEditId = ref<string | null>(null)
-const latestFeedQuickEditNonce = ref(0)
+const measureHistoryRef = ref<InstanceType<typeof MeasureHistory> | null>(null)
 const lastBottleSummary = computed(() => {
   if (!latestFeed.value) return null
 
@@ -344,8 +343,7 @@ const dailyGuide = computed(() =>
 function quickEditLatestFeed() {
   const feed = latestFeed.value
   if (!feed) return
-  latestFeedQuickEditId.value = feed.id
-  latestFeedQuickEditNonce.value += 1
+  void measureHistoryRef.value?.editFeed(feed.id)
 }
 
 // ---------------------------------------------------------------------------
@@ -842,10 +840,9 @@ const syncLabel = computed(() => {
         />
 
         <MeasureHistory
+          ref="measureHistoryRef"
           :feeds="sortedFeeds"
           :weights="sortedWeights"
-          :quick-edit-feed-id="latestFeedQuickEditId"
-          :quick-edit-feed-nonce="latestFeedQuickEditNonce"
           :t="t"
           :locale="locale"
           class="mt-[18px]"
