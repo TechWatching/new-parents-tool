@@ -81,7 +81,7 @@ describe('App', () => {
     })
   })
 
-  it('opens inline edit for the latest bottle via the quick-edit shortcut', async () => {
+  it('reinitializes the edit buffer when the quick-edit shortcut is used twice for the same feed', async () => {
     const wrapper = await mountApp()
 
     await wrapper.get('.feed-card input[type="number"]').setValue('120')
@@ -95,6 +95,17 @@ describe('App', () => {
 
     const amountInput = wrapper.get<HTMLInputElement>('#edit-feed-amount')
     expect(amountInput.element.value).toBe('120')
+
+    // Change the buffer without saving, then re-trigger the shortcut for the
+    // same feed: it must reinitialize the buffer back to the feed's current
+    // value rather than leaving the unsaved edit in place.
+    await amountInput.setValue('200')
+    expect(amountInput.element.value).toBe('200')
+
+    await wrapper.get(`[aria-label="Edit latest bottle"]`).trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get<HTMLInputElement>('#edit-feed-amount').element.value).toBe('120')
   })
 
   it('keeps the latest entry date as the default for five minutes', async () => {
