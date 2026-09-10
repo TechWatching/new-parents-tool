@@ -5,3 +5,4 @@ test-results/
 .playwright-cli/
 apm_modules/
 .agents/
+.github/skills/impeccable/scripts/bin/

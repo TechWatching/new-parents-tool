@@ -77,48 +77,59 @@ function rowToWeight(row: WeightRow): Weight {
 // ---------------------------------------------------------------------------
 
 /** Push all local feeds (including tombstones) to Supabase via upsert. */
-export async function pushFeeds(userId: string, feeds: Feed[]): Promise<void> {
+export async function pushFeeds(
+  userId: string,
+  feeds: Feed[],
+  signal?: AbortSignal,
+): Promise<void> {
   if (!supabase || !feeds.length) return
-  const { error } = await supabase
-    .from('feeds')
-    .upsert(feeds.map((f) => feedToRow(userId, f)), { onConflict: 'id' })
+  const query = supabase.from('feeds').upsert(
+    feeds.map((f) => feedToRow(userId, f)),
+    { onConflict: 'id' },
+  )
+  const { error } = await (signal ? query.abortSignal(signal) : query)
   if (error) throw error
 }
 
 /** Push all local weights (including tombstones) to Supabase via upsert. */
-export async function pushWeights(userId: string, weights: Weight[]): Promise<void> {
+export async function pushWeights(
+  userId: string,
+  weights: Weight[],
+  signal?: AbortSignal,
+): Promise<void> {
   if (!supabase || !weights.length) return
-  const { error } = await supabase
-    .from('weights')
-    .upsert(weights.map((w) => weightToRow(userId, w)), { onConflict: 'id' })
+  const query = supabase.from('weights').upsert(
+    weights.map((w) => weightToRow(userId, w)),
+    { onConflict: 'id' },
+  )
+  const { error } = await (signal ? query.abortSignal(signal) : query)
   if (error) throw error
 }
 
 /** Pull all feeds for the user from Supabase. */
-export async function pullFeeds(userId: string): Promise<Feed[]> {
+export async function pullFeeds(userId: string, signal?: AbortSignal): Promise<Feed[]> {
   if (!supabase) return []
-  const { data, error } = await supabase
-    .from('feeds')
-    .select('*')
-    .eq('user_id', userId)
+  const query = supabase.from('feeds').select('*').eq('user_id', userId)
+  const { data, error } = await (signal ? query.abortSignal(signal) : query)
   if (error) throw error
   return (data as FeedRow[]).map(rowToFeed)
 }
 
 /** Pull all weights for the user from Supabase. */
-export async function pullWeights(userId: string): Promise<Weight[]> {
+export async function pullWeights(userId: string, signal?: AbortSignal): Promise<Weight[]> {
   if (!supabase) return []
-  const { data, error } = await supabase
-    .from('weights')
-    .select('*')
-    .eq('user_id', userId)
+  const query = supabase.from('weights').select('*').eq('user_id', userId)
+  const { data, error } = await (signal ? query.abortSignal(signal) : query)
   if (error) throw error
   return (data as WeightRow[]).map(rowToWeight)
 }
 
 /** Pull the complete remote dataset for the user. */
-export async function pullAll(userId: string): Promise<AppData> {
-  const [feeds, weights] = await Promise.all([pullFeeds(userId), pullWeights(userId)])
+export async function pullAll(userId: string, signal?: AbortSignal): Promise<AppData> {
+  const [feeds, weights] = await Promise.all([
+    pullFeeds(userId, signal),
+    pullWeights(userId, signal),
+  ])
   return { feeds, weights }
 }
 

@@ -5,17 +5,9 @@ import UButton from '@nuxt/ui/components/Button.vue'
 import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
-import {
-  clearData,
-  loadData,
-  saveData,
-  saveDataStrict,
-  GUEST_NAMESPACE,
-  type Namespace,
-} from './storage'
+import { loadData, moveDataToGuest, parseAppData, GUEST_NAMESPACE } from './storage'
 import { isSupabaseConfigured } from './supabase'
 import {
-  initAuth,
   signInWithEmail,
   signOut,
   authUser,
@@ -24,7 +16,8 @@ import {
   authStep,
   authError,
 } from './auth'
-import { syncNow, onLocalMutation, syncStatus, syncError, lastSyncedAt } from './sync'
+import { syncStatus, syncError, lastSyncedAt } from './sync'
+import { useAppData } from './composables/useAppData'
 import { mergeAppData } from './merge'
 import { deleteAllCloudData } from './remote'
 import type { AppData, Feed, Weight } from './types'
@@ -48,9 +41,23 @@ import ReportGenerator from './components/ReportGenerator.vue'
 // State
 // ---------------------------------------------------------------------------
 
-const data = reactive<AppData>({ feeds: [], weights: [] })
-const loading = ref(true)
-const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
+const {
+  data,
+  loading,
+  loadError,
+  saveError,
+  saving,
+  exclusive,
+  commit,
+  retrySave,
+  flush,
+  triggerSync,
+  cancelSync,
+  beginExclusive,
+  endExclusive,
+  captureIdentity,
+  reload,
+} = useAppData()
 const now = ref(Date.now())
 let nowIntervalId: number | undefined
 
@@ -123,119 +130,47 @@ watch(
 )
 
 // ---------------------------------------------------------------------------
-// Suppress-save flag (prevents watcher from writing during loading)
+// Initialization and identity-specific prompts
 // ---------------------------------------------------------------------------
 
-let _suppressSave = false
-
-// ---------------------------------------------------------------------------
-// Initialization
-// ---------------------------------------------------------------------------
-
-async function loadNamespace(ns: Namespace) {
-  loading.value = true
-  _suppressSave = true
-  try {
-    const loaded = await loadData(ns)
-    data.feeds = loaded.feeds
-    data.weights = loaded.weights
-    currentNamespace.value = ns
-    defaultToRecentEntryDate()
-  } finally {
-    _suppressSave = false
-    loading.value = false
-  }
-}
-
-onMounted(async () => {
+onMounted(() => {
   nowIntervalId = window.setInterval(() => {
     now.value = Date.now()
   }, 60_000)
-
-  // 1. Restore Supabase session (no-op when not configured)
-  await initAuth()
-
-  // 2. Load data for the current namespace (guest or user)
-  await loadNamespace(activeNamespace.value)
-
-  // 3. If authenticated and online, trigger a background sync
-  if (isAuthenticated.value && navigator.onLine) {
-    triggerSync()
-  }
 })
 
-// ---------------------------------------------------------------------------
-// Auth state change handler
-// ---------------------------------------------------------------------------
-
-watch(activeNamespace, async (ns, prevNs) => {
-  if (ns === prevNs) return
-
-  if (ns !== GUEST_NAMESPACE) {
-    // User just signed in – check whether there is guest data to offer merging
-    const guest = await loadData(GUEST_NAMESPACE)
-    const hasGuestData =
-      guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt)
-    if (hasGuestData) {
-      guestDataForMerge.value = guest
-      showMergePrompt.value = true
-    }
-  }
-
-  // Load data for the new namespace
-  await loadNamespace(ns)
-
-  // Sync if authenticated
-  if (isAuthenticated.value && navigator.onLine) {
-    triggerSync()
-  }
+watch(loading, (value) => {
+  if (!value && !loadError.value) defaultToRecentEntryDate()
 })
-
-// ---------------------------------------------------------------------------
-// Persist on data changes
-// ---------------------------------------------------------------------------
 
 watch(
-  data,
-  async (value) => {
-    if (_suppressSave) return
-    await saveData(JSON.parse(JSON.stringify(value)) as AppData, currentNamespace.value)
-    if (isAuthenticated.value) {
-      await onLocalMutation(currentNamespace.value)
+  activeNamespace,
+  async (ns) => {
+    showMergePrompt.value = false
+    guestDataForMerge.value = null
+    showDeleteCloudConfirm.value = false
+    const identity = captureIdentity()
+    if (ns === GUEST_NAMESPACE) return
+    try {
+      const guest = await loadData(GUEST_NAMESPACE)
+      if (
+        identity.isCurrent() &&
+        (guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt))
+      ) {
+        guestDataForMerge.value = guest
+        showMergePrompt.value = true
+      }
+    } catch {
+      if (identity.isCurrent()) toast.add({ title: t.value.storageLoadError, color: 'error' })
     }
   },
-  { deep: true },
+  { flush: 'sync' },
 )
 
-// ---------------------------------------------------------------------------
-// Online / sync
-// ---------------------------------------------------------------------------
-
-async function triggerSync() {
-  const uid = authUser.value?.id
-  if (!uid) return
-  try {
-    const ns = currentNamespace.value
-    const merged = await syncNow(uid, ns, JSON.parse(JSON.stringify(data)) as AppData)
-    _suppressSave = true
-    data.feeds = merged.feeds
-    data.weights = merged.weights
-    _suppressSave = false
-  } catch {
-    // syncStatus is updated by sync.ts
-  }
-}
-
-const handleOnline = () => {
-  if (isAuthenticated.value) triggerSync()
-}
-
-onMounted(() => window.addEventListener('online', handleOnline))
 onUnmounted(() => {
   if (nowIntervalId !== undefined) {
     window.clearInterval(nowIntervalId)
   }
-  window.removeEventListener('online', handleOnline)
 })
 
 // ---------------------------------------------------------------------------
@@ -286,21 +221,24 @@ function defaultToRecentEntryDate() {
   applyEntryDateWithReset(latestEntry.entry.occurredAt, expiresAt - now)
 }
 
-function addFeed() {
+async function addFeed() {
   const amount = Number(feedForm.amount)
   const recordedAt = occurredAt(feedForm.date, feedForm.time)
   if (!amount || amount <= 0 || !recordedAt) return
   const now = new Date().toISOString()
-  data.feeds.unshift({
-    id: makeId(),
-    amount,
-    occurredAt: recordedAt,
-    comment: feedForm.comment.trim(),
-    updatedAt: now,
-  })
+  const saved = commit((draft) =>
+    draft.feeds.unshift({
+      id: makeId(),
+      amount,
+      occurredAt: recordedAt,
+      comment: feedForm.comment.trim(),
+      updatedAt: now,
+    }),
+  )
   feedForm.amount = ''
   feedForm.comment = ''
   applyEntryDateWithReset(recordedAt)
+  if (!(await saved)) return
   toast.add({
     title: t.value.feedAdded,
     description: `${amount.toLocaleString(locale.value)} ${t.value.ml} · ${formatDate(recordedAt, locale.value)}`,
@@ -308,14 +246,22 @@ function addFeed() {
   })
 }
 
-function addWeight() {
+async function addWeight() {
   const kilograms = Number(weightForm.kilograms)
   const recordedAt = dateOnlyOccurredAt(weightForm.date)
   if (!kilograms || kilograms <= 0 || !recordedAt) return
   const now = new Date().toISOString()
-  data.weights.unshift({ id: makeId(), kilograms, occurredAt: recordedAt, updatedAt: now })
+  const saved = commit((draft) =>
+    draft.weights.unshift({
+      id: makeId(),
+      kilograms,
+      occurredAt: recordedAt,
+      updatedAt: now,
+    }),
+  )
   weightForm.kilograms = ''
   applyEntryDateWithReset(recordedAt)
+  if (!(await saved)) return
   toast.add({
     title: t.value.weightAdded,
     description: `${kilograms.toLocaleString(locale.value)} ${t.value.kg} · ${formatDateOnly(recordedAt, locale.value)}`,
@@ -324,40 +270,35 @@ function addWeight() {
 }
 
 function saveFeed(payload: { id: string; amount: number; occurredAt: string; comment: string }) {
-  const target = data.feeds.find((f) => f.id === payload.id)
-  if (!target) return
-  Object.assign(target, {
-    amount: payload.amount,
-    occurredAt: payload.occurredAt,
-    comment: payload.comment,
-    updatedAt: new Date().toISOString(),
+  void commit((draft) => {
+    const target = draft.feeds.find((f) => f.id === payload.id)
+    if (target) Object.assign(target, payload, { updatedAt: nextUpdatedAt(target.updatedAt) })
   })
 }
 
 function saveWeight(payload: { id: string; kilograms: number; occurredAt: string }) {
-  const target = data.weights.find((w) => w.id === payload.id)
-  if (!target) return
-  Object.assign(target, {
-    kilograms: payload.kilograms,
-    occurredAt: payload.occurredAt,
-    updatedAt: new Date().toISOString(),
+  void commit((draft) => {
+    const target = draft.weights.find((w) => w.id === payload.id)
+    if (target) Object.assign(target, payload, { updatedAt: nextUpdatedAt(target.updatedAt) })
   })
 }
 
+function nextUpdatedAt(previous: string) {
+  return new Date(Math.max(Date.now(), Date.parse(previous) + 1)).toISOString()
+}
+
 function removeFeed(id: string) {
-  const target = data.feeds.find((f) => f.id === id)
-  if (target) {
-    target.deletedAt = new Date().toISOString()
-    target.updatedAt = new Date().toISOString()
-  }
+  void commit((draft) => {
+    const target = draft.feeds.find((f) => f.id === id)
+    if (target) target.deletedAt = target.updatedAt = nextUpdatedAt(target.updatedAt)
+  })
 }
 
 function removeWeight(id: string) {
-  const target = data.weights.find((w) => w.id === id)
-  if (target) {
-    target.deletedAt = new Date().toISOString()
-    target.updatedAt = new Date().toISOString()
-  }
+  void commit((draft) => {
+    const target = draft.weights.find((w) => w.id === id)
+    if (target) target.deletedAt = target.updatedAt = nextUpdatedAt(target.updatedAt)
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -438,34 +379,12 @@ async function handleImportFile(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  const identity = captureIdentity()
   try {
     const text = await file.text()
-    const parsed: unknown = JSON.parse(text)
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      !Array.isArray((parsed as AppData).feeds) ||
-      !Array.isArray((parsed as AppData).weights)
-    ) {
-      toast.add({
-        title: t.value.importData,
-        description: t.value.importError,
-        color: 'error',
-      })
-      return
-    }
-    const now = new Date().toISOString()
-    const imported = parsed as AppData
-    const backfill = <T extends { updatedAt?: string; occurredAt: string }>(items: T[]): T[] =>
-      items.map((item) => ({ ...item, updatedAt: item.updatedAt ?? item.occurredAt ?? now }))
-    const toMerge: AppData = {
-      feeds: backfill(imported.feeds) as Feed[],
-      weights: backfill(imported.weights) as Weight[],
-    }
-    const current: AppData = JSON.parse(JSON.stringify(data)) as AppData
-    const merged = mergeAppData(current, toMerge)
-    data.feeds = merged.feeds
-    data.weights = merged.weights
+    const imported = parseAppData(JSON.parse(text))
+    if (!identity.isCurrent()) throw new Error('The import identity changed')
+    if (!(await commit((draft) => Object.assign(draft, mergeAppData(draft, imported))))) return
     toast.add({
       title: t.value.importData,
       description: t.value.importSuccess,
@@ -491,13 +410,12 @@ async function handleGuestMerge(action: 'merge' | 'keep') {
   const guest = guestDataForMerge.value
   guestDataForMerge.value = null
   if (action === 'merge' && guest) {
-    const current: AppData = JSON.parse(JSON.stringify(data)) as AppData
-    const merged = mergeAppData(current, guest)
-    data.feeds = merged.feeds
-    data.weights = merged.weights
-    // Persist merged data and trigger sync
-    await saveData(JSON.parse(JSON.stringify(merged)) as AppData, currentNamespace.value)
-    if (isAuthenticated.value && navigator.onLine) triggerSync()
+    if (
+      (await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))) &&
+      isAuthenticated.value &&
+      navigator.onLine
+    )
+      void triggerSync()
   }
 }
 
@@ -516,29 +434,29 @@ async function handleSendMagicLink() {
 }
 
 async function handleSignOut() {
-  await signOut()
-  // Reload guest data
-  await loadNamespace(GUEST_NAMESPACE)
+  if (!(await flush())) return
+  cancelSync()
+  try {
+    await signOut()
+  } catch {
+    toast.add({ title: t.value.signOutError, color: 'error' })
+  }
 }
 
 async function handleDeleteCloudData() {
   const uid = authUser.value?.id
   if (!uid || deletingCloudData.value || syncStatus.value === 'syncing') return
-
+  const identity = captureIdentity()
+  if (!(await beginExclusive())) return
   deletingCloudData.value = true
-  const localSnapshot: AppData = {
-    feeds: activeFeeds.value.map((feed) => ({ ...feed })),
-    weights: activeWeights.value.map((weight) => ({ ...weight })),
-  }
 
   try {
-    const guestData = await loadData(GUEST_NAMESPACE)
-    const localCopy = mergeAppData(guestData, localSnapshot)
-    await saveDataStrict(localCopy, GUEST_NAMESPACE)
-    await clearData(currentNamespace.value)
+    if (!identity.isCurrent()) throw new Error('The deletion identity changed')
     await deleteAllCloudData(uid)
+    if (!identity.isCurrent()) throw new Error('The deletion identity changed')
+    await moveDataToGuest(identity.namespace)
+    if (!identity.isCurrent()) throw new Error('The deletion identity changed')
     await signOut()
-    await loadNamespace(GUEST_NAMESPACE)
     showDeleteCloudConfirm.value = false
     toast.add({
       title: t.value.deleteCloudData,
@@ -553,6 +471,7 @@ async function handleDeleteCloudData() {
     })
   } finally {
     deletingCloudData.value = false
+    if (identity.isCurrent()) endExclusive()
   }
 }
 
@@ -586,8 +505,17 @@ const syncLabel = computed(() => {
     role="status"
     :aria-label="t.loading"
   >
-    <span class="inline-block text-2xl text-coral-500 motion-safe:animate-spin" aria-hidden="true">◒</span>
+    <span class="inline-block text-2xl text-coral-500 motion-safe:animate-spin" aria-hidden="true"
+      >◒</span
+    >
     <span>{{ t.loading }}</span>
+  </div>
+
+  <div v-else-if="loadError" class="mx-auto max-w-2xl p-6" role="alert">
+    <p>{{ t.storageLoadError }}</p>
+    <UButton class="mt-3" color="neutral" variant="outline" @click="reload">
+      {{ t.syncRetry }}
+    </UButton>
   </div>
 
   <template v-else>
@@ -619,6 +547,22 @@ const syncLabel = computed(() => {
     </header>
 
     <main class="mx-auto w-[min(1180px,calc(100%-2rem))] pb-[60px] pt-5 max-[500px]:pt-3.5">
+      <div
+        v-if="saveError"
+        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+        role="alert"
+      >
+        <p>{{ t.storageSaveError }}</p>
+        <UButton
+          class="mt-2"
+          color="neutral"
+          variant="outline"
+          :loading="saving"
+          @click="retrySave"
+        >
+          {{ t.storageRetry }}
+        </UButton>
+      </div>
       <!--
         When Supabase is configured we show the more detailed 'localOnly' message
         which explains that clearing site data erases local records and signing in enables sync.
@@ -646,6 +590,7 @@ const syncLabel = computed(() => {
             size="xs"
             class="h-auto min-h-0 min-w-0 px-1 py-0.5 leading-none"
             :aria-label="t.editLatestBottle"
+            :disabled="exclusive"
             @click="quickEditLatestFeed"
           >
             ✎
@@ -668,6 +613,7 @@ const syncLabel = computed(() => {
         <span>{{ syncLabel }}</span>
         <UButton
           v-if="syncStatus === 'error' || syncStatus === 'pending'"
+          :disabled="exclusive"
           type="button"
           class="ml-auto"
           color="neutral"
@@ -683,7 +629,7 @@ const syncLabel = computed(() => {
       </div>
 
       <!-- Export / Import -->
-      <div class="mb-[18px] flex flex-wrap items-stretch gap-2">
+      <div class="mb-[18px] flex flex-wrap items-stretch gap-2" :inert="exclusive">
         <UButton
           type="button"
           color="neutral"
@@ -711,20 +657,43 @@ const syncLabel = computed(() => {
           @change="handleImportFile"
         />
 
-        <ReportGenerator :feeds="activeFeeds" :weights="activeWeights" :t="t" :locale="locale" />
+        <ReportGenerator
+          :feeds="activeFeeds"
+          :weights="activeWeights"
+          :t="t"
+          :locale="locale"
+          :now="now"
+        />
       </div>
 
       <!-- Cloud sync / Auth section -->
-      <section v-if="isSupabaseConfigured" class="surface mb-6 p-5 sm:p-6" :aria-label="t.cloudSync">
+      <section
+        v-if="isSupabaseConfigured"
+        class="surface mb-6 p-5 sm:p-6"
+        :aria-label="t.cloudSync"
+      >
         <div class="flex items-center gap-2.5">
-          <span class="grid size-8 place-items-center rounded-[10px] bg-sky-50 text-lg font-extrabold text-sky-700" aria-hidden="true">☁</span>
+          <span
+            class="grid size-8 place-items-center rounded-[10px] bg-sky-50 text-lg font-extrabold text-sky-700"
+            aria-hidden="true"
+            >☁</span
+          >
           <h2 class="text-lg font-extrabold text-highlighted">{{ t.cloudSync }}</h2>
         </div>
 
         <template v-if="isAuthenticated">
-          <p class="mt-3 text-sm text-toned">{{ t.signedInAs }} <strong class="text-highlighted">{{ authUser?.email }}</strong></p>
+          <p class="mt-3 text-sm text-toned">
+            {{ t.signedInAs }} <strong class="text-highlighted">{{ authUser?.email }}</strong>
+          </p>
           <div class="mt-3 flex flex-wrap items-center gap-2">
-            <UButton type="button" color="neutral" variant="ghost" size="sm" @click="handleSignOut">
+            <UButton
+              type="button"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="exclusive"
+              @click="handleSignOut"
+            >
               {{ t.signOut }}
             </UButton>
             <UButton
@@ -828,55 +797,64 @@ const syncLabel = computed(() => {
         </div>
       </div>
 
-      <section class="entry-grid grid grid-cols-1 gap-[18px] md:grid-cols-[1.7fr_1fr]" aria-label="Data entry">
-        <FeedForm
-          v-model:amount="feedForm.amount"
-          v-model:date="feedForm.date"
-          v-model:time="feedForm.time"
-          v-model:comment="feedForm.comment"
+      <fieldset class="contents" :disabled="exclusive">
+        <section
+          class="entry-grid grid grid-cols-1 gap-[18px] md:grid-cols-[1.7fr_1fr]"
+          aria-label="Data entry"
+        >
+          <FeedForm
+            v-model:amount="feedForm.amount"
+            v-model:date="feedForm.date"
+            v-model:time="feedForm.time"
+            v-model:comment="feedForm.comment"
+            :t="t"
+            @submit="addFeed"
+          />
+          <WeightForm
+            v-model:kilograms="weightForm.kilograms"
+            v-model:date="weightForm.date"
+            :t="t"
+            @submit="addWeight"
+          />
+        </section>
+
+        <SummaryMetrics
+          :now="now"
+          :feeds="activeFeeds"
+          :latest-weight="latestWeight"
+          :daily-guide="dailyGuide"
           :t="t"
-          @submit="addFeed"
+          :locale="locale"
+          class="mt-[18px]"
         />
-        <WeightForm
-          v-model:kilograms="weightForm.kilograms"
-          v-model:date="weightForm.date"
+
+        <p class="mx-auto my-3 w-[min(700px,100%)] text-center text-[11px] text-dimmed">
+          {{ t.disclaimer }}
+        </p>
+
+        <TrendsCharts
+          :now="now"
+          :feeds="activeFeeds"
+          :weights="activeWeights"
+          :daily-guide="dailyGuide"
           :t="t"
-          @submit="addWeight"
+          :locale="locale"
         />
-      </section>
 
-      <SummaryMetrics
-        :feeds="activeFeeds"
-        :latest-weight="latestWeight"
-        :daily-guide="dailyGuide"
-        :t="t"
-        :locale="locale"
-        class="mt-[18px]"
-      />
-
-      <p class="mx-auto my-3 w-[min(700px,100%)] text-center text-[11px] text-dimmed">{{ t.disclaimer }}</p>
-
-      <TrendsCharts
-        :feeds="activeFeeds"
-        :weights="activeWeights"
-        :daily-guide="dailyGuide"
-        :t="t"
-        :locale="locale"
-      />
-
-      <MeasureHistory
-        :feeds="sortedFeeds"
-        :weights="sortedWeights"
-        :quick-edit-feed-id="latestFeedQuickEditId"
-        :quick-edit-feed-nonce="latestFeedQuickEditNonce"
-        :t="t"
-        :locale="locale"
-        class="mt-[18px]"
-        @save-feed="saveFeed"
-        @remove-feed="removeFeed"
-        @save-weight="saveWeight"
-        @remove-weight="removeWeight"
-      />
+        <MeasureHistory
+          :feeds="sortedFeeds"
+          :weights="sortedWeights"
+          :quick-edit-feed-id="latestFeedQuickEditId"
+          :quick-edit-feed-nonce="latestFeedQuickEditNonce"
+          :t="t"
+          :locale="locale"
+          class="mt-[18px]"
+          @save-feed="saveFeed"
+          @remove-feed="removeFeed"
+          @save-weight="saveWeight"
+          @remove-weight="removeWeight"
+        />
+      </fieldset>
     </main>
   </template>
 </template>

@@ -1,4 +1,5 @@
 import type { AppData, Feed, Weight } from './types'
+import { parseAppData } from './validation'
 
 /**
  * Deterministic merge: newest `updatedAt` wins.
@@ -11,7 +12,9 @@ function mergeRecords<T extends { id: string; updatedAt: string }>(local: T[], r
   for (const item of local) map.set(item.id, item)
   for (const item of remote) {
     const existing = map.get(item.id)
-    if (!existing || item.updatedAt >= existing.updatedAt) map.set(item.id, item)
+    if (!existing || Date.parse(item.updatedAt) >= Date.parse(existing.updatedAt)) {
+      map.set(item.id, item)
+    }
   }
   return Array.from(map.values())
 }
@@ -32,15 +35,9 @@ export function mergeAppData(local: AppData, remote: AppData): AppData {
 }
 
 /**
- * Merge two sets of records for JSON import: remote (imported) wins
- * on conflict by ID; missing `updatedAt` is backfilled from `occurredAt`.
+ * Validate imports in full, then merge by update time (import wins ties).
+ * Missing legacy metadata is backfilled by the shared parser.
  */
-export function mergeImport(existing: AppData, imported: AppData): AppData {
-  const now = new Date().toISOString()
-  const backfill = <T extends { updatedAt?: string; occurredAt: string }>(items: T[]): T[] =>
-    items.map((item) => ({ ...item, updatedAt: item.updatedAt ?? item.occurredAt ?? now }))
-  return mergeAppData(existing, {
-    feeds: backfill(imported.feeds) as Feed[],
-    weights: backfill(imported.weights) as Weight[],
-  })
+export function mergeImport(existing: AppData, imported: unknown): AppData {
+  return mergeAppData(parseAppData(existing), parseAppData(imported))
 }
