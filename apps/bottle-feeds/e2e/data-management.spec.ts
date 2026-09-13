@@ -16,6 +16,16 @@ test.describe('Data export', () => {
     const download = await downloadPromise
 
     expect(download.suggestedFilename()).toMatch(/^little-sips-export-\d{4}-\d{2}-\d{2}\.json$/)
+    const downloadedPath = await download.path()
+    expect(downloadedPath).not.toBeNull()
+    const backup: unknown = JSON.parse(fs.readFileSync(downloadedPath!, 'utf8'))
+    expect(backup).toMatchObject({
+      format: 'little-sips-backup',
+      version: 1,
+      records: fullAppData,
+      recovery: { pending: [], conflicts: [], cursor: null },
+      provenance: { backendId: null, namespace: 'guest' },
+    })
   })
 })
 

@@ -1,7 +1,10 @@
+import { sharingMessages } from './sharing-messages'
+
 export type Language = 'en' | 'fr' | 'es' | 'de'
 
 export const messages = {
   en: {
+    ...sharingMessages.en,
     appName: 'Little Sips',
     tagline: 'Bottle and growth tracker',
     privacy: 'Private by design — everything stays in this browser.',
@@ -154,6 +157,7 @@ export const messages = {
     signOutError: 'Could not sign out. Please try again.',
   },
   fr: {
+    ...sharingMessages.fr,
     appName: 'Petites Gorgées',
     tagline: 'Suivi des biberons et de la croissance',
     privacy: 'Vos données restent privées dans ce navigateur.',
@@ -310,6 +314,7 @@ export const messages = {
     signOutError: 'Impossible de vous déconnecter. Réessayez.',
   },
   es: {
+    ...sharingMessages.es,
     appName: 'Pequeños Sorbos',
     tagline: 'Registro de biberones y crecimiento',
     privacy: 'Tus datos permanecen privados en este navegador.',
@@ -462,6 +467,7 @@ export const messages = {
     signOutError: 'No se pudo cerrar la sesión. Inténtalo de nuevo.',
   },
   de: {
+    ...sharingMessages.de,
     appName: 'Kleine Schlucke',
     tagline: 'Flaschen- und Wachstumstracker',
     privacy: 'Deine Daten bleiben privat in diesem Browser.',

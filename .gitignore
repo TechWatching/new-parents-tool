@@ -3,6 +3,7 @@ dist/
 *.tsbuildinfo
 test-results/
 .playwright-cli/
+.impeccable/
 apm_modules/
 .agents/
 .github/skills/impeccable/scripts/bin/

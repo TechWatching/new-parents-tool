@@ -6,10 +6,12 @@ import type { Messages } from '../i18n'
 import type { Feed, Weight } from '../types'
 import {
   buildReportFilename,
+  conflictsAffectReport,
   createDefaultReportConfig,
   createReportSnapshot,
   validateReportConfig,
   type ReportValidationError,
+  type ReportConflict,
 } from '../report/logic'
 import { generateReportPdfBlob, sharePdf } from '../report/pdf'
 
@@ -19,7 +21,8 @@ const props = withDefaults(defineProps<{
   t: Messages
   locale: string
   now?: number
-}>(), { now: () => Date.now() })
+  conflicts?: ReportConflict[]
+}>(), { now: () => Date.now(), conflicts: () => [] })
 
 const isOpen = ref(false)
 const isGenerating = ref(false)
@@ -33,6 +36,7 @@ const toast = useToast()
 const validationErrors = computed(() => validateReportConfig(config))
 const snapshot = computed(() => createReportSnapshot(props.feeds, props.weights, config, new Date(props.now)))
 const hasSelectedData = computed(() => snapshot.value.feeds.length > 0 || snapshot.value.weights.length > 0)
+const hasConflicts = computed(() => conflictsAffectReport(props.conflicts, config, new Date(props.now)))
 
 const validationMessages = computed(() => {
   const lookup: Record<ReportValidationError, string> = {
@@ -62,9 +66,13 @@ function closePanel() {
 async function handleShare() {
   showValidation.value = true
   generationError.value = false
-  if (validationErrors.value.length > 0) return
+  if (validationErrors.value.length > 0 || hasConflicts.value) return
 
   const generatedAt = new Date()
+  if (conflictsAffectReport(props.conflicts, config, generatedAt)) {
+    generationError.value = true
+    return
+  }
   const currentSnapshot = createReportSnapshot(props.feeds, props.weights, config, generatedAt)
 
   try {
@@ -187,9 +195,10 @@ async function handleShare() {
         <div v-else-if="generationError" class="rounded-lg bg-red-50 p-3 text-sm text-red-800" role="alert">
           <p>{{ t.reportGenerationError }}</p>
         </div>
+        <p v-if="hasConflicts" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" role="alert">{{ t.sharingReportBlocked }}</p>
 
         <div class="flex flex-wrap items-center gap-2.5 max-[500px]:flex-col max-[500px]:items-stretch">
-          <UButton type="submit" class="min-w-[180px] justify-center font-semibold" size="lg" :disabled="isGenerating" :loading="isGenerating">
+          <UButton type="submit" class="min-w-[180px] justify-center font-semibold" size="lg" :disabled="isGenerating || hasConflicts" :loading="isGenerating">
             {{ isGenerating ? t.reportGenerating : t.reportSharePdf }}
           </UButton>
           <UButton type="button" color="neutral" variant="outline" @click="closePanel">{{ t.cancel }}</UButton>

@@ -8,11 +8,17 @@ Open the bottle feed tracker directly: **https://techwatching.github.io/new-pare
 
 ## Bottle feed tracker
 
-The Vue app in `apps/bottle-feeds` records bottle quantities, dates, optional comments, and baby weights. It provides English and French interfaces, 24-hour summaries, seven-day trends, and a weight-based daily intake estimate.
+The Vue app in `apps/bottle-feeds` records bottle quantities, dates, optional comments, and baby weights. It provides English, French, Spanish, and German interfaces, 24-hour summaries, seven-day trends, and a weight-based daily intake estimate.
 
-Records are stored locally in the browser by default. Optional cloud sync is enabled
-when you sign in with an email link, allowing records to sync across devices.
-Records that have not been synced will be erased if you clear the site's browser data.
+Records are stored locally in the browser by default, without any backend configuration.
+After the app reports that offline access is ready, it can reopen without a connection.
+Optional Google or Microsoft sign-in lets two parents share one family history.
+Sharing never starts implicitly: existing local records require permission to upload.
+Clearing browser data removes local records, pending changes, and offline access.
+Keep a JSON backup, even when using sharing.
+
+See the [app README](apps/bottle-feeds/README.md) for setup and backend portability,
+and the [user guide](docs/USER_GUIDE.md) for invitations, offline use, and recovery.
 
 The intake estimate uses the indicative Appert rule over 24 hours: `(weight in g ÷ 10) + 200 ml`.
 It is very theoretical, for guidance only, and not medical advice.
