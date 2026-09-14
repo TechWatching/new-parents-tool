@@ -118,11 +118,21 @@ export function createSupabaseBackend(config: {
 export function backendFromClient(client: SupabaseClient, id: string): CloudBackend {
   let disposed = false
   let generation = 0
+  let providerSubject: string | null | undefined
   const listeners = new Set<(value: CloudUser | null) => void>()
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const requests = new Set<AbortController>()
   const active = () => {
     if (disposed) throw new BackendError('transient', 'Cloud backend disposed')
+  }
+  const current = (revision: number) => {
+    active()
+    if (revision !== generation) throw new BackendError('auth', 'Authentication changed')
+  }
+  const invalidate = (subject: string | null) => {
+    ++generation
+    providerSubject = subject
+    for (const request of requests) request.abort()
   }
   async function rpc(
     name: string,
@@ -130,6 +140,7 @@ export function backendFromClient(client: SupabaseClient, id: string): CloudBack
     signal?: AbortSignal,
   ): Promise<unknown> {
     active()
+    const revision = generation
     const controller = new AbortController()
     const abort = () => controller.abort()
     signal?.addEventListener('abort', abort, { once: true })
@@ -137,7 +148,7 @@ export function backendFromClient(client: SupabaseClient, id: string): CloudBack
     requests.add(controller)
     try {
       const { data, error } = await client.rpc(name, args).abortSignal(controller.signal)
-      active()
+      current(revision)
       if (controller.signal.aborted) throw new BackendError('transient', 'Cloud request cancelled')
       if (error) throw error
       return data
@@ -154,7 +165,12 @@ export function backendFromClient(client: SupabaseClient, id: string): CloudBack
   const {
     data: { subscription },
   } = client.auth.onAuthStateChange((_event, session) => {
-    const revision = ++generation
+    const subject = session && typeof session === 'object' && 'user' in session
+      ? (session.user as { id?: unknown } | undefined)?.id
+      : undefined
+    const nextSubject = typeof subject === 'string' ? subject : null
+    if (providerSubject !== nextSubject) invalidate(nextSubject)
+    const revision = generation
     // Supabase holds its auth lock during this callback. RPC must run in another task.
     const timer = setTimeout(() => {
       timers.delete(timer)
@@ -180,6 +196,7 @@ export function backendFromClient(client: SupabaseClient, id: string): CloudBack
     auth: {
       async restore() {
         active()
+        const revision = generation
         try {
           if (typeof location !== 'undefined') {
             const callback = new URL(location.href)
@@ -189,9 +206,11 @@ export function backendFromClient(client: SupabaseClient, id: string): CloudBack
             }
           }
           const { data, error } = await client.auth.getSession()
-          active()
+          current(revision)
           if (error) throw error
-          return data.session ? user(await rpc('ls_identity')) : null
+          const identity = data.session ? await rpc('ls_identity') : null
+          current(revision)
+          return identity === null ? null : user(identity)
         } catch (error) {
           throw normalizeError(error)
         }
@@ -230,7 +249,7 @@ export function backendFromClient(client: SupabaseClient, id: string): CloudBack
       },
       async signOut() {
         active()
-        ++generation
+        invalidate(null)
         try {
           const { error } = await client.auth.signOut({ scope: 'local' })
           if (error) throw error
