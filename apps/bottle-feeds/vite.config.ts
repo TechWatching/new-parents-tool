@@ -102,7 +102,7 @@ export default defineConfig({
           'playwright/valid-expect': 'error',
           'playwright/valid-expect-in-promise': 'error',
           'playwright/valid-test-tags': 'error',
-          'playwright/valid-title': 'error',
+          'playwright/valid-title': 'error'
         },
         jsPlugins: ['eslint-plugin-playwright'],
       },
@@ -127,6 +127,7 @@ export default defineConfig({
           'vitest/valid-expect': 'error',
           'vitest/valid-expect-in-promise': 'error',
           'vitest/valid-title': 'error',
+          'typescript/unbound-method': 'off'
         },
       },
     ],

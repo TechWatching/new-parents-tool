@@ -95,7 +95,7 @@ describe('local-first consent and identity lifecycle', () => {
 
   it('loads cached history and accepts edits before a stalled auth restore resolves', async () => {
     await seedContext()
-    vi.mocked(backend.auth.restore).mockReturnValue(new Promise(() => {}))
+    vi.spyOn(backend.auth, 'restore').mockReturnValue(new Promise(() => {}))
     await start()
     expect(store.loading.value).toBe(false)
     expect(store.data.feeds[0]!.id).toBe('cached')
@@ -330,7 +330,7 @@ describe('local-first consent and identity lifecycle', () => {
 
   it('preserves a removed family as an isolated recovery copy and never recreates it', async () => {
     await seedContext()
-    vi.mocked(backend.family.current).mockResolvedValue(null)
+    vi.spyOn(backend.family, 'current').mockResolvedValue(null)
     user = { id: 'a' }
     await start()
     await flushPromises()

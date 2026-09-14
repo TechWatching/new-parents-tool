@@ -61,7 +61,10 @@ export function parseBackup(value: unknown): HistoryState {
     for (const candidate of [remote, base]) {
       if (candidate && (candidate.kind !== kind || candidate.record.id !== local.id)) throw new Error('Mismatched backup conflict')
     }
-    if (conflict.source !== undefined && !['local', 'cloud', 'restore'].includes(String(conflict.source))) {
+    if (
+      conflict.source !== undefined &&
+      (typeof conflict.source !== 'string' || !['local', 'cloud', 'restore'].includes(conflict.source))
+    ) {
       throw new Error('Invalid backup conflict source')
     }
     return {
