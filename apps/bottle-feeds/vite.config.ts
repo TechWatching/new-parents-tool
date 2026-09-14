@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import ui from '@nuxt/ui/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -101,7 +102,7 @@ export default defineConfig({
           'playwright/valid-expect': 'error',
           'playwright/valid-expect-in-promise': 'error',
           'playwright/valid-test-tags': 'error',
-          'playwright/valid-title': 'error',
+          'playwright/valid-title': 'error'
         },
         jsPlugins: ['eslint-plugin-playwright'],
       },
@@ -126,6 +127,7 @@ export default defineConfig({
           'vitest/valid-expect': 'error',
           'vitest/valid-expect-in-promise': 'error',
           'vitest/valid-title': 'error',
+          'typescript/unbound-method': 'off'
         },
       },
     ],
@@ -154,6 +156,13 @@ export default defineConfig({
       // The app has a single, intentionally light "cosy" theme, so we opt out
       // of Nuxt UI's automatic light/dark color mode switching.
       colorMode: false,
+      icon: {
+        // Installed Lucide data also bundles Nuxt UI's implicit icons (toast
+        // close, dialogs, loading and errors), not only visible source literals.
+        clientBundle: {
+          scan: { globInclude: ['src/**/*.{vue,ts,tsx,js,jsx}'] },
+        },
+      },
       ui: {
         colors: {
           primary: 'coral',
@@ -166,6 +175,21 @@ export default defineConfig({
     }),
     vue(),
     vueDevTools(),
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'service-worker',
+      filename: 'sw.ts',
+      injectRegister: false,
+      registerType: 'prompt',
+      manifest: false,
+      includeAssets: ['favicon.ico', 'favicon.svg'],
+      injectManifest: {
+        // Include lazy imports (especially PDF generation) before advertising readiness.
+        globPatterns: ['**/*.{html,js,css,json,ico,svg,png,jpg,jpeg,webp,woff,woff2,ttf,otf}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      },
+      devOptions: { enabled: false },
+    }),
   ]),
   resolve: {
     alias: {

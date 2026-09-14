@@ -5,21 +5,11 @@ import UButton from '@nuxt/ui/components/Button.vue'
 import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
-import { loadData, moveDataToGuest, parseAppData, GUEST_NAMESPACE } from './storage'
-import { isSupabaseConfigured } from './supabase'
-import {
-  signInWithEmail,
-  signOut,
-  authUser,
-  isAuthenticated,
-  activeNamespace,
-  authStep,
-  authError,
-} from './auth'
+import { loadData, GUEST_NAMESPACE } from './storage'
 import { syncStatus, syncError, lastSyncedAt } from './sync'
 import { useAppData } from './composables/useAppData'
+import { useOfflineAvailability } from './composables/useOfflineAvailability'
 import { mergeAppData } from './merge'
-import { deleteAllCloudData } from './remote'
 import type { AppData, Feed, Weight } from './types'
 import {
   dateFromOccurredAt,
@@ -36,6 +26,8 @@ import SummaryMetrics from './components/SummaryMetrics.vue'
 import TrendsCharts from './components/TrendsCharts.vue'
 import MeasureHistory from './components/MeasureHistory.vue'
 import ReportGenerator from './components/ReportGenerator.vue'
+import CloudSharingPanel from './components/sharing/CloudSharingPanel.vue'
+import SyncConflictPanel from './components/sharing/SyncConflictPanel.vue'
 
 // ---------------------------------------------------------------------------
 // State
@@ -43,6 +35,7 @@ import ReportGenerator from './components/ReportGenerator.vue'
 
 const {
   data,
+  currentNamespace,
   loading,
   loadError,
   saveError,
@@ -52,12 +45,35 @@ const {
   retrySave,
   flush,
   triggerSync,
-  cancelSync,
-  beginExclusive,
-  endExclusive,
   captureIdentity,
   reload,
+  backendAvailable,
+  cloudUser,
+  family,
+  sharingEnabled,
+  needsResume,
+  cloudBusy,
+  cloudError,
+  invitation,
+  pendingInvitation,
+  pendingCount,
+  conflicts,
+  signIn,
+  signOut,
+  createFamily,
+  acceptInvitation,
+  createInvitation,
+  revokeInvitation,
+  leaveFamily,
+  removePartner,
+  deleteFamily,
+  resumeSharing,
+  resolveConflict,
+  exportBackup,
+  importBackup,
 } = useAppData()
+const { ready: offlineReady, updateAvailable, error: offlineError, applyUpdate } = useOfflineAvailability()
+const productionBuild = import.meta.env.PROD
 const now = ref(Date.now())
 let nowIntervalId: number | undefined
 
@@ -91,11 +107,9 @@ const availableLocales = [
 const feedForm = reactive({ amount: '', ...dateTimeForInput(), comment: '' })
 const weightForm = reactive({ kilograms: '', date: dateTimeForInput().date })
 const entryDateTimeoutDuration = ref(LATEST_ENTRY_DATE_DURATION)
-
-// Auth form
-const emailInput = ref('')
-const showDeleteCloudConfirm = ref(false)
-const deletingCloudData = ref(false)
+const historyEditing = ref(false)
+const sharingPanelOpen = ref(false)
+const hasOpenDraft = computed(() => !!(feedForm.amount || feedForm.comment || weightForm.kilograms || historyEditing.value))
 
 // Guest merge prompt
 const showMergePrompt = ref(false)
@@ -144,13 +158,15 @@ watch(loading, (value) => {
 })
 
 watch(
-  activeNamespace,
+  currentNamespace,
   async (ns) => {
     showMergePrompt.value = false
     guestDataForMerge.value = null
-    showDeleteCloudConfirm.value = false
+    historyEditing.value = false
+    Object.assign(feedForm, { amount: '', ...dateTimeForInput(), comment: '' })
+    Object.assign(weightForm, { kilograms: '', date: dateTimeForInput().date })
     const identity = captureIdentity()
-    if (ns === GUEST_NAMESPACE) return
+    if (ns === GUEST_NAMESPACE || !sharingEnabled.value) return
     try {
       const guest = await loadData(GUEST_NAMESPACE)
       if (
@@ -350,23 +366,24 @@ function quickEditLatestFeed() {
 // Export / Import
 // ---------------------------------------------------------------------------
 
-function exportData() {
-  const snapshot: AppData = {
-    feeds: activeFeeds.value,
-    weights: activeWeights.value,
+async function exportData() {
+  try {
+    const snapshot = await exportBackup()
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `little-sips-export-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.add({
+      title: t.value.exportData,
+      description: t.value.exportSuccess,
+      color: 'success',
+    })
+  } catch {
+    toast.add({ title: t.value.sharingBackupError, color: 'error' })
   }
-  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `little-sips-export-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-  toast.add({
-    title: t.value.exportData,
-    description: t.value.exportSuccess,
-    color: 'success',
-  })
 }
 
 function triggerImport() {
@@ -377,12 +394,17 @@ async function handleImportFile(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  if (hasOpenDraft.value) {
+    toast.add({ title: t.value.sharingFinishDraft, color: 'warning' })
+    input.value = ''
+    return
+  }
   const identity = captureIdentity()
   try {
     const text = await file.text()
-    const imported = parseAppData(JSON.parse(text))
+    const imported: unknown = JSON.parse(text)
     if (!identity.isCurrent()) throw new Error('The import identity changed')
-    if (!(await commit((draft) => Object.assign(draft, mergeAppData(draft, imported))))) return
+    if (!(await importBackup(imported))) throw new Error('The backup could not be restored')
     toast.add({
       title: t.value.importData,
       description: t.value.importSuccess,
@@ -410,7 +432,7 @@ async function handleGuestMerge(action: 'merge' | 'keep') {
   if (action === 'merge' && guest) {
     if (
       (await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))) &&
-      isAuthenticated.value &&
+      sharingEnabled.value &&
       navigator.onLine
     )
       void triggerSync()
@@ -418,59 +440,24 @@ async function handleGuestMerge(action: 'merge' | 'keep') {
 }
 
 // ---------------------------------------------------------------------------
-// Auth
+// Safe app updates
 // ---------------------------------------------------------------------------
 
-async function handleSendMagicLink() {
-  const email = emailInput.value.trim()
-  if (!email) return
-  try {
-    await signInWithEmail(email)
-  } catch {
-    // authError ref is set by auth.ts
+async function updateApp() {
+  if (hasOpenDraft.value) {
+    toast.add({ title: t.value.offlineUpdateDraft, color: 'warning' })
+    return
   }
-}
-
-async function handleSignOut() {
   if (!(await flush())) return
-  cancelSync()
-  try {
-    await signOut()
-  } catch {
-    toast.add({ title: t.value.signOutError, color: 'error' })
-  }
+  await applyUpdate()
 }
 
-async function handleDeleteCloudData() {
-  const uid = authUser.value?.id
-  if (!uid || deletingCloudData.value || syncStatus.value === 'syncing') return
-  const identity = captureIdentity()
-  if (!(await beginExclusive())) return
-  deletingCloudData.value = true
-
-  try {
-    if (!identity.isCurrent()) throw new Error('The deletion identity changed')
-    await deleteAllCloudData(uid)
-    if (!identity.isCurrent()) throw new Error('The deletion identity changed')
-    await moveDataToGuest(identity.namespace)
-    if (!identity.isCurrent()) throw new Error('The deletion identity changed')
-    await signOut()
-    showDeleteCloudConfirm.value = false
-    toast.add({
-      title: t.value.deleteCloudData,
-      description: t.value.deleteCloudSuccess,
-      color: 'success',
-    })
-  } catch {
-    toast.add({
-      title: t.value.deleteCloudData,
-      description: t.value.deleteCloudError,
-      color: 'error',
-    })
-  } finally {
-    deletingCloudData.value = false
-    if (identity.isCurrent()) endExclusive()
+async function changeIdentity(action: () => Promise<unknown>) {
+  if (hasOpenDraft.value) {
+    toast.add({ title: t.value.sharingFinishDraft, color: 'warning' })
+    return
   }
+  await action()
 }
 
 // ---------------------------------------------------------------------------
@@ -561,15 +548,17 @@ const syncLabel = computed(() => {
           {{ t.storageRetry }}
         </UButton>
       </div>
-      <!--
-        When Supabase is configured we show the more detailed 'localOnly' message
-        which explains that clearing site data erases local records and signing in enables sync.
-        When Supabase is NOT configured we show the simpler 'privacy' note (no
-        mention of cloud sync since there is no cloud option available).
-      -->
       <div class="mb-[18px] text-center text-[13px] text-muted">
         <span class="font-bold text-mint-600" aria-hidden="true">⌁</span>
-        {{ !isSupabaseConfigured ? t.privacy : isAuthenticated ? t.cloudEnabled : t.localOnly }}
+        {{ family ? t.sharingFamily : t.sharingLocal }}
+      </div>
+      <div v-if="productionBuild" class="mb-4 text-center text-xs text-muted">
+        <p role="status">{{ offlineError ? t.offlineError : offlineReady ? t.offlineReady : t.offlinePreparing }}</p>
+        <p class="mt-1">{{ t.offlineLimit }}</p>
+        <div v-if="updateAvailable" class="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <span>{{ t.offlineUpdate }}</span>
+          <UButton size="xs" color="neutral" variant="outline" :disabled="saving || exclusive" @click="updateApp">{{ t.offlineApplyUpdate }}</UButton>
+        </div>
       </div>
 
       <p
@@ -598,7 +587,7 @@ const syncLabel = computed(() => {
 
       <!-- Sync status bar -->
       <div
-        v-if="isSupabaseConfigured && isAuthenticated && syncStatus !== 'idle'"
+        v-if="family && syncStatus !== 'idle'"
         class="mb-3 flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm"
         :class="
           syncStatus === 'error'
@@ -661,122 +650,44 @@ const syncLabel = computed(() => {
           :t="t"
           :locale="locale"
           :now="now"
+          :conflicts="conflicts"
         />
       </div>
 
-      <!-- Cloud sync / Auth section -->
+      <CloudSharingPanel
+        v-model:open="sharingPanelOpen"
+        :available="backendAvailable"
+        :user="cloudUser"
+        :family="family"
+        :enabled="sharingEnabled"
+        :needs-resume="needsResume"
+        :pending-invitation="pendingInvitation"
+        :invitation="invitation"
+        :pending-count="pendingCount"
+        :busy="cloudBusy || exclusive"
+        :error="cloudError"
+        :t="t"
+        :locale="locale"
+        @sign-in="provider => changeIdentity(() => signIn(provider))"
+        @sign-out="changeIdentity(signOut)"
+        @create="changeIdentity(createFamily)"
+        @join="changeIdentity(acceptInvitation)"
+        @invite="createInvitation"
+        @revoke="revokeInvitation"
+        @leave="changeIdentity(leaveFamily)"
+        @remove="removePartner"
+        @delete="changeIdentity(deleteFamily)"
+        @resume="changeIdentity(resumeSharing)"
+        @sync="triggerSync"
+      />
+      <SyncConflictPanel :conflicts="conflicts" :busy="exclusive || saving" :t="t" :locale="locale" @resolve="resolveConflict" />
+
       <section
-        v-if="isSupabaseConfigured"
-        class="surface mb-6 p-5 sm:p-6"
-        :aria-label="t.cloudSync"
-      >
-        <div class="flex items-center gap-2.5">
-          <span
-            class="grid size-8 place-items-center rounded-[10px] bg-sky-50 text-lg font-extrabold text-sky-700"
-            aria-hidden="true"
-            >☁</span
-          >
-          <h2 class="text-lg font-extrabold text-highlighted">{{ t.cloudSync }}</h2>
-        </div>
-
-        <template v-if="isAuthenticated">
-          <p class="mt-3 text-sm text-toned">
-            {{ t.signedInAs }} <strong class="text-highlighted">{{ authUser?.email }}</strong>
-          </p>
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <UButton
-              type="button"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :disabled="exclusive"
-              @click="handleSignOut"
-            >
-              {{ t.signOut }}
-            </UButton>
-            <UButton
-              type="button"
-              color="error"
-              variant="ghost"
-              size="sm"
-              :disabled="syncStatus === 'syncing'"
-              :aria-expanded="showDeleteCloudConfirm"
-              aria-controls="cloud-delete-confirm"
-              @click="showDeleteCloudConfirm = true"
-            >
-              {{ t.deleteCloudData }}
-            </UButton>
-          </div>
-
-          <div
-            v-if="showDeleteCloudConfirm"
-            id="cloud-delete-confirm"
-            class="mt-3.5 max-w-2xl rounded-xl border border-coral-200 bg-coral-50/50 p-3.5 text-sm text-coral-900"
-            role="alert"
-          >
-            <strong>{{ t.deleteCloudTitle }}</strong>
-            <p class="my-1.5">{{ t.deleteCloudBody }}</p>
-            <p class="my-1.5 font-semibold">{{ t.deleteCloudWarning }}</p>
-            <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
-              <UButton
-                type="button"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :disabled="deletingCloudData"
-                @click="showDeleteCloudConfirm = false"
-              >
-                {{ t.deleteCloudCancel }}
-              </UButton>
-              <UButton
-                type="button"
-                color="error"
-                size="sm"
-                :loading="deletingCloudData"
-                @click="handleDeleteCloudData"
-              >
-                {{ deletingCloudData ? t.deleteCloudDeleting : t.deleteCloudConfirm }}
-              </UButton>
-            </div>
-          </div>
-        </template>
-
-        <template v-else-if="authStep === 'check-email'">
-          <p class="mt-3 text-sm text-toned">{{ t.checkEmail }}</p>
-        </template>
-
-        <template v-else>
-          <form class="mt-3" @submit.prevent="handleSendMagicLink">
-            <label class="mb-2 block text-sm text-muted" for="auth-email">{{ t.emailLabel }}</label>
-            <div class="flex items-center gap-2.5">
-              <input
-                id="auth-email"
-                v-model="emailInput"
-                type="email"
-                required
-                autocomplete="email"
-                class="field flex-1"
-              />
-              <UButton type="submit" size="sm" :loading="authStep === 'sending'">
-                {{ t.sendMagicLink }}
-              </UButton>
-            </div>
-            <p v-if="authStep === 'error' && authError" class="mt-2 text-sm text-red-700">
-              {{ t.authError }}: {{ authError }}
-            </p>
-          </form>
-        </template>
-      </section>
-
-      <!-- Guest merge prompt modal -->
-      <div
         v-if="showMergePrompt"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-        role="dialog"
-        :aria-label="t.guestMergeTitle"
+        class="surface mb-5 p-5 sm:p-6"
+        aria-labelledby="guest-merge-heading"
       >
-        <div class="surface w-full max-w-[480px] p-5 sm:p-6">
-          <h2 class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
+          <h2 id="guest-merge-heading" class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
           <p class="mb-4 text-sm text-muted">{{ t.guestMergeBody }}</p>
           <div class="flex flex-wrap gap-2.5">
             <UButton type="button" size="sm" @click="handleGuestMerge('merge')">
@@ -792,8 +703,7 @@ const syncLabel = computed(() => {
               {{ t.guestMergeNo }}
             </UButton>
           </div>
-        </div>
-      </div>
+      </section>
 
       <fieldset class="contents" :disabled="exclusive">
         <section
@@ -840,6 +750,7 @@ const syncLabel = computed(() => {
         />
 
         <MeasureHistory
+          :key="currentNamespace"
           ref="measureHistoryRef"
           :feeds="sortedFeeds"
           :weights="sortedWeights"
@@ -850,6 +761,7 @@ const syncLabel = computed(() => {
           @remove-feed="removeFeed"
           @save-weight="saveWeight"
           @remove-weight="removeWeight"
+          @editing-change="historyEditing = $event"
         />
       </fieldset>
     </main>

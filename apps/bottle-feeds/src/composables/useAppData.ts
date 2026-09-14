@@ -1,101 +1,179 @@
-import { onMounted, onUnmounted, reactive, ref, shallowReadonly, watch } from 'vue'
-import { activeNamespace, authUser, initAuth } from '../auth'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowReadonly, shallowRef } from 'vue'
+import { backendConfig, createBackend } from '../backends'
+import { BackendError, type CloudBackend, type CloudUser, type Family, type Invitation, type SignInProvider } from '../backends/contracts'
+import { observeAuth, signInWithProvider } from '../auth'
+import { createBackup, parseBackup } from '../backup'
 import { mergeAppData } from '../merge'
-import { isSupabaseConfigured } from '../supabase'
-import { GUEST_NAMESPACE, loadData, mergeDataStrict, isDirty, type Namespace } from '../storage'
-import { resetSyncState, syncNow, syncStatus } from '../sync'
+import {
+  GUEST_NAMESPACE, loadHistory, updateHistory, readLocalContext, writeLocalContext,
+  type Namespace,
+} from '../storage'
+import {
+  captureInvitation, emptyContext, familyNamespace, forgetInvitation,
+  type LocalContext, type LocalSelection,
+} from '../sharing/context'
+import {
+  applyLocalEdit, cloneHistory, emptyHistory, putRecord, recordKey, sameRecord,
+  type HistoryState, type SyncConflict,
+} from '../sharing/state'
+import { resetSyncState, resolveStoredConflict, syncNow, syncStatus } from '../sync'
+import { parseAppData } from '../validation'
 import type { AppData } from '../types'
+import { cloudRequest } from '../sharing/request'
 
-const emptyData = (): AppData => ({ feeds: [], weights: [] })
-const cloneData = (data: AppData): AppData => ({
-  feeds: data.feeds.map((feed) => ({ ...feed })),
-  weights: data.weights.map((weight) => ({ ...weight })),
-})
-
-/** Owns all hydration, persistence and synchronization for one active identity. */
+/** Local history is ready before any optional authentication request starts. */
 export function useAppData() {
-  const data = reactive<AppData>(emptyData())
-  const currentNamespace = ref<Namespace>(GUEST_NAMESPACE)
-  const loading = ref(true)
-  const loadError = ref<string | null>(null)
-  const saveError = ref<string | null>(null)
-  const saving = ref(false)
-  const exclusive = ref(false)
-  let generation = 0
-  let revision = 0
-  let stateVersion = 0
-  const pendingDrafts = new Map<
-    Namespace,
-    {
-      data: AppData
-      revision: number
-      error: string | null
-    }
-  >()
-  let started = false
+  const data = reactive<AppData>({ feeds: [], weights: [] })
+  const currentNamespace = shallowRef<Namespace>(GUEST_NAMESPACE)
+  const loading = shallowRef(true)
+  const loadError = shallowRef<string | null>(null)
+  const saveError = shallowRef<string | null>(null)
+  const saving = shallowRef(false)
+  const exclusive = shallowRef(false)
+  const cloudUser = ref<CloudUser | null>(null)
+  const family = ref<Family | null>(null)
+  const cloudBusy = shallowRef(false)
+  const cloudError = shallowRef<string | null>(null)
+  const invitation = ref<Invitation | null>(null)
+  const pendingInvitation = shallowRef(false)
+  const pendingCount = shallowRef(0)
+  const conflicts = ref<SyncConflict[]>([])
+  const hasLocal = computed(() => Boolean(
+    data.feeds.length || data.weights.length || pendingCount.value || conflicts.value.length,
+  ))
+  const context = ref<LocalContext>(emptyContext())
+  const backendAvailable = Boolean(backendConfig)
+  const needsResume = computed(() => !context.value.signedOut && (
+    context.value.suspended ||
+    Boolean(context.value.selected?.backendId && context.value.selected.backendId !== backendConfig?.id)
+  ))
+  const sharingEnabled = computed(() => Boolean(
+    backendConfig && context.value.consentBackend === backendConfig.id &&
+    !context.value.signedOut && !context.value.suspended &&
+    context.value.selected?.backendId === backendConfig.id &&
+    context.value.selected.namespace === currentNamespace.value &&
+    context.value.selected.family && !context.value.selected.revoked,
+  ))
   let disposed = false
+  let generation = 0
+  let authGeneration = 0
+  let revision = 0
+  let backend: CloudBackend | null = null
+  let backendTask: Promise<CloudBackend | null> | null = null
+  let stopAuth: (() => void) | undefined
+  let stopSubscription: (() => void) | undefined
+  let authTask: Promise<void> = Promise.resolve()
   let saveQueue: Promise<void> = Promise.resolve()
+  let contextQueue: Promise<void> = Promise.resolve()
   let syncTask: Promise<void> | null = null
   let syncController = new AbortController()
   let channel: BroadcastChannel | undefined
+  let editTimer: ReturnType<typeof setTimeout> | undefined
+  let pollTimer: ReturnType<typeof setInterval> | undefined
+  let pendingToken: string | null = null
+  let retryFailures = 0
+  const drafts = new Map<Namespace, { before: AppData; after: AppData; revision: number; error: string | null }>()
 
-  function apply(snapshot: AppData) {
-    stateVersion++
-    data.feeds = snapshot.feeds
-    data.weights = snapshot.weights
-  }
-
-  function captureIdentity() {
-    const capturedGeneration = generation
-    const namespace = currentNamespace.value
-    const userId = authUser.value?.id
-    return {
-      namespace,
-      userId,
-      isCurrent: () =>
-        !disposed &&
-        generation === capturedGeneration &&
-        currentNamespace.value === namespace &&
-        activeNamespace.value === namespace &&
-        authUser.value?.id === userId,
+  const message = (error: unknown) => error instanceof Error ? error.message : String(error)
+  const snapshot = () => cloneHistory({ feeds: data.feeds, weights: data.weights })
+  function apply(state: HistoryState, records = true) {
+    if (records) {
+      data.feeds = state.data.feeds
+      data.weights = state.data.weights
     }
+    pendingCount.value = state.pending.length
+    conflicts.value = state.conflicts
   }
-
-  function notifyOtherTabs(namespace: Namespace) {
-    channel?.postMessage({ namespace })
+  function captureIdentity() {
+    const captured = generation
+    const namespace = currentNamespace.value
+    const userId = !context.value.signedOut && context.value.selected?.namespace === namespace
+      ? context.value.selected.user?.id : undefined
+    return { namespace, userId, isCurrent: () => !disposed && captured === generation && currentNamespace.value === namespace }
+  }
+  function notify(namespace: Namespace) { channel?.postMessage({ namespace }) }
+  async function persistContext(next: LocalContext, isCurrent: () => boolean = () => !disposed) {
+    if (sameRecord({ ...next, revision: '' }, { ...context.value, revision: '' })) return
+    const value = cloneHistory({ ...next, revision: crypto.randomUUID() })
+    const operation = contextQueue.then(async () => {
+      await writeLocalContext(value, isCurrent)
+      if (isCurrent()) context.value = value
+      channel?.postMessage({ context: true })
+    })
+    contextQueue = operation.catch(() => {})
+    await operation
+  }
+  function cancelSync() {
+    syncController.abort()
+    syncController = new AbortController()
+    syncTask = null
+    clearTimeout(editTimer)
+    if (syncStatus.value === 'syncing') syncStatus.value = 'pending'
+  }
+  function stopCloud() {
+    authGeneration++
+    cancelSync()
+    cleanupCloud(stopSubscription)
+    stopSubscription = undefined
+    cleanupCloud(stopAuth)
+    stopAuth = undefined
+    if (backend) cleanupCloud(() => backend!.dispose())
+    backend = null
+    backendTask = null
+    cloudUser.value = null
+    invitation.value = null
+  }
+  function cleanupCloud(cleanup?: () => void) {
+    try { cleanup?.() } catch (error) { cloudError.value = message(error) }
+  }
+  function scheduleSync(delay = 600) {
+    clearTimeout(editTimer)
+    const retryDelay = retryFailures ? Math.min(60_000, 1000 * 2 ** Math.min(retryFailures, 6)) : 0
+    if (sharingEnabled.value) editTimer = setTimeout(() => { void triggerSync() }, Math.max(delay, retryDelay))
   }
 
   async function commit(update: (draft: AppData) => void): Promise<boolean> {
     const identity = captureIdentity()
-    if (loading.value || loadError.value || exclusive.value || !identity.isCurrent()) return false
-    const snapshot = cloneData(data)
-    update(snapshot)
-    apply(snapshot)
+    if (loading.value || loadError.value || exclusive.value) return false
+    const before = snapshot()
+    const after = cloneHistory(before)
+    try { update(after); parseAppData(after) } catch (error) { saveError.value = message(error); return false }
+    const retained = drafts.get(identity.namespace)
+    const baseline = retained?.before ?? before
     const operationRevision = ++revision
-    pendingDrafts.set(identity.namespace, {
-      data: cloneData(snapshot),
-      revision: operationRevision,
-      error: null,
-    })
+    drafts.set(identity.namespace, { before: baseline, after, revision: operationRevision, error: null })
+    data.feeds = after.feeds
+    data.weights = after.weights
     saving.value = true
-    if (identity.userId && syncStatus.value !== 'syncing') syncStatus.value = 'pending'
+    // A suspended family still accumulates recoverable work, but no network work.
+    const shared = Boolean(!context.value.signedOut &&
+      context.value.selected?.namespace === identity.namespace &&
+      context.value.selected.backendId && context.value.selected.family)
     const operation = saveQueue.then(async () => {
       try {
-        const stored = await mergeDataStrict(snapshot, identity.namespace, Boolean(identity.userId))
-        if (pendingDrafts.get(identity.namespace)?.revision === operationRevision)
-          pendingDrafts.delete(identity.namespace)
-        notifyOtherTabs(identity.namespace)
+        const state = await updateHistory(identity.namespace, (state) => {
+          applyLocalEdit(state, baseline, after, shared)
+        })
+        if (drafts.get(identity.namespace)?.revision === operationRevision) drafts.delete(identity.namespace)
+        notify(identity.namespace)
         if (identity.isCurrent()) {
-          // Later UI mutations are not necessarily on disk yet.
-          apply(operationRevision === revision ? stored : mergeAppData(cloneData(data), stored))
+          if (operationRevision === revision) apply(state)
+          else {
+            // Only replay edits not yet persisted; remote authority never goes
+            // through the legacy timestamp merge.
+            const latest = snapshot()
+            applyLocalEdit(state, after, latest, false)
+            apply(state)
+          }
           saveError.value = null
+          if (shared && syncStatus.value !== 'syncing') syncStatus.value = 'pending'
+          scheduleSync()
         }
         return identity.isCurrent()
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        const retained = pendingDrafts.get(identity.namespace)
-        if (retained && retained.revision === operationRevision) retained.error = message
-        if (identity.isCurrent()) saveError.value = message
+        const draft = drafts.get(identity.namespace)
+        if (draft) draft.error = message(error)
+        if (identity.isCurrent()) saveError.value = message(error)
         return false
       } finally {
         if (identity.isCurrent() && operationRevision === revision) saving.value = false
@@ -104,197 +182,507 @@ export function useAppData() {
     saveQueue = operation.then(() => undefined)
     return operation
   }
-
   const retrySave = () => commit(() => {})
-
-  async function flush(): Promise<boolean> {
+  async function flush() {
     const identity = captureIdentity()
     await saveQueue
-    return identity.isCurrent() && !saveError.value
+    return identity.isCurrent() && !saveError.value && !drafts.has(identity.namespace)
   }
-
-  function cancelSync() {
-    syncController.abort()
-    syncController = new AbortController()
-    syncTask = null
-    if (syncStatus.value === 'syncing') syncStatus.value = 'pending'
-  }
-
-  async function beginExclusive(): Promise<boolean> {
+  async function beginExclusive() {
     if (exclusive.value) return false
-    const identity = captureIdentity()
     exclusive.value = true
     cancelSync()
     const ready = await flush()
-    if (!ready && identity.isCurrent()) exclusive.value = false
+    if (!ready) exclusive.value = false
     return ready
   }
-
-  function endExclusive() {
-    exclusive.value = false
-  }
-
-  function triggerSync(): Promise<void> {
-    if (syncTask) return syncTask
-    const identity = captureIdentity()
-    if (
-      !identity.userId ||
-      loading.value ||
-      loadError.value ||
-      exclusive.value ||
-      !isSupabaseConfigured
-    )
-      return Promise.resolve()
-    const userId = identity.userId
-    const signal = syncController.signal
-    const task = (async () => {
-      if (!(await flush()) || !identity.isCurrent() || signal.aborted) return
-      const syncedRevision = revision
-      try {
-        const merged = await syncNow(userId, identity.namespace, cloneData(data), {
-          isCurrent: identity.isCurrent,
-          signal,
-        })
-        if (!identity.isCurrent() || signal.aborted) return
-        apply(revision === syncedRevision ? merged : mergeAppData(cloneData(data), merged))
-        if (revision !== syncedRevision) syncStatus.value = 'pending'
-        notifyOtherTabs(identity.namespace)
-      } catch {
-        // syncNow exposes failures in the active identity's sync status.
-      }
-    })()
-    syncTask = task
-    void task.finally(() => {
-      if (syncTask === task) syncTask = null
-    })
-    return task
-  }
+  function endExclusive() { exclusive.value = false }
 
   async function loadCurrent() {
-    started = true
     generation++
     cancelSync()
     resetSyncState()
-    currentNamespace.value = activeNamespace.value
+    const selected = context.value.signedOut ? null : context.value.selected
+    family.value = selected?.family ?? null
+    currentNamespace.value = selected?.namespace ?? GUEST_NAMESPACE
     const identity = captureIdentity()
     loading.value = true
     loadError.value = null
     saveError.value = null
     saving.value = false
-    exclusive.value = false
-    apply(emptyData())
+    apply(emptyHistory())
     try {
       await saveQueue
+      const state = await loadHistory(identity.namespace)
       if (!identity.isCurrent()) return
-      const loaded = await loadData(identity.namespace)
-      const pending = identity.userId ? await isDirty(identity.namespace) : false
-      if (!identity.isCurrent()) return
-      const retained = pendingDrafts.get(identity.namespace)
-      apply(retained ? mergeAppData(loaded, retained.data) : loaded)
-      saveError.value = retained?.error ?? null
-      if (pending) syncStatus.value = 'pending'
+      const draft = drafts.get(identity.namespace)
+      if (draft) {
+        applyLocalEdit(state, draft.before, draft.after, false)
+        saveError.value = draft.error
+      }
+      apply(state)
+      if (state.pending.length || state.conflicts.length) syncStatus.value = 'pending'
     } catch (error) {
-      if (identity.isCurrent())
-        loadError.value = error instanceof Error ? error.message : String(error)
+      if (identity.isCurrent()) loadError.value = message(error)
     } finally {
       if (identity.isCurrent()) loading.value = false
     }
-    if (identity.isCurrent() && !loadError.value && navigator.onLine) void triggerSync()
   }
-
-  watch(
-    activeNamespace,
-    () => {
-      void loadCurrent()
-    },
-    { flush: 'sync' },
-  )
-
   async function refreshFromStorage() {
     const identity = captureIdentity()
-    if (loading.value || loadError.value || exclusive.value) return
+    if (loading.value || exclusive.value) return
+    await saveQueue
+    if (!identity.isCurrent()) return
+    const capturedRevision = revision
     try {
-      await saveQueue
-      if (!identity.isCurrent() || exclusive.value) return
-      const capturedVersion = stateVersion
-      const stored = await loadData(identity.namespace)
-      const pending = identity.userId ? await isDirty(identity.namespace) : false
-      if (!identity.isCurrent() || exclusive.value) return
-      apply(
-        capturedVersion === stateVersion && !saving.value && !saveError.value
-          ? stored
-          : mergeAppData(cloneData(data), stored),
-      )
-      if (pending && syncStatus.value !== 'syncing') syncStatus.value = 'pending'
+      const state = await loadHistory(identity.namespace)
+      if (!identity.isCurrent()) return
+      if (capturedRevision === revision && !drafts.has(identity.namespace)) apply(state)
+      else apply(state, false)
     } catch (error) {
-      if (identity.isCurrent())
-        saveError.value = error instanceof Error ? error.message : String(error)
+      if (identity.isCurrent()) saveError.value = message(error)
     }
   }
-
-  const handleOnline = () => {
+  async function selectFamily(nextFamily: Family, user: CloudUser, client: CloudBackend) {
+    const epoch = authGeneration
+    const valid = () => !disposed && backend === client && cloudUser.value?.id === user.id && epoch === authGeneration
+    if (!valid()) return
+    const selection: LocalSelection = {
+      namespace: familyNamespace(client.id, user.id, nextFamily.id), backendId: client.id,
+      user, family: nextFamily, revoked: false,
+    }
+    const previousNamespace = currentNamespace.value
+    await persistContext({
+      ...context.value, selected: selection, signedOut: false, suspended: false,
+      histories: [...context.value.histories.filter((item) => item.namespace !== selection.namespace), selection],
+    }, valid)
+    if (!valid()) return
+    if (previousNamespace !== selection.namespace || loading.value || loadError.value) await loadCurrent()
+    else family.value = nextFamily
+    subscribe()
     void triggerSync()
   }
-  const handleFocus = () => {
-    void refreshFromStorage()
+  async function isolateFamily(reason: string) {
+    cancelSync()
+    cleanupCloud(stopSubscription)
+    stopSubscription = undefined
+    cloudError.value = reason
+    const selection = context.value.selected
+    if (selection?.family) {
+      const revoked = { ...selection, revoked: true }
+      await persistContext({
+        ...context.value, selected: revoked,
+        histories: [...context.value.histories.filter((item) => item.namespace !== revoked.namespace), revoked],
+      })
+    }
   }
+  function subscribe() {
+    cleanupCloud(stopSubscription)
+    stopSubscription = undefined
+    if (backend && sharingEnabled.value && cloudUser.value && family.value && document.visibilityState !== 'hidden') {
+      try {
+        stopSubscription = backend.sync.subscribe?.(family.value.id, () => scheduleSync())
+      } catch (error) { cloudError.value = message(error) }
+    }
+  }
+  function triggerSync(): Promise<void> {
+    if (syncTask) return syncTask
+    const client = backend
+    const selected = context.value.selected
+    if (!client || !sharingEnabled.value || !cloudUser.value || !selected?.family ||
+      selected.user?.id !== cloudUser.value.id || loading.value || loadError.value ||
+      exclusive.value || !navigator.onLine) return Promise.resolve()
+    const identity = captureIdentity()
+    const capturedAuth = authGeneration
+    const signal = syncController.signal
+    const valid = () => identity.isCurrent() && capturedAuth === authGeneration &&
+      backend === client && sharingEnabled.value && cloudUser.value?.id === selected.user?.id
+    const task = (async () => {
+      if (!(await flush()) || !valid()) return
+      try {
+        const membership = await cloudRequest(() => client.family.current(), signal)
+        if (!valid() || signal.aborted) return
+        if (!membership || membership.id !== selected.family!.id) {
+          await isolateFamily('Family access was removed. Your local history is retained for recovery.')
+          return
+        }
+        const state = await syncNow(client, membership.id, identity.namespace, {
+          isCurrent: valid, signal, contextRevision: context.value.revision,
+        })
+        if (!valid() || signal.aborted) return
+        retryFailures = 0
+        // Always re-read after the request: a local save may have completed
+        // after the receipt transaction, or still be waiting to persist.
+        await saveQueue
+        if (valid()) await refreshFromStorage()
+        notify(identity.namespace)
+        const blocked = new Set(state.conflicts.map((item) => item.id))
+        if (state.pending.some((item) => !blocked.has(recordKey(item.kind, item.record.id)))) scheduleSync(800)
+      } catch (error) {
+        if (!valid() || signal.aborted) return
+        cloudError.value = message(error)
+        if (error instanceof BackendError && error.code === 'auth') {
+          cloudUser.value = null
+          cleanupCloud(stopSubscription)
+        }
+        if (error instanceof BackendError && error.code === 'forbidden') await isolateFamily(message(error))
+        else if (!(error instanceof BackendError) || error.code === 'transient') {
+          retryFailures++
+          if (document.visibilityState !== 'hidden') scheduleSync()
+        }
+      }
+    })().catch((error: unknown) => {
+      if (identity.isCurrent()) cloudError.value = message(error)
+    })
+    syncTask = task
+    void task.finally(() => { if (syncTask === task) syncTask = null })
+    return task
+  }
+
+  async function handleUser(user: CloudUser | null, client: CloudBackend, epoch: number) {
+    if (disposed || backend !== client || authGeneration !== epoch || context.value.signedOut) return
+    cloudUser.value = user
+    cancelSync()
+    cleanupCloud(stopSubscription)
+    stopSubscription = undefined
+    if (!user) return // Expiration is not explicit local sign-out.
+    const valid = () => !disposed && backend === client && authGeneration === epoch && cloudUser.value?.id === user.id
+    const previous = context.value.selected
+    if (previous?.backendId && (previous.backendId !== client.id || previous.user?.id !== user.id)) {
+      generation++
+      apply(emptyHistory())
+      await persistContext({ ...context.value, selected: null }, valid)
+      if (!valid()) return
+      await loadCurrent()
+    }
+    try {
+      const membership = await cloudRequest(() => client.family.current())
+      if (disposed || backend !== client || authGeneration !== epoch || cloudUser.value?.id !== user.id) return
+      if (membership) {
+        const cached = context.value.histories.find((item) =>
+          item.backendId === client.id && item.user?.id === user.id && item.family?.id === membership.id)
+        if (cached?.revoked) {
+          await persistContext({ ...context.value, selected: cached }, valid)
+          if (!valid()) return
+          await loadCurrent()
+          cloudError.value = 'This retained family history is isolated for recovery.'
+        } else await selectFamily(membership, user, client)
+      } else {
+        const retained = context.value.histories.find((item) => item.backendId === client.id && item.user?.id === user.id)
+        if (retained) {
+          await persistContext({ ...context.value, selected: { ...retained, revoked: true } }, valid)
+          if (!valid()) return
+          await loadCurrent()
+          await isolateFamily('Family access was removed. Your local history is retained for recovery.')
+        }
+      }
+    } catch (error) {
+      if (valid()) {
+        cloudError.value = message(error)
+        if (error instanceof BackendError && error.code === 'forbidden') await isolateFamily(message(error))
+        if (error instanceof BackendError && error.code === 'auth') cloudUser.value = null
+      }
+    }
+  }
+  async function ensureBackend() {
+    if (!backendConfig || context.value.consentBackend !== backendConfig.id || context.value.suspended || context.value.signedOut) return null
+    if (backend) return backend
+    if (backendTask) return backendTask
+    const epoch = authGeneration
+    backendTask = (async () => {
+      const client = await createBackend()
+      if (disposed || authGeneration !== epoch) { client?.dispose(); return null }
+      if (!client || client.id !== backendConfig.id) { client?.dispose(); throw new Error('Backend identity mismatch') }
+      backend = client
+      const observer = observeAuth(client, (user) => {
+        // Invocation is immediate, including fake adapters emitting in signIn.
+        authTask = handleUser(user, client, epoch)
+        void authTask.catch((error: unknown) => { if (backend === client) cloudError.value = message(error) })
+      })
+      stopAuth = observer.stop
+      // Restoration can hang offline; never await it from local startup/signIn.
+      void observer.restore().catch((error: unknown) => { if (backend === client) cloudError.value = message(error) })
+      return client
+    })()
+    try { return await backendTask } finally { backendTask = null }
+  }
+  async function cloudAction(action: () => Promise<void>) {
+    if (cloudBusy.value) return
+    cloudBusy.value = true
+    cloudError.value = null
+    try { await action() } catch (error) { cloudError.value = message(error) }
+    finally { cloudBusy.value = false }
+  }
+  async function signIn(provider: SignInProvider) {
+    await cloudAction(async () => {
+      if (!backendConfig) return
+      await persistContext({
+        ...context.value, consentBackend: backendConfig.id, signedOut: false, suspended: false,
+      })
+      const client = await ensureBackend()
+      if (client) { await signInWithProvider(client, provider); await authTask }
+    })
+  }
+  async function signOut() {
+    const client = backend
+    stopCloud()
+    generation++
+    // Hide immediately even when the server is offline or local persistence fails.
+    apply(emptyHistory())
+    family.value = null
+    currentNamespace.value = GUEST_NAMESPACE
+    try {
+      await persistContext({ ...context.value, signedOut: true, consentBackend: null })
+      await loadCurrent()
+    } catch (error) {
+      context.value.signedOut = true
+      loadError.value = message(error)
+      cloudError.value = message(error)
+    }
+    // Remote sign-out must not block local sign-out.
+    if (client) void Promise.resolve().then(() => client.auth.signOut())
+      .catch((error: unknown) => { cloudError.value = message(error) })
+  }
+  function requireCloud() {
+    if (!backend || !cloudUser.value) throw new Error('Sign in to continue')
+    return { client: backend, user: cloudUser.value, epoch: authGeneration }
+  }
+  async function createFamily() {
+    await cloudAction(async () => {
+      const { client, user, epoch } = requireCloud()
+      if (family.value) throw new Error('Export the retained family history before starting another family')
+      const created = await client.family.create()
+      if (backend === client && epoch === authGeneration && cloudUser.value?.id === user.id) await selectFamily(created, user, client)
+    })
+  }
+  async function acceptInvitation() {
+    await cloudAction(async () => {
+      const { client, user, epoch } = requireCloud()
+      if (!pendingToken) throw new Error('No pending invitation')
+      const joined = await client.family.join(pendingToken)
+      if (backend !== client || epoch !== authGeneration || cloudUser.value?.id !== user.id) return
+      await selectFamily(joined, user, client)
+      forgetInvitation()
+      pendingToken = null
+      pendingInvitation.value = false
+    })
+  }
+  const createInvitation = () => cloudAction(async () => {
+    const { client, user } = requireCloud()
+    const selected = family.value
+    if (!selected || selected.ownerId !== user.id) throw new Error('Only the family creator can invite')
+    const identity = captureIdentity()
+    const created = await client.family.invite(selected.id)
+    if (identity.isCurrent() && backend === client) invitation.value = created
+  })
+  const revokeInvitation = () => cloudAction(async () => {
+    const { client } = requireCloud()
+    if (!family.value) return
+    const identity = captureIdentity()
+    await client.family.revokeInvitation(family.value.id)
+    if (identity.isCurrent()) invitation.value = null
+  })
+  const leaveFamily = () => cloudAction(async () => {
+    const { client, user } = requireCloud()
+    if (!family.value || family.value.ownerId === user.id) throw new Error('The creator cannot leave their family')
+    if (!(await flush())) throw new Error('Save local changes before leaving')
+    const identity = captureIdentity()
+    cancelSync()
+    await client.family.leave(family.value.id)
+    if (identity.isCurrent()) await isolateFamily('You left the family. This local copy is retained for recovery.')
+  })
+  const removePartner = () => cloudAction(async () => {
+    const { client, user } = requireCloud()
+    const selected = family.value
+    if (!selected || selected.ownerId !== user.id) throw new Error('Only the family creator can remove a parent')
+    const partner = selected.members.find((item) => item.userId !== user.id)
+    if (!partner) return
+    const identity = captureIdentity()
+    await client.family.removeMember(selected.id, partner.userId)
+    if (identity.isCurrent()) await selectFamily({
+      ...selected, members: selected.members.filter((item) => item.userId !== partner.userId),
+    }, user, client)
+  })
+  const deleteFamily = () => cloudAction(async () => {
+    const { client, user } = requireCloud()
+    if (!family.value || family.value.ownerId !== user.id) throw new Error('Only the family creator can delete')
+    const identity = captureIdentity()
+    const familyId = family.value.id
+    if (!(await beginExclusive())) throw new Error('Save local changes before deleting')
+    const leaseId = `delete-${crypto.randomUUID()}`
+    try {
+      // Other tabs may still write recoverable local records, but must not
+      // synchronize this namespace while cloud deletion is outstanding.
+      await updateHistory(identity.namespace, (state) => {
+        state.syncLease = { id: leaseId, until: Date.now() + 30_000 }
+      }, identity.isCurrent)
+      await cloudRequest(() => client.family.delete(familyId))
+      if (!identity.isCurrent()) return
+      await isolateFamily('The cloud family was deleted. This local copy is retained for recovery.')
+      const latest = await loadHistory(identity.namespace)
+      if (identity.isCurrent()) apply(latest)
+    } finally {
+      try {
+        await updateHistory(identity.namespace, (state) => {
+          if (state.syncLease?.id === leaseId) delete state.syncLease
+        })
+      } finally { endExclusive() }
+    }
+  })
+  const resumeSharing = () => cloudAction(async () => {
+    if (!backendConfig) return
+    const selected = context.value.selected
+    if (selected?.backendId && selected.backendId !== backendConfig.id) {
+      throw new Error('This history belongs to a different backend. Export it and explicitly import into the new destination.')
+    }
+    await persistContext({ ...context.value, suspended: false, signedOut: false, consentBackend: backendConfig.id })
+    const client = await ensureBackend()
+    if (client) { await authTask; void triggerSync() }
+  })
+  async function resolveConflict(id: string, choice: 'local' | 'remote') {
+    if (!(await beginExclusive())) return
+    const identity = captureIdentity()
+    try {
+      const state = await resolveStoredConflict(identity.namespace, id, choice,
+        Boolean(!context.value.signedOut && context.value.selected?.namespace === identity.namespace &&
+          context.value.selected.backendId), identity.isCurrent)
+      if (identity.isCurrent()) { apply(state); notify(identity.namespace) }
+    } catch (error) { if (identity.isCurrent()) saveError.value = message(error) }
+    finally { endExclusive(); scheduleSync() }
+  }
+  async function exportBackup(): Promise<unknown> {
+    if (!(await beginExclusive())) throw new Error('Save local changes before exporting')
+    const identity = captureIdentity()
+    try {
+      const state = await loadHistory(identity.namespace)
+      if (!identity.isCurrent()) throw new Error('The active history changed')
+      return createBackup(state, {
+        backendId: context.value.selected?.namespace === identity.namespace ? context.value.selected.backendId : null,
+        namespace: identity.namespace,
+      })
+    } finally { endExclusive() }
+  }
+  async function importBackup(value: unknown): Promise<boolean> {
+    let imported: HistoryState
+    try { imported = parseBackup(value) } catch (error) { saveError.value = message(error); return false }
+    if (!(await beginExclusive())) return false
+    const identity = captureIdentity()
+    try {
+      const existing = await loadHistory(identity.namespace)
+      if (!identity.isCurrent()) return false
+      const restored = cloneHistory(existing)
+      restored.data = mergeAppData(existing.data, imported.data)
+      for (const kind of ['feed', 'weight'] as const) {
+        const old = kind === 'feed' ? existing.data.feeds : existing.data.weights
+        const incoming = kind === 'feed' ? imported.data.feeds : imported.data.weights
+        for (const row of incoming) {
+          const prior = old.find((item) => item.id === row.id)
+          if (prior && !sameRecord(prior, row)) {
+            restored.conflicts.push({
+              id: `${recordKey(kind, row.id)}:restore:${crypto.randomUUID()}`, kind, local: row, source: 'restore',
+              remote: { kind, record: prior, version: '' } as SyncConflict['remote'], base: null,
+            })
+            // Never silently resurrect a saved tombstone during import.
+            if (prior.deletedAt) putRecord(restored, kind, prior)
+          }
+        }
+      }
+      const ids = new Set(restored.conflicts.map((item) => item.id))
+      for (const conflict of imported.conflicts) {
+        restored.conflicts.push({ ...conflict, id: ids.has(conflict.id) ? `${conflict.id}:restore:${crypto.randomUUID()}` : conflict.id })
+      }
+      for (const mutation of imported.pending) {
+        const duplicate = restored.pending.find((item) => item.mutationId === mutation.mutationId)
+        if (duplicate && sameRecord(duplicate, mutation)) continue
+        const restoredId = duplicate ? crypto.randomUUID() : mutation.mutationId
+        restored.pending.push({ ...mutation, mutationId: restoredId })
+        restored.bases[restoredId] = imported.bases[mutation.mutationId] ?? null
+      }
+      restored.cursor = null // A backup never grants a trusted server checkpoint.
+      // Opaque provenance is recoverable, but this isolated namespace cannot
+      // synchronize. A later family selection uses its own fresh checkpoint.
+      restored.versions = { ...imported.versions, ...restored.versions }
+      const namespace: Namespace = `recovery-${crypto.randomUUID()}`
+      await updateHistory(namespace, (state) => Object.assign(state, restored), identity.isCurrent)
+      if (!identity.isCurrent()) return false
+      stopCloud()
+      const selection: LocalSelection = { namespace, backendId: null, user: null, family: null, revoked: false }
+      await persistContext({
+        ...context.value, selected: selection, consentBackend: null, suspended: true, signedOut: false,
+        histories: [...context.value.histories, selection],
+      })
+      await loadCurrent()
+      return true
+    } catch (error) {
+      if (identity.isCurrent()) saveError.value = message(error)
+      return false
+    } finally { endExclusive() }
+  }
+  async function refreshContext() {
+    try {
+      const saved = await readLocalContext<LocalContext>()
+      if (!saved || saved.revision === context.value.revision) return
+      stopCloud()
+      context.value = saved
+      await loadCurrent()
+      if (!needsResume.value && !saved.signedOut) void ensureBackend().catch((error: unknown) => { cloudError.value = message(error) })
+    } catch (error) { cloudError.value = message(error) }
+  }
+  const handleOnline = () => { void triggerSync() }
+  const handleFocus = () => { void refreshContext(); void refreshFromStorage(); void triggerSync() }
+  const handleVisibility = () => { subscribe(); if (document.visibilityState !== 'hidden') handleFocus() }
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-    if (!saving.value && !saveError.value && pendingDrafts.size === 0) return
+    if (!saving.value && !saveError.value && drafts.size === 0) return
     event.preventDefault()
     event.returnValue = ''
   }
-
   onMounted(async () => {
     if (typeof BroadcastChannel !== 'undefined') {
       channel = new BroadcastChannel('little-sips-data')
-      channel.onmessage = (event: MessageEvent<unknown>) => {
-        if (
-          typeof event.data === 'object' &&
-          event.data !== null &&
-          'namespace' in event.data &&
-          event.data.namespace === currentNamespace.value
-        )
-          void refreshFromStorage()
+      channel.onmessage = (event: MessageEvent<{ namespace?: string; context?: boolean }>) => {
+        if (event.data?.context) void refreshContext()
+        else if (event.data?.namespace === currentNamespace.value) void refreshFromStorage()
       }
     }
     window.addEventListener('online', handleOnline)
     window.addEventListener('focus', handleFocus)
     window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibility)
+    pollTimer = setInterval(() => { if (document.visibilityState !== 'hidden') void triggerSync() }, 60_000)
     try {
-      await initAuth()
-      if (!started && !disposed) await loadCurrent()
-    } catch (error) {
-      loadError.value = error instanceof Error ? error.message : String(error)
-      loading.value = false
-    }
+      pendingToken = captureInvitation()
+      pendingInvitation.value = Boolean(pendingToken)
+    } catch (error) { cloudError.value = message(error) }
+    try {
+      context.value = await readLocalContext<LocalContext>() ?? emptyContext()
+      if (!context.value.signedOut && (
+        (!backendConfig && (context.value.consentBackend || context.value.selected?.backendId)) ||
+        (context.value.selected?.backendId && context.value.selected.backendId !== backendConfig?.id)
+      )) await persistContext({ ...context.value, suspended: true })
+      if (disposed) return
+      await loadCurrent()
+      if (!disposed && !loadError.value && !needsResume.value) {
+        void ensureBackend().catch((error: unknown) => { cloudError.value = message(error) })
+      }
+    } catch (error) { loadError.value = message(error); loading.value = false }
   })
-
   onUnmounted(() => {
     disposed = true
     generation++
-    cancelSync()
+    stopCloud()
     channel?.close()
+    clearInterval(pollTimer)
     window.removeEventListener('online', handleOnline)
     window.removeEventListener('focus', handleFocus)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    document.removeEventListener('visibilitychange', handleVisibility)
   })
-
   return {
-    data: shallowReadonly(data),
-    currentNamespace,
-    loading,
-    loadError,
-    saveError,
-    saving,
-    exclusive,
-    commit,
-    retrySave,
-    flush,
-    triggerSync,
-    cancelSync,
-    beginExclusive,
-    endExclusive,
-    captureIdentity,
-    reload: loadCurrent,
+    data: shallowReadonly(data), currentNamespace, loading, loadError, saveError, saving, exclusive,
+    commit, retrySave, flush, triggerSync, cancelSync, beginExclusive, endExclusive, captureIdentity,
+    reload: loadCurrent, backendAvailable, cloudUser, family, sharingEnabled, needsResume, cloudBusy,
+    cloudError, invitation, pendingInvitation, pendingCount, conflicts, hasLocal, signIn, signOut, createFamily,
+    acceptInvitation, createInvitation, revokeInvitation, leaveFamily, removePartner, deleteFamily,
+    resumeSharing, resolveConflict, exportBackup, importBackup,
   }
 }
