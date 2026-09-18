@@ -355,14 +355,14 @@ describe('local-first consent and identity lifecycle', () => {
     expect(store.pendingInvitation.value).toBe(false)
   })
 
-  it('restores legacy exports into an isolated local recovery history without implicit upload', async () => {
+  it('restores legacy exports into an isolated local recovery history without implicit upload or sign-out', async () => {
     await start()
     await store.signIn('google')
     expect(await store.importBackup({ feeds: [feed('restored')], weights: [] })).toBe(true)
     expect(store.currentNamespace.value).toMatch(/^recovery-/)
     expect(store.data.feeds[0]!.id).toBe('restored')
     expect(store.sharingEnabled.value).toBe(false)
-    expect(store.cloudUser.value).toBeNull()
+    expect(store.cloudUser.value).toEqual({ id: 'a' })
     expect(backend.sync.push).not.toHaveBeenCalled()
     await store.triggerSync()
     expect(backend.sync.push).not.toHaveBeenCalled()

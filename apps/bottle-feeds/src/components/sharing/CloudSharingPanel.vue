@@ -105,7 +105,11 @@ async function copyInvitation() {
       </template>
       <template v-else>
         <p class="break-all text-toned">{{ user.email }}</p>
-        <template v-if="!family">
+        <template v-if="needsResume">
+          <p class="max-w-prose text-toned">{{ t.sharingResumeHelp }}</p>
+          <UButton class="justify-self-start" :loading="busy" @click="emit('resume')">{{ t.sharingResume }}</UButton>
+        </template>
+        <template v-else-if="!family">
           <p class="max-w-prose text-muted">{{ pendingInvitation ? t.sharingJoinHelp : t.sharingCreateHelp }}</p>
           <div class="flex flex-wrap gap-2">
             <UButton v-if="pendingInvitation" :loading="busy" @click="emit('join')">{{ t.sharingJoin }}</UButton>
@@ -117,7 +121,7 @@ async function copyInvitation() {
           <ul class="list-inside list-disc text-muted">
             <li v-for="member in family.members" :key="member.userId">{{ member.name }}</li>
           </ul>
-          <template v-if="needsResume || !enabled">
+          <template v-if="!enabled">
             <p class="max-w-prose text-toned">{{ t.sharingResumeHelp }}</p>
             <UButton class="justify-self-start" :loading="busy" @click="emit('resume')">{{ t.sharingResume }}</UButton>
           </template>

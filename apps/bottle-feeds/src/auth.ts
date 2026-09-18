@@ -21,8 +21,16 @@ export function observeAuth(
   })
   return {
     restore: async () => {
-      const user = await backend.auth.restore()
-      if (active && !receivedEvent) changed(user)
+      try {
+        const user = await backend.auth.restore()
+        if (active && !receivedEvent) changed(user)
+      } catch (error) {
+        // The SDK can emit INITIAL_SESSION while restore is still resolving.
+        // The event is authoritative, so do not surface its stale restore as
+        // an authentication failure to the user.
+        if (active && receivedEvent && (error as { code?: unknown }).code === 'auth') return
+        throw error
+      }
     },
     stop: () => { active = false; stop() },
   }

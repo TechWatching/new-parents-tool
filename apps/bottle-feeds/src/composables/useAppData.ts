@@ -110,7 +110,8 @@ export function useAppData() {
     clearTimeout(editTimer)
     if (syncStatus.value === 'syncing') syncStatus.value = 'pending'
   }
-  function stopCloud() {
+  function stopCloud(options: { preserveUser?: boolean } = {}) {
+    const user = options.preserveUser ? cloudUser.value : null
     authGeneration++
     cancelSync()
     cleanupCloud(stopSubscription)
@@ -120,7 +121,7 @@ export function useAppData() {
     if (backend) cleanupCloud(() => backend!.dispose())
     backend = null
     backendTask = null
-    cloudUser.value = null
+    cloudUser.value = user
     invitation.value = null
   }
   function cleanupCloud(cleanup?: () => void) {
@@ -605,7 +606,10 @@ export function useAppData() {
       const namespace: Namespace = `recovery-${crypto.randomUUID()}`
       await updateHistory(namespace, (state) => Object.assign(state, restored), identity.isCurrent)
       if (!identity.isCurrent()) return false
-      stopCloud()
+      // Imported records stay in an isolated, suspended recovery history so
+      // they cannot be uploaded automatically. Preserve the authenticated
+      // identity though: importing local data must not look like a sign-out.
+      stopCloud({ preserveUser: true })
       const selection: LocalSelection = { namespace, backendId: null, user: null, family: null, revoked: false }
       await persistContext({
         ...context.value, selected: selection, consentBackend: null, suspended: true, signedOut: false,
