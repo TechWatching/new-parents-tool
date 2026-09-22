@@ -142,6 +142,33 @@ test('invalid imported records are rejected without changing saved data', async 
   await expect.poll(async () => (await readFeeds(page)).length).toBe(1)
 })
 
+test('importing measures preserves the authenticated session', async ({ page }) => {
+  await signIn(page)
+  await addFeed(page, 'Existing signed-in measure', '100')
+  await expect(page.getByText('Existing signed-in measure', { exact: true })).toBeVisible()
+
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'existing-measures.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({
+      feeds: [{
+        id: 'imported-measure', amount: 95, comment: 'Imported measure',
+        occurredAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      }],
+      weights: [],
+    })),
+  })
+
+  await expect(page.getByText('Data imported successfully.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Existing signed-in measure', { exact: true })).toBeVisible()
+  await expect(page.getByText('Imported measure', { exact: true })).toBeVisible()
+  await openSharing(page)
+  await expect(page.getByText('mother@example.test', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Resume sharing', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toHaveCount(0)
+})
+
 test('two tabs preserve each other’s new records', async ({ page, context }) => {
   const second = await context.newPage()
   await second.goto('/')
@@ -237,6 +264,9 @@ test('cloud deletion blocks edits and preserves records saved by another tab', a
   await expect(page.locator('.feed-card input[type=number]')).toBeEnabled()
   await expect(page.getByText('Original bottle', { exact: true })).toBeVisible()
   await expect(page.getByText('Saved by another tab', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Resume sharing', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Delete shared family', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Leave shared family', exact: true })).toHaveCount(0)
   await expect.poll(() => sharing.family).toBeNull()
   await expect.poll(async () => (await readFeeds(page, namespace)).length).toBeGreaterThanOrEqual(2)
   await second.close()

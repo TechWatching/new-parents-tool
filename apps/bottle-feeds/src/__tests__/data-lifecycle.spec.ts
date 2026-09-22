@@ -188,7 +188,38 @@ describe('local-first consent and identity lifecycle', () => {
     expect(store.exclusive.value).toBe(false)
     expect(store.data.feeds.map((item) => item.id).sort()).toEqual(['cached', 'other-tab'])
     expect(store.sharingEnabled.value).toBe(false)
+    expect(store.needsResume.value).toBe(true)
+    expect(store.family.value).toBeNull()
+    const context = (await storage.readLocalContext<LocalContext>())!
+    expect(context.suspended).toBe(true)
+    expect(context.selected!.family).toBeNull()
+    expect(context.histories[0]!.family).toEqual(sharedFamily)
     expect((await storage.loadHistory(selection().namespace)).syncLease).toBeUndefined()
+  })
+
+  it('clears family actions after leaving while retaining a suspended recovery copy', async () => {
+    const memberFamily: Family = {
+      ...sharedFamily,
+      ownerId: 'owner',
+      members: [{ userId: 'owner', name: 'Owner' }, { userId: 'a', name: 'A' }],
+    }
+    const selected = { ...selection(), family: memberFamily }
+    await seedContext({ selected, histories: [selected] })
+    vi.mocked(backend.family.current).mockResolvedValue(memberFamily)
+    user = { id: 'a' }
+    await start()
+    await flushPromises()
+
+    await store.leaveFamily()
+
+    expect(backend.family.leave).toHaveBeenCalledWith(memberFamily.id)
+    expect(store.family.value).toBeNull()
+    expect(store.sharingEnabled.value).toBe(false)
+    expect(store.needsResume.value).toBe(true)
+    const context = (await storage.readLocalContext<LocalContext>())!
+    expect(context.suspended).toBe(true)
+    expect(context.selected).toMatchObject({ family: null, revoked: true })
+    expect(context.histories[0]).toMatchObject({ family: memberFamily, revoked: true })
   })
 
   it('releases exclusive deletion on server failure while retaining history and sharing context', async () => {
@@ -336,9 +367,16 @@ describe('local-first consent and identity lifecycle', () => {
     await flushPromises()
     expect(store.data.feeds[0]!.id).toBe('cached')
     expect(store.sharingEnabled.value).toBe(false)
+    expect(store.needsResume.value).toBe(true)
+    expect(store.family.value).toBeNull()
     expect(store.cloudError.value).toContain('removed')
+    const context = (await storage.readLocalContext<LocalContext>())!
+    expect(context.suspended).toBe(true)
+    expect(context.selected).toMatchObject({ family: null, revoked: true })
+    expect(context.histories[0]).toMatchObject({ family: sharedFamily, revoked: true })
     await store.triggerSync()
     await store.createFamily()
+    expect(store.cloudError.value).toContain('retained family history')
     expect(backend.family.create).not.toHaveBeenCalled()
     expect(backend.sync.push).not.toHaveBeenCalled()
   })

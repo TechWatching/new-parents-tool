@@ -270,11 +270,16 @@ export function useAppData() {
     cloudError.value = reason
     const selection = context.value.selected
     if (selection?.family) {
+      // Keep the family in history for recovery, but clear it from the active
+      // selection. The UI must not offer destructive actions for a family the
+      // user has left or deleted.
       const revoked = { ...selection, revoked: true }
+      const active = { ...revoked, family: null }
       await persistContext({
-        ...context.value, selected: revoked,
+        ...context.value, selected: active, suspended: true,
         histories: [...context.value.histories.filter((item) => item.namespace !== revoked.namespace), revoked],
       })
+      family.value = null
     }
   }
   function subscribe() {
@@ -451,7 +456,9 @@ export function useAppData() {
   async function createFamily() {
     await cloudAction(async () => {
       const { client, user, epoch } = requireCloud()
-      if (family.value) throw new Error('Export the retained family history before starting another family')
+      if (family.value || context.value.suspended || context.value.selected?.revoked) {
+        throw new Error('Export the retained family history before starting another family')
+      }
       const created = await client.family.create()
       if (backend === client && epoch === authGeneration && cloudUser.value?.id === user.id) await selectFamily(created, user, client)
     })
