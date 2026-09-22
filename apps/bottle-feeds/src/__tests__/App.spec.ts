@@ -709,6 +709,7 @@ describe('App', () => {
 
     const exportButton = wrapper.findAll('button').find((button) => button.text() === 'Export data')
     await exportButton!.trigger('click')
+    await flushPromises()
 
     expect(document.body.textContent).toContain('Your data export is ready.')
   })

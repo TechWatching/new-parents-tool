@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import UModal from '@nuxt/ui/components/Modal.vue'
 import UScrollArea from '@nuxt/ui/components/ScrollArea.vue'
@@ -22,6 +22,7 @@ const emit = defineEmits<{
   'remove-feed': [id: string]
   'save-weight': [payload: { id: string; kilograms: number; occurredAt: string }]
   'remove-weight': [id: string]
+  'editing-change': [editing: boolean]
 }>()
 
 const measureTab = ref<'feeds' | 'weights'>('feeds')
@@ -98,6 +99,11 @@ const editingFeedId = ref<string | null>(null)
 const editingFeed = reactive({ amount: '', date: '', time: '', comment: '' })
 const editingWeightId = ref<string | null>(null)
 const editingWeight = reactive({ kilograms: '', date: '' })
+watch(
+  [editingFeedId, editingWeightId],
+  ([feedId, weightId]) => emit('editing-change', !!feedId || !!weightId),
+  { flush: 'sync' },
+)
 const deleteDialogOpen = ref(false)
 const pendingDeletion = ref<{
   id: string

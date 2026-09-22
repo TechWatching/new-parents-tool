@@ -1,4 +1,5 @@
 import type { Feed, Weight } from '../types'
+import type { CloudRecord } from '../backends/contracts'
 export type ReportRange = '24h' | '7d' | 'all' | 'custom'
 
 export interface ReportConfig {
@@ -43,6 +44,31 @@ export interface ReportFeedChartPoint {
   label: string
   totalAmount: number
   bottleCount: number
+}
+
+export interface ReportConflict {
+  kind: 'feed' | 'weight'
+  local: Feed | Weight
+  remote: CloudRecord | null
+}
+
+export function conflictsAffectReport(
+  conflicts: ReportConflict[],
+  config: ReportConfig,
+  now = new Date(),
+): boolean {
+  const period = resolveReportPeriod(config, now)
+  function visibleValue(record: Feed | Weight | null) {
+    if (!record || record.deletedAt || !isWithinPeriod(record.occurredAt, period)) return null
+    return 'amount' in record
+      ? [record.occurredAt, record.amount, config.includeComments ? record.comment : '']
+      : [record.occurredAt, record.kilograms]
+  }
+  return conflicts.some((conflict) => {
+    if (conflict.kind === 'feed' ? !config.includeFeeds : !config.includeWeights) return false
+    return JSON.stringify(visibleValue(conflict.local)) !==
+      JSON.stringify(visibleValue(conflict.remote?.record ?? null))
+  })
 }
 
 function localDateInput(date: Date) {

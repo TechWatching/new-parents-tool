@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import ui from '@nuxt/ui/vue-plugin'
 import AppRoot from './AppRoot.vue'
 import './style.css'
 
@@ -8,4 +9,4 @@ const router = createRouter({
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
 })
 
-createApp(AppRoot).use(router).mount('#app')
+createApp(AppRoot).use(router).use(ui).mount('#app')

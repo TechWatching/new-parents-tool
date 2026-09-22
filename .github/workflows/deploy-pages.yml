@@ -32,6 +32,9 @@ jobs:
           cache: true
 
       - name: Build GitHub Pages site
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: vp run --filter bottle-feeds build-only -- --base /new-parents-tool/
 
       - name: Configure GitHub Pages

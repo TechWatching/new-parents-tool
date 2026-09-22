@@ -3,13 +3,15 @@ import { createStorage, prefixStorage, type Driver } from 'unstorage'
 import { mergeAppData } from './merge'
 import { parseAppData } from './validation'
 import type { AppData } from './types'
+import { applyLocalEdit, cloneHistory, emptyHistory, type HistoryState } from './sharing/state'
+import { parseBackup } from './backup'
 
 export { parseAppData, isValidAppData, addMissingMetadata } from './validation'
 
 export const GUEST_NAMESPACE = 'guest'
 export const DATA_KEY = 'data'
 export const SYNC_DIRTY_KEY = 'sync-dirty'
-export type Namespace = typeof GUEST_NAMESPACE | `user-${string}`
+export type Namespace = typeof GUEST_NAMESPACE | `user-${string}` | `shared-${string}` | `recovery-${string}`
 
 const useStore = createStore('new-parents-tool', 'bottle-feeds')
 let testDriver: Driver | null = null
@@ -51,23 +53,47 @@ interface Change<T> {
   data?: AppData
   dirty?: boolean
   clear?: boolean
+  history?: HistoryState
+}
+
+function decodeHistory(value: unknown): HistoryState {
+  const raw = typeof value === 'string' ? JSON.parse(value) : value
+  const data = storedData(raw)
+  if (!raw || typeof raw !== 'object' || !('recovery' in raw)) return { ...emptyHistory(), data }
+  const recovery = (raw as { recovery: Omit<HistoryState, 'data'> }).recovery
+  const state = parseBackup({ format: 'little-sips-backup', version: 1, records: data, recovery })
+  if (recovery.syncLease !== undefined) {
+    const lease = recovery.syncLease
+    if (!lease || typeof lease.id !== 'string' || typeof lease.until !== 'number' || !Number.isFinite(lease.until)) {
+      throw new Error('Invalid persisted synchronization lease')
+    }
+    state.syncLease = { id: lease.id, until: lease.until }
+  }
+  return state
+}
+
+function encodeHistory(history: HistoryState) {
+  const { data, ...recovery } = history
+  return { ...parseAppData(data), recovery: cloneHistory(recovery) }
 }
 
 /** The synchronous transform keeps the read and both writes in one IDB transaction. */
 function transaction<T>(
   namespace: Namespace,
-  transform: (stored: unknown) => Change<T>,
+  transform: (stored: unknown, context?: unknown) => Change<T>,
 ): Promise<T> {
   if (testDriver) {
     const storage = prefixStorage(createStorage({ driver: testDriver }), namespace)
     return serialized(namespace, async () => {
       const stored = await storage.hasItem(DATA_KEY) ? await storage.getItem(DATA_KEY) : undefined
-      const change = transform(stored)
+      const context = await createStorage({ driver: testDriver! }).getItem(CONTEXT_KEY)
+      const change = transform(stored, context)
       if (change.clear) {
         await storage.removeItem(DATA_KEY)
         await storage.removeItem(SYNC_DIRTY_KEY)
       } else {
-        if (change.data !== undefined) await storage.setItem(DATA_KEY, change.data)
+        if (change.history) await storage.setItem(DATA_KEY, encodeHistory(change.history))
+        else if (change.data !== undefined) await storage.setItem(DATA_KEY, change.data)
         if (change.dirty === true) await storage.setItem(SYNC_DIRTY_KEY, true)
         if (change.dirty === false) await storage.removeItem(SYNC_DIRTY_KEY)
       }
@@ -83,18 +109,21 @@ function transaction<T>(
       if (!transformFailed) reject(error)
     })
     const request = store.get(`${namespace}:${DATA_KEY}`)
-    request.onsuccess = () => {
+    const contextRequest = store.get(CONTEXT_KEY)
+    contextRequest.onsuccess = () => {
       try {
-        const change = transform(request.result)
+        const change = transform(request.result, contextRequest.result)
         result = change.result
         if (change.clear) {
           store.delete(`${namespace}:${DATA_KEY}`)
           store.delete(`${namespace}:${SYNC_DIRTY_KEY}`)
         } else {
-          if (change.data !== undefined) store.put(change.data, `${namespace}:${DATA_KEY}`)
+          if (change.history) store.put(encodeHistory(change.history), `${namespace}:${DATA_KEY}`)
+          else if (change.data !== undefined) store.put(change.data, `${namespace}:${DATA_KEY}`)
           if (change.dirty === true) store.put(true, `${namespace}:${SYNC_DIRTY_KEY}`)
           if (change.dirty === false) store.delete(`${namespace}:${SYNC_DIRTY_KEY}`)
         }
+
       } catch (error) {
         transformFailed = true
         // Reject the original validation/write error, not the resulting AbortError.
@@ -107,6 +136,59 @@ function transaction<T>(
       }
     }
   }))
+}
+
+/** Records, immutable requests, alternatives and cursor share one atomic value. */
+export async function updateHistory(
+  namespace: Namespace,
+  update: (state: HistoryState) => void,
+  isCurrent: () => boolean = () => true,
+  contextRevision?: string,
+): Promise<HistoryState> {
+  return transaction(namespace, (stored, context) => {
+    if (!isCurrent()) throw new DOMException('The active history changed', 'AbortError')
+    if (contextRevision !== undefined) {
+      const saved = typeof context === 'string' ? JSON.parse(context) : context
+      if (!saved || saved.revision !== contextRevision) {
+        throw new DOMException('The active history changed in another tab', 'AbortError')
+      }
+    }
+    const state = decodeHistory(stored)
+    update(state)
+    state.data = parseAppData(state.data)
+    return { result: cloneHistory(state), history: state }
+  })
+}
+
+export async function loadHistory(namespace: Namespace = GUEST_NAMESPACE): Promise<HistoryState> {
+  if (testDriver) {
+    const storage = prefixStorage(createStorage({ driver: testDriver }), namespace)
+    return serialized(namespace, async () => decodeHistory(
+      await storage.hasItem(DATA_KEY) ? await storage.getItem(DATA_KEY) : undefined,
+    ))
+  }
+  return decodeHistory(await get(`${namespace}:${DATA_KEY}`, useStore))
+}
+
+export const CONTEXT_KEY = 'local-context'
+export async function readLocalContext<T>(): Promise<T | null> {
+  const value = testDriver
+    ? await createStorage({ driver: testDriver }).getItem(CONTEXT_KEY)
+    : await get(CONTEXT_KEY, useStore)
+  return value == null ? null : cloneHistory(typeof value === 'string' ? JSON.parse(value) : value) as T
+}
+
+export async function writeLocalContext<T>(context: T, isCurrent: () => boolean = () => true): Promise<void> {
+  if (testDriver) {
+    if (!isCurrent()) throw new DOMException('The active identity changed', 'AbortError')
+    await createStorage({ driver: testDriver }).setItem(CONTEXT_KEY, JSON.stringify(context))
+    return
+  }
+  await useStore('readwrite', (store) => {
+    if (!isCurrent()) throw new DOMException('The active identity changed', 'AbortError')
+    store.put(cloneHistory(context), CONTEXT_KEY)
+    return promisifyRequest(store.transaction)
+  })
 }
 
 export async function loadData(namespace: Namespace = GUEST_NAMESPACE): Promise<AppData> {
@@ -139,6 +221,12 @@ export async function mergeDataStrict(
   const parsed = parseAppData(incoming)
   return transaction(namespace, (stored) => {
     const data = mergeAppData(storedData(stored), parsed)
+    const raw = typeof stored === 'string' ? JSON.parse(stored) : stored
+    if (namespace.startsWith('shared-') || (raw && typeof raw === 'object' && 'recovery' in raw)) {
+      const state = decodeHistory(stored)
+      applyLocalEdit(state, state.data, data, dirty && namespace.startsWith('shared-'))
+      return { result: state.data, history: state }
+    }
     return { result: data, data, ...(dirty ? { dirty: true } : {}) }
   })
 }
