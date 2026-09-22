@@ -16,7 +16,7 @@ import {
   applyLocalEdit, cloneHistory, emptyHistory, putRecord, recordKey, sameRecord,
   type HistoryState, type SyncConflict,
 } from '../sharing/state'
-import { resetSyncState, resolveStoredConflict, syncNow, syncStatus } from '../sync'
+import { resetSyncState, resolveStoredConflict, syncError, syncNow, syncStatus } from '../sync'
 import { parseAppData } from '../validation'
 import type { AppData } from '../types'
 import { cloudRequest } from '../sharing/request'
@@ -75,6 +75,8 @@ export function useAppData() {
   const drafts = new Map<Namespace, { before: AppData; after: AppData; revision: number; error: string | null }>()
 
   const message = (error: unknown) => error instanceof Error ? error.message : String(error)
+  const isAuthenticationChange = (error: unknown) =>
+    error instanceof BackendError && error.code === 'auth' && error.message === 'Authentication changed'
   const snapshot = () => cloneHistory({ feeds: data.feeds, weights: data.weights })
   function apply(state: HistoryState, records = true) {
     if (records) {
@@ -312,6 +314,19 @@ export function useAppData() {
           await isolateFamily('Family access was removed. Your local history is retained for recovery.')
           return
         }
+        if (JSON.stringify(membership) !== JSON.stringify(selected.family)) {
+          const nextSelection = { ...selected, family: membership }
+          await persistContext({
+            ...context.value,
+            selected: nextSelection,
+            histories: context.value.histories.map(item =>
+              item.namespace === nextSelection.namespace ? nextSelection : item),
+          }, valid)
+          if (!valid()) return
+          family.value = membership
+        }
+        if (membership.members.length >= 2) invitation.value = null
+        else if (invitation.value) scheduleSync(2_000)
         const state = await syncNow(client, membership.id, identity.namespace, {
           isCurrent: valid, signal, contextRevision: context.value.revision,
         })
@@ -326,6 +341,11 @@ export function useAppData() {
         if (state.pending.some((item) => !blocked.has(recordKey(item.kind, item.record.id)))) scheduleSync(800)
       } catch (error) {
         if (!valid() || signal.aborted) return
+        if (isAuthenticationChange(error)) {
+          syncError.value = null
+          syncStatus.value = 'idle'
+          return
+        }
         cloudError.value = message(error)
         if (error instanceof BackendError && error.code === 'auth') {
           cloudUser.value = null
@@ -365,14 +385,7 @@ export function useAppData() {
       const membership = await cloudRequest(() => client.family.current())
       if (disposed || backend !== client || authGeneration !== epoch || cloudUser.value?.id !== user.id) return
       if (membership) {
-        const cached = context.value.histories.find((item) =>
-          item.backendId === client.id && item.user?.id === user.id && item.family?.id === membership.id)
-        if (cached?.revoked) {
-          await persistContext({ ...context.value, selected: cached }, valid)
-          if (!valid()) return
-          await loadCurrent()
-          cloudError.value = 'This retained family history is isolated for recovery.'
-        } else await selectFamily(membership, user, client)
+        await selectFamily(membership, user, client)
       } else {
         const retained = context.value.histories.find((item) => item.backendId === client.id && item.user?.id === user.id)
         if (retained) {
@@ -481,7 +494,10 @@ export function useAppData() {
     if (!selected || selected.ownerId !== user.id) throw new Error('Only the family creator can invite')
     const identity = captureIdentity()
     const created = await client.family.invite(selected.id)
-    if (identity.isCurrent() && backend === client) invitation.value = created
+    if (identity.isCurrent() && backend === client) {
+      invitation.value = created
+      scheduleSync(2_000)
+    }
   })
   const revokeInvitation = () => cloudAction(async () => {
     const { client } = requireCloud()

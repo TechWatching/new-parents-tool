@@ -129,7 +129,7 @@ async function copyInvitation() {
             <span v-if="pendingCount" role="status">{{ t.sharingPending.replace('{count}', String(pendingCount)) }}</span>
             <UButton :disabled="busy" color="neutral" variant="outline" @click="emit('sync')">{{ t.sharingRetry }}</UButton>
             <UButton v-if="isOwner && family.members.length < 2" :disabled="busy" color="neutral" variant="outline" @click="emit('invite')">{{ t.sharingInvite }}</UButton>
-            <UButton v-if="isOwner" :disabled="busy" color="neutral" variant="ghost" @click="emit('revoke')">{{ t.sharingRevoke }}</UButton>
+            <UButton v-if="isOwner && invitation && family.members.length < 2" :disabled="busy" color="neutral" variant="ghost" @click="emit('revoke')">{{ t.sharingRevoke }}</UButton>
           </div>
           <div v-if="invitation" class="grid max-w-2xl gap-2">
             <label for="family-invitation">{{ t.sharingInviteHelp }}</label>

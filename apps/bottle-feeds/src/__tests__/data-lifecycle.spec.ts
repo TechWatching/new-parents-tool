@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { defineComponent, watch } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import memoryDriver from 'unstorage/drivers/memory'
-import type { CloudBackend, CloudUser, Family, Mutation } from '../backends/contracts'
+import { BackendError, type CloudBackend, type CloudUser, type Family, type Mutation } from '../backends/contracts'
 import type { Feed } from '../types'
 
 const control = vi.hoisted(() => ({ config: { id: 'test' } as { id: string } | null, factory: vi.fn() }))
@@ -102,6 +102,35 @@ describe('local-first consent and identity lifecycle', () => {
     expect(await store.commit((draft) => { draft.feeds.push(feed('offline')) })).toBe(true)
     expect(store.pendingCount.value).toBe(1)
     expect(backend.sync.push).not.toHaveBeenCalled()
+  })
+
+  it('restores a retained history when the authenticated user has rejoined its family', async () => {
+    const revoked = { ...selection(), revoked: true }
+    await seedContext({ selected: revoked, histories: [revoked] })
+    user = { id: 'a' }
+
+    await start()
+    await flushPromises()
+
+    expect(store.sharingEnabled.value).toBe(true)
+    expect(store.cloudError.value).toBeNull()
+    expect(store.data.feeds.map(item => item.id)).toContain('cached')
+    const context = (await storage.readLocalContext<LocalContext>())!
+    expect(context.selected).toMatchObject({ family: sharedFamily, revoked: false })
+    expect(context.histories).toContainEqual(expect.objectContaining({ family: sharedFamily, revoked: false }))
+  })
+
+  it('does not surface an expected authentication transition as a persistent sync error', async () => {
+    await seedContext()
+    user = { id: 'a' }
+    await start()
+    await flushPromises()
+    vi.mocked(backend.family.current).mockRejectedValueOnce(new BackendError('auth', 'Authentication changed'))
+
+    await store.triggerSync()
+
+    expect(store.cloudError.value).toBeNull()
+    expect(store.cloudUser.value).toEqual({ id: 'a' })
   })
 
   it('reacts to immediate signIn events without implicitly copying guest history', async () => {

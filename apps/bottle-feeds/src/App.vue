@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
@@ -114,6 +114,8 @@ const hasOpenDraft = computed(() => !!(feedForm.amount || feedForm.comment || we
 // Guest merge prompt
 const showMergePrompt = ref(false)
 const guestDataForMerge = ref<AppData | null>(null)
+const guestMergeRef = ref<HTMLElement | null>(null)
+const mergingGuest = ref(false)
 
 const importFileRef = ref<HTMLInputElement | null>(null)
 
@@ -155,6 +157,12 @@ onMounted(() => {
 
 watch(loading, (value) => {
   if (!value && !loadError.value) defaultToRecentEntryDate()
+})
+
+watch(showMergePrompt, async (value) => {
+  if (!value) return
+  await nextTick()
+  guestMergeRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 })
 
 watch(
@@ -426,16 +434,22 @@ async function handleImportFile(event: Event) {
 // ---------------------------------------------------------------------------
 
 async function handleGuestMerge(action: 'merge' | 'keep') {
-  showMergePrompt.value = false
   const guest = guestDataForMerge.value
-  guestDataForMerge.value = null
-  if (action === 'merge' && guest) {
-    if (
-      (await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))) &&
-      sharingEnabled.value &&
-      navigator.onLine
-    )
-      void triggerSync()
+  if (action === 'keep' || !guest) {
+    showMergePrompt.value = false
+    guestDataForMerge.value = null
+    return
+  }
+  mergingGuest.value = true
+  try {
+    if (sharingEnabled.value && navigator.onLine) await triggerSync()
+    const committed = await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))
+    if (!committed) return
+    showMergePrompt.value = false
+    guestDataForMerge.value = null
+    if (sharingEnabled.value && navigator.onLine) void triggerSync()
+  } finally {
+    mergingGuest.value = false
   }
 }
 
@@ -654,6 +668,31 @@ const syncLabel = computed(() => {
         />
       </div>
 
+      <section
+        v-if="showMergePrompt"
+        ref="guestMergeRef"
+        class="surface mb-5 p-5 sm:p-6"
+        aria-labelledby="guest-merge-heading"
+      >
+        <h2 id="guest-merge-heading" class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
+        <p class="mb-4 text-sm text-muted">{{ t.guestMergeBody }}</p>
+        <div class="flex flex-wrap gap-2.5">
+          <UButton type="button" size="sm" :loading="mergingGuest" @click="handleGuestMerge('merge')">
+            {{ t.guestMergeYes }}
+          </UButton>
+          <UButton
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :disabled="mergingGuest"
+            @click="handleGuestMerge('keep')"
+          >
+            {{ t.guestMergeNo }}
+          </UButton>
+        </div>
+      </section>
+
       <CloudSharingPanel
         v-model:open="sharingPanelOpen"
         :available="backendAvailable"
@@ -681,29 +720,6 @@ const syncLabel = computed(() => {
         @sync="triggerSync"
       />
       <SyncConflictPanel :conflicts="conflicts" :busy="exclusive || saving" :t="t" :locale="locale" @resolve="resolveConflict" />
-
-      <section
-        v-if="showMergePrompt"
-        class="surface mb-5 p-5 sm:p-6"
-        aria-labelledby="guest-merge-heading"
-      >
-          <h2 id="guest-merge-heading" class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
-          <p class="mb-4 text-sm text-muted">{{ t.guestMergeBody }}</p>
-          <div class="flex flex-wrap gap-2.5">
-            <UButton type="button" size="sm" @click="handleGuestMerge('merge')">
-              {{ t.guestMergeYes }}
-            </UButton>
-            <UButton
-              type="button"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              @click="handleGuestMerge('keep')"
-            >
-              {{ t.guestMergeNo }}
-            </UButton>
-          </div>
-      </section>
 
       <fieldset class="contents" :disabled="exclusive">
         <section
