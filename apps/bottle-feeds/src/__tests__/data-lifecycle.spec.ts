@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { defineComponent, watch } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import memoryDriver from 'unstorage/drivers/memory'
-import type { CloudBackend, CloudUser, Family, Mutation } from '../backends/contracts'
+import { BackendError, type CloudBackend, type CloudUser, type Family, type Mutation } from '../backends/contracts'
 import type { Feed } from '../types'
 
 const control = vi.hoisted(() => ({ config: { id: 'test' } as { id: string } | null, factory: vi.fn() }))
@@ -104,6 +104,35 @@ describe('local-first consent and identity lifecycle', () => {
     expect(backend.sync.push).not.toHaveBeenCalled()
   })
 
+  it('restores a retained history when the authenticated user has rejoined its family', async () => {
+    const revoked = { ...selection(), revoked: true }
+    await seedContext({ selected: revoked, histories: [revoked] })
+    user = { id: 'a' }
+
+    await start()
+    await flushPromises()
+
+    expect(store.sharingEnabled.value).toBe(true)
+    expect(store.cloudError.value).toBeNull()
+    expect(store.data.feeds.map(item => item.id)).toContain('cached')
+    const context = (await storage.readLocalContext<LocalContext>())!
+    expect(context.selected).toMatchObject({ family: sharedFamily, revoked: false })
+    expect(context.histories).toContainEqual(expect.objectContaining({ family: sharedFamily, revoked: false }))
+  })
+
+  it('does not surface an expected authentication transition as a persistent sync error', async () => {
+    await seedContext()
+    user = { id: 'a' }
+    await start()
+    await flushPromises()
+    vi.mocked(backend.family.current).mockRejectedValueOnce(new BackendError('auth', 'Authentication changed'))
+
+    await store.triggerSync()
+
+    expect(store.cloudError.value).toBeNull()
+    expect(store.cloudUser.value).toEqual({ id: 'a' })
+  })
+
   it('reacts to immediate signIn events without implicitly copying guest history', async () => {
     await storage.saveData({ feeds: [feed('guest')], weights: [] })
     await start()
@@ -167,6 +196,8 @@ describe('local-first consent and identity lifecycle', () => {
 
   it('holds exclusive deletion and refreshes concurrent durable records without losing recovery metadata', async () => {
     await seedContext()
+    await storage.saveData({ feeds: [feed('existing-guest')], weights: [] })
+    await storage.mergeDataStrict({ feeds: [], weights: [{ id: 'weight', kilograms: 4.2, occurredAt: feed('weight').occurredAt, updatedAt: feed('weight').updatedAt }] }, selection().namespace, true)
     user = { id: 'a' }
     await start()
     await flushPromises()
@@ -186,18 +217,22 @@ describe('local-first consent and identity lifecycle', () => {
     gate.resolve()
     await deletion
     expect(store.exclusive.value).toBe(false)
-    expect(store.data.feeds.map((item) => item.id).sort()).toEqual(['cached', 'other-tab'])
+    expect(store.currentNamespace.value).toBe('guest')
+    expect(store.data.feeds.map((item) => item.id).sort()).toEqual(['cached', 'existing-guest', 'other-tab'])
+    expect(store.data.weights.map((item) => item.id)).toEqual(['weight'])
+    expect((await storage.loadHistory('guest')).pending).toEqual([])
     expect(store.sharingEnabled.value).toBe(false)
-    expect(store.needsResume.value).toBe(true)
+    expect(store.needsResume.value).toBe(false)
     expect(store.family.value).toBeNull()
     const context = (await storage.readLocalContext<LocalContext>())!
-    expect(context.suspended).toBe(true)
-    expect(context.selected!.family).toBeNull()
+    expect(context.suspended).toBe(false)
+    expect(context.selected).toBeNull()
     expect(context.histories[0]!.family).toEqual(sharedFamily)
+    expect(context.histories[0]!.revoked).toBe(true)
     expect((await storage.loadHistory(selection().namespace)).syncLease).toBeUndefined()
   })
 
-  it('clears family actions after leaving while retaining a suspended recovery copy', async () => {
+  it('keeps left-family records on the device without sharing their pending mutations', async () => {
     const memberFamily: Family = {
       ...sharedFamily,
       ownerId: 'owner',
@@ -215,10 +250,12 @@ describe('local-first consent and identity lifecycle', () => {
     expect(backend.family.leave).toHaveBeenCalledWith(memberFamily.id)
     expect(store.family.value).toBeNull()
     expect(store.sharingEnabled.value).toBe(false)
-    expect(store.needsResume.value).toBe(true)
+    expect(store.needsResume.value).toBe(false)
+    expect(store.currentNamespace.value).toBe('guest')
+    expect(store.data.feeds.map((item) => item.id)).toEqual(['cached'])
     const context = (await storage.readLocalContext<LocalContext>())!
-    expect(context.suspended).toBe(true)
-    expect(context.selected).toMatchObject({ family: null, revoked: true })
+    expect(context.suspended).toBe(false)
+    expect(context.selected).toBeNull()
     expect(context.histories[0]).toMatchObject({ family: memberFamily, revoked: true })
   })
 
@@ -375,9 +412,17 @@ describe('local-first consent and identity lifecycle', () => {
     expect(context.selected).toMatchObject({ family: null, revoked: true })
     expect(context.histories[0]).toMatchObject({ family: sharedFamily, revoked: true })
     await store.triggerSync()
+    expect(backend.sync.push).not.toHaveBeenCalled()
+    vi.mocked(backend.family.create).mockResolvedValueOnce({ ...sharedFamily, id: 'new-family' })
+    await store.resumeSharing()
     await store.createFamily()
-    expect(store.cloudError.value).toContain('retained family history')
-    expect(backend.family.create).not.toHaveBeenCalled()
+    expect(store.cloudError.value).toBeNull()
+    expect(backend.family.create).toHaveBeenCalledOnce()
+    expect(store.currentNamespace.value).toBe(familyNamespace('test', 'a', 'new-family'))
+    expect(store.data.feeds).toEqual([])
+    expect((await storage.loadData('guest')).feeds.map((item) => item.id)).toEqual(['cached'])
+    expect((await storage.loadHistory('guest')).pending).toEqual([])
+    expect((await storage.loadHistory(selection().namespace)).data.feeds.map((item) => item.id)).toEqual(['cached'])
     expect(backend.sync.push).not.toHaveBeenCalled()
   })
 

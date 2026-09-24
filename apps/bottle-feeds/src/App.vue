@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import UButton from '@nuxt/ui/components/Button.vue'
 import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
-import { loadData, GUEST_NAMESPACE } from './storage'
+import { loadData, GUEST_NAMESPACE, type Namespace } from './storage'
 import { syncStatus, syncError, lastSyncedAt } from './sync'
 import { useAppData } from './composables/useAppData'
 import { useOfflineAvailability } from './composables/useOfflineAvailability'
@@ -71,6 +71,8 @@ const {
   resolveConflict,
   exportBackup,
   importBackup,
+  pendingImportNamespace,
+  clearPendingImport,
 } = useAppData()
 const { ready: offlineReady, updateAvailable, error: offlineError, applyUpdate } = useOfflineAvailability()
 const productionBuild = import.meta.env.PROD
@@ -114,6 +116,9 @@ const hasOpenDraft = computed(() => !!(feedForm.amount || feedForm.comment || we
 // Guest merge prompt
 const showMergePrompt = ref(false)
 const guestDataForMerge = ref<AppData | null>(null)
+const mergeSourceForPrompt = ref<Namespace | null>(null)
+const guestMergeRef = ref<HTMLElement | null>(null)
+const mergingGuest = ref(false)
 
 const importFileRef = ref<HTMLInputElement | null>(null)
 
@@ -157,27 +162,41 @@ watch(loading, (value) => {
   if (!value && !loadError.value) defaultToRecentEntryDate()
 })
 
+watch(showMergePrompt, async (value) => {
+  if (!value) return
+  await nextTick()
+  guestMergeRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+})
+
+watch(currentNamespace, () => {
+  historyEditing.value = false
+  Object.assign(feedForm, { amount: '', ...dateTimeForInput(), comment: '' })
+  Object.assign(weightForm, { kilograms: '', date: dateTimeForInput().date })
+}, { flush: 'sync' })
+
 watch(
-  currentNamespace,
-  async (ns) => {
+  [currentNamespace, sharingEnabled, pendingImportNamespace],
+  async ([ns, enabled, pendingImport], _previous, onCleanup) => {
+    let cancelled = false
+    onCleanup(() => { cancelled = true })
     showMergePrompt.value = false
     guestDataForMerge.value = null
-    historyEditing.value = false
-    Object.assign(feedForm, { amount: '', ...dateTimeForInput(), comment: '' })
-    Object.assign(weightForm, { kilograms: '', date: dateTimeForInput().date })
+    mergeSourceForPrompt.value = null
+    if (ns === GUEST_NAMESPACE || !enabled) return
     const identity = captureIdentity()
-    if (ns === GUEST_NAMESPACE || !sharingEnabled.value) return
+    const source = pendingImport ?? GUEST_NAMESPACE
     try {
-      const guest = await loadData(GUEST_NAMESPACE)
+      const guest = await loadData(source)
       if (
-        identity.isCurrent() &&
+        !cancelled && identity.isCurrent() &&
         (guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt))
       ) {
         guestDataForMerge.value = guest
+        mergeSourceForPrompt.value = source
         showMergePrompt.value = true
       }
     } catch {
-      if (identity.isCurrent()) toast.add({ title: t.value.storageLoadError, color: 'error' })
+      if (!cancelled && identity.isCurrent()) toast.add({ title: t.value.storageLoadError, color: 'error' })
     }
   },
   { flush: 'sync' },
@@ -426,16 +445,25 @@ async function handleImportFile(event: Event) {
 // ---------------------------------------------------------------------------
 
 async function handleGuestMerge(action: 'merge' | 'keep') {
-  showMergePrompt.value = false
   const guest = guestDataForMerge.value
-  guestDataForMerge.value = null
-  if (action === 'merge' && guest) {
-    if (
-      (await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))) &&
-      sharingEnabled.value &&
-      navigator.onLine
-    )
-      void triggerSync()
+  const source = mergeSourceForPrompt.value
+  if (mergingGuest.value) return
+  mergingGuest.value = true
+  try {
+    if (action === 'merge' && guest) {
+      if (sharingEnabled.value && navigator.onLine) await triggerSync()
+      const committed = await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))
+      if (!committed) return
+    }
+    if (source && source !== GUEST_NAMESPACE) await clearPendingImport(source)
+    showMergePrompt.value = false
+    guestDataForMerge.value = null
+    mergeSourceForPrompt.value = null
+    if (action === 'merge' && sharingEnabled.value && navigator.onLine) void triggerSync()
+  } catch {
+    toast.add({ title: t.value.storageSaveError, color: 'error' })
+  } finally {
+    mergingGuest.value = false
   }
 }
 
@@ -654,6 +682,31 @@ const syncLabel = computed(() => {
         />
       </div>
 
+      <section
+        v-if="showMergePrompt"
+        ref="guestMergeRef"
+        class="surface mb-5 p-5 sm:p-6"
+        aria-labelledby="guest-merge-heading"
+      >
+        <h2 id="guest-merge-heading" class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
+        <p class="mb-4 text-sm text-muted">{{ t.guestMergeBody }}</p>
+        <div class="flex flex-wrap gap-2.5">
+          <UButton type="button" size="sm" :loading="mergingGuest" @click="handleGuestMerge('merge')">
+            {{ t.guestMergeYes }}
+          </UButton>
+          <UButton
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :disabled="mergingGuest"
+            @click="handleGuestMerge('keep')"
+          >
+            {{ t.guestMergeNo }}
+          </UButton>
+        </div>
+      </section>
+
       <CloudSharingPanel
         v-model:open="sharingPanelOpen"
         :available="backendAvailable"
@@ -681,29 +734,6 @@ const syncLabel = computed(() => {
         @sync="triggerSync"
       />
       <SyncConflictPanel :conflicts="conflicts" :busy="exclusive || saving" :t="t" :locale="locale" @resolve="resolveConflict" />
-
-      <section
-        v-if="showMergePrompt"
-        class="surface mb-5 p-5 sm:p-6"
-        aria-labelledby="guest-merge-heading"
-      >
-          <h2 id="guest-merge-heading" class="mb-2.5 text-lg font-extrabold text-highlighted">{{ t.guestMergeTitle }}</h2>
-          <p class="mb-4 text-sm text-muted">{{ t.guestMergeBody }}</p>
-          <div class="flex flex-wrap gap-2.5">
-            <UButton type="button" size="sm" @click="handleGuestMerge('merge')">
-              {{ t.guestMergeYes }}
-            </UButton>
-            <UButton
-              type="button"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              @click="handleGuestMerge('keep')"
-            >
-              {{ t.guestMergeNo }}
-            </UButton>
-          </div>
-      </section>
 
       <fieldset class="contents" :disabled="exclusive">
         <section

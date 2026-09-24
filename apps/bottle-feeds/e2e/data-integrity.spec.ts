@@ -1,5 +1,5 @@
 import { expect, test as base, type Page } from '@playwright/test'
-import { SharingFixture, addFeed, openSharing, readFamilyHistory, signIn } from './helpers/sharing-fixture'
+import { SharingFixture, addFeed, openSharing, readFamilyHistory, readStore, signIn } from './helpers/sharing-fixture'
 
 const test = base.extend<{ sharing: SharingFixture }>({
   sharing: async ({ context }, use) => {
@@ -142,10 +142,14 @@ test('invalid imported records are rejected without changing saved data', async 
   await expect.poll(async () => (await readFeeds(page)).length).toBe(1)
 })
 
-test('importing measures preserves the authenticated session', async ({ page }) => {
+test('imported measures can be merged into the resumed family and survive reload', async ({ page, sharing }) => {
+  const browserErrors: string[] = []
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
   await signIn(page)
   await addFeed(page, 'Existing signed-in measure', '100')
   await expect(page.getByText('Existing signed-in measure', { exact: true })).toBeVisible()
+  await expect.poll(() => sharing.records.size).toBe(1)
 
   await page.locator('input[type=file]').setInputFiles({
     name: 'existing-measures.json',
@@ -167,6 +171,75 @@ test('importing measures preserves the authenticated session', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Resume sharing', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Resume sharing', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Sync now' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toBeVisible()
+  await expect.poll(async () => (await readFamilyHistory(page))[0]?.recovery.syncLease).toBeUndefined()
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toBeVisible()
+  await page.getByRole('button', { name: 'Upload and merge' }).click()
+  await expect(page.getByText('Imported measure', { exact: true })).toBeVisible()
+  await expect(page.getByText('Existing signed-in measure', { exact: true })).toBeVisible()
+  await expect.poll(() => [...sharing.records.values()].map((item) => item.record.id), { timeout: 35_000 }).toContain('imported-measure')
+  await page.reload()
+  await expect(page.getByText('Imported measure', { exact: true })).toBeVisible()
+  await expect(page.getByText('Existing signed-in measure', { exact: true })).toBeVisible()
+  await page.screenshot({ path: '../../.playwright-cli/import-resume-after.png', fullPage: true })
+  expect(browserErrors).toEqual([])
+})
+
+test('repeated imports remain recoverable when family upload is declined', async ({ page, sharing }) => {
+  await signIn(page)
+  await expect(page.getByRole('button', { name: 'Sync now' })).toBeVisible()
+  for (const [id, comment] of [['first-import', 'First imported measure'], ['second-import', 'Second imported measure']]) {
+    await page.locator('input[type=file]').setInputFiles({
+      name: `${id}.json`,
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({
+        feeds: [{ id, amount: 95, comment, occurredAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+        weights: [],
+      })),
+    })
+    await expect(page.getByText(comment, { exact: true })).toBeVisible()
+  }
+  await openSharing(page)
+  await page.getByRole('button', { name: 'Resume sharing' }).click()
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toBeVisible()
+  await page.getByRole('button', { name: 'Keep separate' }).click()
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toHaveCount(0)
+  expect(sharing.records.size).toBe(0)
+  const histories = Object.entries(await readStore(page)).filter(([key]) => key.startsWith('recovery-') && key.endsWith(':data'))
+  expect(histories.some(([, value]) => {
+    const feeds = (value as { feeds: { id: string }[] }).feeds
+    return ['first-import', 'second-import'].every((id) => feeds.some((feed) => feed.id === id))
+  })).toBe(true)
+})
+
+test('a different family account cannot be offered another user’s imported records', async ({ page, sharing }) => {
+  sharing.seedFamily('mother', 'father')
+  await signIn(page)
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'private-import.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({
+      feeds: [{ id: 'private-import', amount: 95, comment: 'Mother’s imported measure', occurredAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+      weights: [],
+    })),
+  })
+  await expect(page.getByText('Mother’s imported measure', { exact: true })).toBeVisible()
+  await signOut(page)
+  await page.evaluate(() => localStorage.setItem('sharing-test:account', 'father'))
+  await signIn(page)
+  await expect(page.getByRole('button', { name: 'Sync now' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toHaveCount(0)
+  await expect(page.getByText('Mother’s imported measure', { exact: true })).toHaveCount(0)
+  expect(sharing.records.size).toBe(0)
+  await signOut(page)
+  await page.evaluate(() => localStorage.setItem('sharing-test:account', 'mother'))
+  await signIn(page)
+  await expect(page.getByRole('button', { name: 'Upload and merge' })).toBeVisible()
 })
 
 test('two tabs preserve each other’s new records', async ({ page, context }) => {

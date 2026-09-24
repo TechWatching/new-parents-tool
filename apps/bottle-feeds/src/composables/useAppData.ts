@@ -5,7 +5,7 @@ import { observeAuth, signInWithProvider } from '../auth'
 import { createBackup, parseBackup } from '../backup'
 import { mergeAppData } from '../merge'
 import {
-  GUEST_NAMESPACE, loadHistory, updateHistory, readLocalContext, writeLocalContext,
+  GUEST_NAMESPACE, loadHistory, mergeDataStrict, updateHistory, readLocalContext, writeLocalContext,
   type Namespace,
 } from '../storage'
 import {
@@ -16,7 +16,7 @@ import {
   applyLocalEdit, cloneHistory, emptyHistory, putRecord, recordKey, sameRecord,
   type HistoryState, type SyncConflict,
 } from '../sharing/state'
-import { resetSyncState, resolveStoredConflict, syncNow, syncStatus } from '../sync'
+import { resetSyncState, resolveStoredConflict, syncError, syncNow, syncStatus } from '../sync'
 import { parseAppData } from '../validation'
 import type { AppData } from '../types'
 import { cloudRequest } from '../sharing/request'
@@ -43,6 +43,9 @@ export function useAppData() {
   ))
   const context = ref<LocalContext>(emptyContext())
   const backendAvailable = Boolean(backendConfig)
+  const pendingImportNamespace = computed(() =>
+    !context.value.pendingImportUserId || context.value.pendingImportUserId === cloudUser.value?.id
+      ? context.value.pendingImportNamespace ?? null : null)
   const needsResume = computed(() => !context.value.signedOut && (
     context.value.suspended ||
     Boolean(context.value.selected?.backendId && context.value.selected.backendId !== backendConfig?.id)
@@ -63,6 +66,7 @@ export function useAppData() {
   let stopAuth: (() => void) | undefined
   let stopSubscription: (() => void) | undefined
   let authTask: Promise<void> = Promise.resolve()
+  let invitationRecoveryTask: Promise<void> | null = null
   let saveQueue: Promise<void> = Promise.resolve()
   let contextQueue: Promise<void> = Promise.resolve()
   let syncTask: Promise<void> | null = null
@@ -75,6 +79,8 @@ export function useAppData() {
   const drafts = new Map<Namespace, { before: AppData; after: AppData; revision: number; error: string | null }>()
 
   const message = (error: unknown) => error instanceof Error ? error.message : String(error)
+  const isAuthenticationChange = (error: unknown) =>
+    error instanceof BackendError && error.code === 'auth' && error.message === 'Authentication changed'
   const snapshot = () => cloneHistory({ feeds: data.feeds, weights: data.weights })
   function apply(state: HistoryState, records = true) {
     if (records) {
@@ -282,6 +288,29 @@ export function useAppData() {
       family.value = null
     }
   }
+  async function retainFamilyOnDevice() {
+    const selection = context.value.selected
+    if (!selection || selection.backendId !== backend?.id || selection.user?.id !== cloudUser.value?.id) {
+      throw new Error('The active family changed')
+    }
+    const identity = captureIdentity()
+    const history = await loadHistory(selection.namespace)
+    if (!identity.isCurrent()) return
+    await mergeDataStrict({
+      feeds: history.data.feeds.filter((row) => !row.deletedAt),
+      weights: history.data.weights.filter((row) => !row.deletedAt),
+    }, GUEST_NAMESPACE)
+    if (!identity.isCurrent()) return
+    const retained = { ...selection, revoked: true }
+    cancelSync()
+    cleanupCloud(stopSubscription)
+    stopSubscription = undefined
+    await persistContext({
+      ...context.value, selected: null, suspended: false,
+      histories: [...context.value.histories.filter((item) => item.namespace !== retained.namespace), retained],
+    }, identity.isCurrent)
+    if (identity.isCurrent()) await loadCurrent()
+  }
   function subscribe() {
     cleanupCloud(stopSubscription)
     stopSubscription = undefined
@@ -312,6 +341,19 @@ export function useAppData() {
           await isolateFamily('Family access was removed. Your local history is retained for recovery.')
           return
         }
+        if (JSON.stringify(membership) !== JSON.stringify(selected.family)) {
+          const nextSelection = { ...selected, family: membership }
+          await persistContext({
+            ...context.value,
+            selected: nextSelection,
+            histories: context.value.histories.map(item =>
+              item.namespace === nextSelection.namespace ? nextSelection : item),
+          }, valid)
+          if (!valid()) return
+          family.value = membership
+        }
+        if (membership.members.length >= 2) invitation.value = null
+        else if (invitation.value) scheduleSync(2_000)
         const state = await syncNow(client, membership.id, identity.namespace, {
           isCurrent: valid, signal, contextRevision: context.value.revision,
         })
@@ -326,6 +368,11 @@ export function useAppData() {
         if (state.pending.some((item) => !blocked.has(recordKey(item.kind, item.record.id)))) scheduleSync(800)
       } catch (error) {
         if (!valid() || signal.aborted) return
+        if (isAuthenticationChange(error)) {
+          syncError.value = null
+          syncStatus.value = 'idle'
+          return
+        }
         cloudError.value = message(error)
         if (error instanceof BackendError && error.code === 'auth') {
           cloudUser.value = null
@@ -365,21 +412,30 @@ export function useAppData() {
       const membership = await cloudRequest(() => client.family.current())
       if (disposed || backend !== client || authGeneration !== epoch || cloudUser.value?.id !== user.id) return
       if (membership) {
-        const cached = context.value.histories.find((item) =>
-          item.backendId === client.id && item.user?.id === user.id && item.family?.id === membership.id)
-        if (cached?.revoked) {
-          await persistContext({ ...context.value, selected: cached }, valid)
-          if (!valid()) return
-          await loadCurrent()
-          cloudError.value = 'This retained family history is isolated for recovery.'
-        } else await selectFamily(membership, user, client)
+        await selectFamily(membership, user, client)
       } else {
-        const retained = context.value.histories.find((item) => item.backendId === client.id && item.user?.id === user.id)
+        const retained = context.value.histories.find((item) => item.namespace === context.value.selected?.namespace &&
+          item.backendId === client.id && item.user?.id === user.id)
         if (retained) {
-          await persistContext({ ...context.value, selected: { ...retained, revoked: true } }, valid)
-          if (!valid()) return
-          await loadCurrent()
-          await isolateFamily('Family access was removed. Your local history is retained for recovery.')
+          if (pendingToken) {
+            if (!invitationRecoveryTask) {
+              const task = (async () => {
+                if (!(await beginExclusive())) throw new Error('Save local changes before accepting an invitation')
+                try { await retainFamilyOnDevice() } finally { endExclusive() }
+              })()
+              invitationRecoveryTask = task
+              void task.then(
+                () => { if (invitationRecoveryTask === task) invitationRecoveryTask = null },
+                () => { if (invitationRecoveryTask === task) invitationRecoveryTask = null },
+              )
+            }
+            await invitationRecoveryTask
+          } else {
+            await persistContext({ ...context.value, selected: { ...retained, revoked: true } }, valid)
+            if (!valid()) return
+            await loadCurrent()
+            await isolateFamily('Family access was removed. Your local history is retained for recovery.')
+          }
         }
       }
     } catch (error) {
@@ -456,9 +512,14 @@ export function useAppData() {
   async function createFamily() {
     await cloudAction(async () => {
       const { client, user, epoch } = requireCloud()
-      if (family.value || context.value.suspended || context.value.selected?.revoked) {
-        throw new Error('Export the retained family history before starting another family')
+      if (family.value || context.value.suspended) {
+        throw new Error('Resume sharing before starting another family')
       }
+      if (context.value.selected?.revoked) {
+        if (!(await beginExclusive())) throw new Error('Save local changes before starting another family')
+        try { await retainFamilyOnDevice() } finally { endExclusive() }
+      }
+      if (context.value.selected) throw new Error('The active family changed')
       const created = await client.family.create()
       if (backend === client && epoch === authGeneration && cloudUser.value?.id === user.id) await selectFamily(created, user, client)
     })
@@ -481,7 +542,10 @@ export function useAppData() {
     if (!selected || selected.ownerId !== user.id) throw new Error('Only the family creator can invite')
     const identity = captureIdentity()
     const created = await client.family.invite(selected.id)
-    if (identity.isCurrent() && backend === client) invitation.value = created
+    if (identity.isCurrent() && backend === client) {
+      invitation.value = created
+      scheduleSync(2_000)
+    }
   })
   const revokeInvitation = () => cloudAction(async () => {
     const { client } = requireCloud()
@@ -497,7 +561,7 @@ export function useAppData() {
     const identity = captureIdentity()
     cancelSync()
     await client.family.leave(family.value.id)
-    if (identity.isCurrent()) await isolateFamily('You left the family. This local copy is retained for recovery.')
+    if (identity.isCurrent()) await retainFamilyOnDevice()
   })
   const removePartner = () => cloudAction(async () => {
     const { client, user } = requireCloud()
@@ -526,9 +590,7 @@ export function useAppData() {
       }, identity.isCurrent)
       await cloudRequest(() => client.family.delete(familyId))
       if (!identity.isCurrent()) return
-      await isolateFamily('The cloud family was deleted. This local copy is retained for recovery.')
-      const latest = await loadHistory(identity.namespace)
-      if (identity.isCurrent()) apply(latest)
+      await retainFamilyOnDevice()
     } finally {
       try {
         await updateHistory(identity.namespace, (state) => {
@@ -569,6 +631,11 @@ export function useAppData() {
         namespace: identity.namespace,
       })
     } finally { endExclusive() }
+  }
+  async function clearPendingImport(namespace: Namespace) {
+    if (context.value.pendingImportNamespace === namespace) {
+      await persistContext({ ...context.value, pendingImportNamespace: null, pendingImportUserId: null })
+    }
   }
   async function importBackup(value: unknown): Promise<boolean> {
     let imported: HistoryState
@@ -620,6 +687,7 @@ export function useAppData() {
       const selection: LocalSelection = { namespace, backendId: null, user: null, family: null, revoked: false }
       await persistContext({
         ...context.value, selected: selection, consentBackend: null, suspended: true, signedOut: false,
+        pendingImportNamespace: namespace, pendingImportUserId: cloudUser.value?.id ?? null,
         histories: [...context.value.histories, selection],
       })
       await loadCurrent()
@@ -694,6 +762,6 @@ export function useAppData() {
     reload: loadCurrent, backendAvailable, cloudUser, family, sharingEnabled, needsResume, cloudBusy,
     cloudError, invitation, pendingInvitation, pendingCount, conflicts, hasLocal, signIn, signOut, createFamily,
     acceptInvitation, createInvitation, revokeInvitation, leaveFamily, removePartner, deleteFamily,
-    resumeSharing, resolveConflict, exportBackup, importBackup,
+    resumeSharing, resolveConflict, exportBackup, importBackup, pendingImportNamespace, clearPendingImport,
   }
 }

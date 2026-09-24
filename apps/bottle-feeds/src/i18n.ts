@@ -145,7 +145,7 @@ export const messages = {
     // Guest merge prompt
     guestMergeTitle: 'Merge local records?',
     guestMergeBody:
-      'You have local records from before signing in. Would you like to upload them to your account?',
+      'You have local records or an imported backup kept separately from your shared family. Would you like to upload and merge them?',
     guestMergeYes: 'Upload and merge',
     guestMergeNo: 'Keep separate',
     loading: 'Loading…',
@@ -302,7 +302,7 @@ export const messages = {
     // Guest merge prompt
     guestMergeTitle: 'Fusionner les enregistrements locaux ?',
     guestMergeBody:
-      'Vous avez des enregistrements locaux d’avant la connexion. Voulez-vous les téléverser sur votre compte ?',
+      'Vous avez des enregistrements locaux ou une sauvegarde importée conservés séparément de votre famille. Voulez-vous les téléverser et les fusionner ?',
     guestMergeYes: 'Téléverser et fusionner',
     guestMergeNo: 'Conserver séparément',
     loading: 'Chargement…',
@@ -455,7 +455,7 @@ export const messages = {
     syncedAt: 'Sincronizado',
     guestMergeTitle: '¿Combinar registros locales?',
     guestMergeBody:
-      'Tienes registros locales anteriores al inicio de sesión. ¿Quieres subirlos a tu cuenta?',
+      'Tienes registros locales o una copia importada guardados por separado de tu familia. ¿Quieres subirlos y combinarlos?',
     guestMergeYes: 'Subir y combinar',
     guestMergeNo: 'Mantener separados',
     loading: 'Cargando…',
@@ -609,7 +609,7 @@ export const messages = {
     syncedAt: 'Synchronisiert',
     guestMergeTitle: 'Lokale Aufzeichnungen zusammenführen?',
     guestMergeBody:
-      'Du hast lokale Aufzeichnungen von vor der Anmeldung. Möchtest du sie in dein Konto hochladen?',
+      'Du hast lokale Aufzeichnungen oder eine importierte Sicherung getrennt von deiner Familie gespeichert. Möchtest du sie hochladen und zusammenführen?',
     guestMergeYes: 'Hochladen und zusammenführen',
     guestMergeNo: 'Getrennt lassen',
     loading: 'Wird geladen…',
