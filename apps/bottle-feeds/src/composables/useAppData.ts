@@ -66,6 +66,7 @@ export function useAppData() {
   let stopAuth: (() => void) | undefined
   let stopSubscription: (() => void) | undefined
   let authTask: Promise<void> = Promise.resolve()
+  let invitationRecoveryTask: Promise<void> | null = null
   let saveQueue: Promise<void> = Promise.resolve()
   let contextQueue: Promise<void> = Promise.resolve()
   let syncTask: Promise<void> | null = null
@@ -416,10 +417,25 @@ export function useAppData() {
         const retained = context.value.histories.find((item) => item.namespace === context.value.selected?.namespace &&
           item.backendId === client.id && item.user?.id === user.id)
         if (retained) {
-          await persistContext({ ...context.value, selected: { ...retained, revoked: true } }, valid)
-          if (!valid()) return
-          await loadCurrent()
-          await isolateFamily('Family access was removed. Your local history is retained for recovery.')
+          if (pendingToken) {
+            if (!invitationRecoveryTask) {
+              const task = (async () => {
+                if (!(await beginExclusive())) throw new Error('Save local changes before accepting an invitation')
+                try { await retainFamilyOnDevice() } finally { endExclusive() }
+              })()
+              invitationRecoveryTask = task
+              void task.then(
+                () => { if (invitationRecoveryTask === task) invitationRecoveryTask = null },
+                () => { if (invitationRecoveryTask === task) invitationRecoveryTask = null },
+              )
+            }
+            await invitationRecoveryTask
+          } else {
+            await persistContext({ ...context.value, selected: { ...retained, revoked: true } }, valid)
+            if (!valid()) return
+            await loadCurrent()
+            await isolateFamily('Family access was removed. Your local history is retained for recovery.')
+          }
         }
       }
     } catch (error) {
