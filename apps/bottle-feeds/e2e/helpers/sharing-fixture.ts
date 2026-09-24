@@ -21,6 +21,7 @@ export class SharingFixture {
   unavailableActors = new Set<string>()
   loseNextPushResponse = new Set<string>()
   private revision = 0
+  private familySequence = 0
   private invitation: { token: string; expiresAt: string } | null = null
   private receipts = new Map<string, { payload: string; result: MutationResult }>()
   private gates = new Map<string, { started: () => void; wait: Promise<void> }>()
@@ -36,7 +37,7 @@ export class SharingFixture {
 
   seedFamily(...members: string[]) {
     this.family = {
-      id: 'family-one',
+      id: `family-${++this.familySequence}`,
       ownerId: members[0]!,
       members: members.map((userId) => ({ userId, name: `${userId}@example.test` })),
     }

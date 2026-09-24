@@ -5,7 +5,7 @@ import { observeAuth, signInWithProvider } from '../auth'
 import { createBackup, parseBackup } from '../backup'
 import { mergeAppData } from '../merge'
 import {
-  GUEST_NAMESPACE, loadHistory, updateHistory, readLocalContext, writeLocalContext,
+  GUEST_NAMESPACE, loadHistory, mergeDataStrict, updateHistory, readLocalContext, writeLocalContext,
   type Namespace,
 } from '../storage'
 import {
@@ -287,6 +287,29 @@ export function useAppData() {
       family.value = null
     }
   }
+  async function retainFamilyOnDevice() {
+    const selection = context.value.selected
+    if (!selection || selection.backendId !== backend?.id || selection.user?.id !== cloudUser.value?.id) {
+      throw new Error('The active family changed')
+    }
+    const identity = captureIdentity()
+    const history = await loadHistory(selection.namespace)
+    if (!identity.isCurrent()) return
+    await mergeDataStrict({
+      feeds: history.data.feeds.filter((row) => !row.deletedAt),
+      weights: history.data.weights.filter((row) => !row.deletedAt),
+    }, GUEST_NAMESPACE)
+    if (!identity.isCurrent()) return
+    const retained = { ...selection, revoked: true }
+    cancelSync()
+    cleanupCloud(stopSubscription)
+    stopSubscription = undefined
+    await persistContext({
+      ...context.value, selected: null, suspended: false,
+      histories: [...context.value.histories.filter((item) => item.namespace !== retained.namespace), retained],
+    }, identity.isCurrent)
+    if (identity.isCurrent()) await loadCurrent()
+  }
   function subscribe() {
     cleanupCloud(stopSubscription)
     stopSubscription = undefined
@@ -390,7 +413,8 @@ export function useAppData() {
       if (membership) {
         await selectFamily(membership, user, client)
       } else {
-        const retained = context.value.histories.find((item) => item.backendId === client.id && item.user?.id === user.id)
+        const retained = context.value.histories.find((item) => item.namespace === context.value.selected?.namespace &&
+          item.backendId === client.id && item.user?.id === user.id)
         if (retained) {
           await persistContext({ ...context.value, selected: { ...retained, revoked: true } }, valid)
           if (!valid()) return
@@ -472,9 +496,14 @@ export function useAppData() {
   async function createFamily() {
     await cloudAction(async () => {
       const { client, user, epoch } = requireCloud()
-      if (family.value || context.value.suspended || context.value.selected?.revoked) {
-        throw new Error('Export the retained family history before starting another family')
+      if (family.value || context.value.suspended) {
+        throw new Error('Resume sharing before starting another family')
       }
+      if (context.value.selected?.revoked) {
+        if (!(await beginExclusive())) throw new Error('Save local changes before starting another family')
+        try { await retainFamilyOnDevice() } finally { endExclusive() }
+      }
+      if (context.value.selected) throw new Error('The active family changed')
       const created = await client.family.create()
       if (backend === client && epoch === authGeneration && cloudUser.value?.id === user.id) await selectFamily(created, user, client)
     })
@@ -516,7 +545,7 @@ export function useAppData() {
     const identity = captureIdentity()
     cancelSync()
     await client.family.leave(family.value.id)
-    if (identity.isCurrent()) await isolateFamily('You left the family. This local copy is retained for recovery.')
+    if (identity.isCurrent()) await retainFamilyOnDevice()
   })
   const removePartner = () => cloudAction(async () => {
     const { client, user } = requireCloud()
@@ -545,9 +574,7 @@ export function useAppData() {
       }, identity.isCurrent)
       await cloudRequest(() => client.family.delete(familyId))
       if (!identity.isCurrent()) return
-      await isolateFamily('The cloud family was deleted. This local copy is retained for recovery.')
-      const latest = await loadHistory(identity.namespace)
-      if (identity.isCurrent()) apply(latest)
+      await retainFamilyOnDevice()
     } finally {
       try {
         await updateHistory(identity.namespace, (state) => {
