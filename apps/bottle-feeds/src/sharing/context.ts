@@ -15,6 +15,8 @@ export interface LocalContext {
   signedOut: boolean
   consentBackend: string | null
   suspended: boolean
+  pendingImportNamespace?: Namespace | null
+  pendingImportUserId?: string | null
   revision: string
 }
 

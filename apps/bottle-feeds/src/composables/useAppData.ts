@@ -43,6 +43,9 @@ export function useAppData() {
   ))
   const context = ref<LocalContext>(emptyContext())
   const backendAvailable = Boolean(backendConfig)
+  const pendingImportNamespace = computed(() =>
+    !context.value.pendingImportUserId || context.value.pendingImportUserId === cloudUser.value?.id
+      ? context.value.pendingImportNamespace ?? null : null)
   const needsResume = computed(() => !context.value.signedOut && (
     context.value.suspended ||
     Boolean(context.value.selected?.backendId && context.value.selected.backendId !== backendConfig?.id)
@@ -586,6 +589,11 @@ export function useAppData() {
       })
     } finally { endExclusive() }
   }
+  async function clearPendingImport(namespace: Namespace) {
+    if (context.value.pendingImportNamespace === namespace) {
+      await persistContext({ ...context.value, pendingImportNamespace: null, pendingImportUserId: null })
+    }
+  }
   async function importBackup(value: unknown): Promise<boolean> {
     let imported: HistoryState
     try { imported = parseBackup(value) } catch (error) { saveError.value = message(error); return false }
@@ -636,6 +644,7 @@ export function useAppData() {
       const selection: LocalSelection = { namespace, backendId: null, user: null, family: null, revoked: false }
       await persistContext({
         ...context.value, selected: selection, consentBackend: null, suspended: true, signedOut: false,
+        pendingImportNamespace: namespace, pendingImportUserId: cloudUser.value?.id ?? null,
         histories: [...context.value.histories, selection],
       })
       await loadCurrent()
@@ -710,6 +719,6 @@ export function useAppData() {
     reload: loadCurrent, backendAvailable, cloudUser, family, sharingEnabled, needsResume, cloudBusy,
     cloudError, invitation, pendingInvitation, pendingCount, conflicts, hasLocal, signIn, signOut, createFamily,
     acceptInvitation, createInvitation, revokeInvitation, leaveFamily, removePartner, deleteFamily,
-    resumeSharing, resolveConflict, exportBackup, importBackup,
+    resumeSharing, resolveConflict, exportBackup, importBackup, pendingImportNamespace, clearPendingImport,
   }
 }

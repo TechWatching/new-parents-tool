@@ -5,7 +5,7 @@ import UButton from '@nuxt/ui/components/Button.vue'
 import ULocaleSelect from '@nuxt/ui/components/locale/LocaleSelect.vue'
 import { useToast } from '@nuxt/ui/composables/useToast'
 import { messages, type Language } from './i18n'
-import { loadData, GUEST_NAMESPACE } from './storage'
+import { loadData, GUEST_NAMESPACE, type Namespace } from './storage'
 import { syncStatus, syncError, lastSyncedAt } from './sync'
 import { useAppData } from './composables/useAppData'
 import { useOfflineAvailability } from './composables/useOfflineAvailability'
@@ -71,6 +71,8 @@ const {
   resolveConflict,
   exportBackup,
   importBackup,
+  pendingImportNamespace,
+  clearPendingImport,
 } = useAppData()
 const { ready: offlineReady, updateAvailable, error: offlineError, applyUpdate } = useOfflineAvailability()
 const productionBuild = import.meta.env.PROD
@@ -114,6 +116,7 @@ const hasOpenDraft = computed(() => !!(feedForm.amount || feedForm.comment || we
 // Guest merge prompt
 const showMergePrompt = ref(false)
 const guestDataForMerge = ref<AppData | null>(null)
+const mergeSourceForPrompt = ref<Namespace | null>(null)
 const guestMergeRef = ref<HTMLElement | null>(null)
 const mergingGuest = ref(false)
 
@@ -165,27 +168,35 @@ watch(showMergePrompt, async (value) => {
   guestMergeRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 })
 
+watch(currentNamespace, () => {
+  historyEditing.value = false
+  Object.assign(feedForm, { amount: '', ...dateTimeForInput(), comment: '' })
+  Object.assign(weightForm, { kilograms: '', date: dateTimeForInput().date })
+}, { flush: 'sync' })
+
 watch(
-  currentNamespace,
-  async (ns) => {
+  [currentNamespace, sharingEnabled, pendingImportNamespace],
+  async ([ns, enabled, pendingImport], _previous, onCleanup) => {
+    let cancelled = false
+    onCleanup(() => { cancelled = true })
     showMergePrompt.value = false
     guestDataForMerge.value = null
-    historyEditing.value = false
-    Object.assign(feedForm, { amount: '', ...dateTimeForInput(), comment: '' })
-    Object.assign(weightForm, { kilograms: '', date: dateTimeForInput().date })
+    mergeSourceForPrompt.value = null
+    if (ns === GUEST_NAMESPACE || !enabled) return
     const identity = captureIdentity()
-    if (ns === GUEST_NAMESPACE || !sharingEnabled.value) return
+    const source = pendingImport ?? GUEST_NAMESPACE
     try {
-      const guest = await loadData(GUEST_NAMESPACE)
+      const guest = await loadData(source)
       if (
-        identity.isCurrent() &&
+        !cancelled && identity.isCurrent() &&
         (guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt))
       ) {
         guestDataForMerge.value = guest
+        mergeSourceForPrompt.value = source
         showMergePrompt.value = true
       }
     } catch {
-      if (identity.isCurrent()) toast.add({ title: t.value.storageLoadError, color: 'error' })
+      if (!cancelled && identity.isCurrent()) toast.add({ title: t.value.storageLoadError, color: 'error' })
     }
   },
   { flush: 'sync' },
@@ -435,19 +446,22 @@ async function handleImportFile(event: Event) {
 
 async function handleGuestMerge(action: 'merge' | 'keep') {
   const guest = guestDataForMerge.value
-  if (action === 'keep' || !guest) {
-    showMergePrompt.value = false
-    guestDataForMerge.value = null
-    return
-  }
+  const source = mergeSourceForPrompt.value
+  if (mergingGuest.value) return
   mergingGuest.value = true
   try {
-    if (sharingEnabled.value && navigator.onLine) await triggerSync()
-    const committed = await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))
-    if (!committed) return
+    if (action === 'merge' && guest) {
+      if (sharingEnabled.value && navigator.onLine) await triggerSync()
+      const committed = await commit((draft) => Object.assign(draft, mergeAppData(draft, guest)))
+      if (!committed) return
+    }
+    if (source && source !== GUEST_NAMESPACE) await clearPendingImport(source)
     showMergePrompt.value = false
     guestDataForMerge.value = null
-    if (sharingEnabled.value && navigator.onLine) void triggerSync()
+    mergeSourceForPrompt.value = null
+    if (action === 'merge' && sharingEnabled.value && navigator.onLine) void triggerSync()
+  } catch {
+    toast.add({ title: t.value.storageSaveError, color: 'error' })
   } finally {
     mergingGuest.value = false
   }
