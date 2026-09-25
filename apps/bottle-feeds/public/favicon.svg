@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Little Sips logo">
-  <rect width="64" height="64" rx="16" fill="#f7efe3" />
-  <path d="M23 20h18c4.4 0 8 3.6 8 8v8c0 4.4-3.6 8-8 8H23c-4.4 0-8-3.6-8-8v-8c0-4.4 3.6-8 8-8Z" fill="#8b6f47" />
-  <rect x="27" y="12" width="10" height="14" rx="5" fill="#c79f67" />
-  <path d="M20 38c6.5 1.8 13.5 1.8 20 0" stroke="#fdf6e8" stroke-width="3" stroke-linecap="round" />
-  <circle cx="30" cy="30" r="2.2" fill="#fdf6e8" />
-  <path d="M32 24c0-3.4 4.5-4.8 6.2-2.4 1.4 2.1-.8 5.2-3.2 5.9-1 .3-2.2-.5-3-1.6Z" fill="#5d8a6b" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="16" fill="#ef8376" />
+  <path d="M32 9c-2 0-3 2-3 5v2l-2 2h10l-2-2v-2c0-3-1-5-3-5Z" fill="#fffaf5" />
+  <rect x="24" y="18" width="16" height="7" rx="3" fill="#72b7a0" />
+  <path d="M25 25h14c2 0 3 1 3 3v17c0 6-4 9-10 9s-10-3-10-9V28c0-2 1-3 3-3Z" fill="#fffaf5" />
+  <path d="M25 43c4 2 10 2 14 0v2c0 4-2.8 6-7 6s-7-2-7-6Z" fill="#72b7a0" />
+  <path d="M26 33h5m-5 5h5" stroke="#ef8376" stroke-width="2" stroke-linecap="round" />
 </svg>
