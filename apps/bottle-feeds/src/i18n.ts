@@ -8,6 +8,7 @@ export const messages = {
     appName: 'Little Sips',
     tagline: 'Bottle and growth tracker',
     privacy: 'Private by design — everything stays in this browser.',
+    privacyPolicy: 'Privacy policy',
     localOnly:
       "Records stay in this browser and will be erased if you clear this site's data. Sign in to sync them across devices.",
     cloudEnabled:
@@ -161,6 +162,7 @@ export const messages = {
     appName: 'Petites Gorgées',
     tagline: 'Suivi des biberons et de la croissance',
     privacy: 'Vos données restent privées dans ce navigateur.',
+    privacyPolicy: 'Politique de confidentialité',
     localOnly:
       'Les enregistrements restent dans ce navigateur et seront effacés si vous supprimez les données de ce site. Connectez-vous pour les synchroniser entre vos appareils.',
     cloudEnabled:
@@ -318,6 +320,7 @@ export const messages = {
     appName: 'Pequeños Sorbos',
     tagline: 'Registro de biberones y crecimiento',
     privacy: 'Tus datos permanecen privados en este navegador.',
+    privacyPolicy: 'Política de privacidad',
     localOnly:
       'Los registros permanecen en este navegador y se borrarán si eliminas los datos de este sitio. Inicia sesión para sincronizarlos entre dispositivos.',
     cloudEnabled:
@@ -471,6 +474,7 @@ export const messages = {
     appName: 'Kleine Schlucke',
     tagline: 'Flaschen- und Wachstumstracker',
     privacy: 'Deine Daten bleiben privat in diesem Browser.',
+    privacyPolicy: 'Datenschutzerklärung',
     localOnly:
       'Die Aufzeichnungen bleiben in diesem Browser und werden gelöscht, wenn du die Daten dieser Website löschst. Melde dich an, um sie geräteübergreifend zu synchronisieren.',
     cloudEnabled:

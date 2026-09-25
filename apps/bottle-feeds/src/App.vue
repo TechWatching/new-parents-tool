@@ -94,6 +94,9 @@ function resolveInitialLanguage(): Language {
 }
 
 const language = ref<Language>(resolveInitialLanguage())
+const privacyPolicyUrl = computed(
+  () => `${import.meta.env.BASE_URL}privacy.html#${language.value === 'fr' ? 'fr' : 'en'}`,
+)
 const languageSelection = computed({
   get: () => language.value,
   set: (value: string) => {
@@ -579,6 +582,11 @@ const syncLabel = computed(() => {
       <div class="mb-[18px] text-center text-[13px] text-muted">
         <span class="font-bold text-mint-600" aria-hidden="true">⌁</span>
         {{ family ? t.sharingFamily : t.sharingLocal }}
+        <span aria-hidden="true"> · </span>
+        <a
+          class="font-medium text-coral-800 underline underline-offset-2 hover:text-coral-900 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-700"
+          :href="privacyPolicyUrl"
+        >{{ t.privacyPolicy }}</a>
       </div>
       <div v-if="productionBuild" class="mb-4 text-center text-xs text-muted">
         <p role="status">{{ offlineError ? t.offlineError : offlineReady ? t.offlineReady : t.offlinePreparing }}</p>
