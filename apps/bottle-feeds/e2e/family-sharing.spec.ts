@@ -199,7 +199,7 @@ test.describe('Family sharing through a browser-only backend contract fake', () 
       const app = (document.querySelector('main') as HTMLElement & {
         __vueParentComponent: { setupState: { currentNamespace: string; reload: () => Promise<void> } }
       }).__vueParentComponent.setupState
-      const originalGet = IDBObjectStore.prototype.get
+      const originalGet = Reflect.get(IDBObjectStore.prototype, 'get') as IDBObjectStore['get']
       IDBObjectStore.prototype.get = function (key) {
         const request = originalGet.call(this, key)
         if (key === 'guest:data') {
