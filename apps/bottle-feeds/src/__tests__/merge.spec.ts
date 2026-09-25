@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { mergeFeeds, mergeWeights, mergeAppData, mergeImport } from '../merge'
-import type { Feed, Weight } from '../types'
+import { mergeFeeds, mergeWeights, mergeAppData, mergeImport, unmergedGuestData } from '../merge'
+import type { AppData, Feed, Weight } from '../types'
 
 const makeFeed = (overrides: Partial<Feed> = {}): Feed => ({
   id: 'f1',
@@ -91,6 +91,33 @@ describe('mergeAppData', () => {
     const result = mergeAppData(local, remote)
     expect(result.feeds).toHaveLength(2)
     expect(result.weights).toHaveLength(2)
+  })
+})
+
+describe('unmergedGuestData', () => {
+  it('does not offer records already in the family, including ones edited or deleted there', () => {
+    const guest = { feeds: [makeFeed(), makeFeed({ id: 'new' })], weights: [makeWeight()] }
+    const family = {
+      feeds: [makeFeed({ amount: 120, updatedAt: '2026-01-02T12:00:00.000Z' })],
+      weights: [makeWeight({ deletedAt: '2026-01-02T12:00:00.000Z', updatedAt: '2026-01-02T12:00:00.000Z' })],
+    }
+    expect(unmergedGuestData(guest, family)).toEqual({ feeds: [guest.feeds[1]], weights: [] })
+    expect(guest.feeds).toHaveLength(2)
+  })
+
+  it('offers first-family data and guest edits made after an earlier merge', () => {
+    const guest = { feeds: [makeFeed()], weights: [makeWeight()] }
+    const family: AppData = { feeds: [], weights: [] }
+    expect(unmergedGuestData(guest, family)).toEqual(guest)
+    family.feeds.push(makeFeed({ amount: 80, updatedAt: '2025-12-31T12:00:00.000Z' }))
+    family.weights.push(makeWeight())
+    expect(unmergedGuestData(guest, family)).toEqual({ feeds: guest.feeds, weights: [] })
+  })
+
+  it('offers equal-timestamp guest changes that merge would choose over the family copy', () => {
+    const guest = { feeds: [makeFeed({ amount: 120 })], weights: [] }
+    const family = { feeds: [makeFeed()], weights: [] }
+    expect(unmergedGuestData(guest, family)).toEqual(guest)
   })
 })
 

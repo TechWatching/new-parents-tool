@@ -9,7 +9,7 @@ import { loadData, GUEST_NAMESPACE, type Namespace } from './storage'
 import { syncStatus, syncError, lastSyncedAt } from './sync'
 import { useAppData } from './composables/useAppData'
 import { useOfflineAvailability } from './composables/useOfflineAvailability'
-import { mergeAppData } from './merge'
+import { mergeAppData, unmergedGuestData } from './merge'
 import type { AppData, Feed, Weight } from './types'
 import {
   dateFromOccurredAt,
@@ -179,7 +179,7 @@ watch(currentNamespace, () => {
 }, { flush: 'sync' })
 
 watch(
-  [currentNamespace, sharingEnabled, pendingImportNamespace, loading],
+  [currentNamespace, sharingEnabled, pendingImportNamespace, loading, () => data.feeds, () => data.weights],
   async ([ns, enabled, pendingImport, isLoading], _previous, onCleanup) => {
     let cancelled = false
     onCleanup(() => { cancelled = true })
@@ -191,11 +191,10 @@ watch(
     const source = pendingImport ?? GUEST_NAMESPACE
     try {
       const guest = await loadData(source)
-      if (
-        !cancelled && identity.isCurrent() &&
-        (guest.feeds.some((f) => !f.deletedAt) || guest.weights.some((w) => !w.deletedAt))
-      ) {
-        guestDataForMerge.value = guest
+      if (cancelled || !identity.isCurrent()) return
+      const unmerged = unmergedGuestData(guest, data)
+      if (unmerged.feeds.length || unmerged.weights.length) {
+        guestDataForMerge.value = unmerged
         mergeSourceForPrompt.value = source
         showMergePrompt.value = true
       }
