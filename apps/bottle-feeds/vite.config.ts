@@ -102,7 +102,7 @@ export default defineConfig({
           'playwright/valid-expect': 'error',
           'playwright/valid-expect-in-promise': 'error',
           'playwright/valid-test-tags': 'error',
-          'playwright/valid-title': 'error'
+          'playwright/valid-title': 'error',
         },
         jsPlugins: ['eslint-plugin-playwright'],
       },
@@ -127,7 +127,7 @@ export default defineConfig({
           'vitest/valid-expect': 'error',
           'vitest/valid-expect-in-promise': 'error',
           'vitest/valid-title': 'error',
-          'typescript/unbound-method': 'off'
+          'typescript/unbound-method': 'off',
         },
       },
     ],
@@ -181,8 +181,21 @@ export default defineConfig({
       filename: 'sw.ts',
       injectRegister: false,
       registerType: 'prompt',
-      manifest: false,
-      includeAssets: ['favicon.ico', 'favicon.svg'],
+      manifest: {
+        name: 'Little Sips — Bottle feed tracker',
+        short_name: 'Little Sips',
+        description: 'A private, browser-based bottle feed and baby weight tracker.',
+        start_url: '.',
+        scope: '.',
+        display: 'standalone',
+        theme_color: '#f8faf7',
+        background_color: '#f8faf7',
+        icons: [
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      },
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png'],
       injectManifest: {
         // Include lazy imports (especially PDF generation) before advertising readiness.
         globPatterns: ['**/*.{html,js,css,json,ico,svg,png,jpg,jpeg,webp,woff,woff2,ttf,otf}'],

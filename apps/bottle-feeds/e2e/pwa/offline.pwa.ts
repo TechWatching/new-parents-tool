@@ -33,6 +33,46 @@ async function chooseLocalOnly(page: Page) {
   }
 }
 
+test('provides install metadata and icons within the deployment scope', async ({ page }) => {
+  await page.goto('./')
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    'href',
+    `${base}manifest.webmanifest`,
+  )
+  const manifestUrl = new URL(`${base}manifest.webmanifest`, page.url())
+  const response = await page.request.get(manifestUrl.href)
+  expect(response.ok()).toBe(true)
+  const manifest = await response.json()
+  expect(manifest.name).toBe('Little Sips — Bottle feed tracker')
+  expect(manifest.short_name).toBe('Little Sips')
+  expect(manifest.display).toBe('standalone')
+  expect(new URL(manifest.start_url, manifestUrl).pathname).toBe(base)
+  expect(new URL(manifest.scope, manifestUrl).pathname).toBe(base)
+  for (const size of [192, 512]) {
+    const icon = manifest.icons.find(
+      (entry: { sizes: string }) => entry.sizes === `${size}x${size}`,
+    )
+    expect(icon).toBeDefined()
+    const iconUrl = new URL(icon.src, manifestUrl)
+    expect(iconUrl.pathname).toBe(`${base}pwa-${size}x${size}.png`)
+    expect((await page.request.get(iconUrl.href)).ok()).toBe(true)
+    expect(
+      await page.evaluate(async (src) => {
+        const image = new Image()
+        image.src = src
+        await image.decode()
+        return [image.naturalWidth, image.naturalHeight]
+      }, iconUrl.href),
+    ).toEqual([size, size])
+  }
+  const appleIcon = page.locator('link[rel="apple-touch-icon"]')
+  await expect(appleIcon).toHaveAttribute('href', `${base}apple-touch-icon.png`)
+  expect(
+    (await page.request.get(new URL(`${base}apple-touch-icon.png`, page.url()).href)).ok(),
+  ).toBe(true)
+  await waitForOfflineReady(page)
+})
+
 test('renders the first offline save notification from local icons without warming an icon API', async ({
   page,
   context,
