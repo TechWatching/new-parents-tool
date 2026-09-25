@@ -179,14 +179,14 @@ watch(currentNamespace, () => {
 }, { flush: 'sync' })
 
 watch(
-  [currentNamespace, sharingEnabled, pendingImportNamespace],
-  async ([ns, enabled, pendingImport], _previous, onCleanup) => {
+  [currentNamespace, sharingEnabled, pendingImportNamespace, loading],
+  async ([ns, enabled, pendingImport, isLoading], _previous, onCleanup) => {
     let cancelled = false
     onCleanup(() => { cancelled = true })
     showMergePrompt.value = false
     guestDataForMerge.value = null
     mergeSourceForPrompt.value = null
-    if (ns === GUEST_NAMESPACE || !enabled) return
+    if (ns === GUEST_NAMESPACE || !enabled || isLoading) return
     const identity = captureIdentity()
     const source = pendingImport ?? GUEST_NAMESPACE
     try {

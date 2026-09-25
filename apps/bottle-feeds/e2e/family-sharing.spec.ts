@@ -191,6 +191,42 @@ test.describe('Family sharing through a browser-only backend contract fake', () 
     })
   }
 
+  test('first-family upload prompt survives a refresh while guest history is loading', async ({ browser }) => {
+    const mother = await parent(browser, 'mother')
+    await addFeed(mother.page, 'Guest bottle before family')
+    await signIn(mother.page)
+    await mother.page.evaluate(() => {
+      const app = (document.querySelector('main') as HTMLElement & {
+        __vueParentComponent: { setupState: { currentNamespace: string; reload: () => Promise<void> } }
+      }).__vueParentComponent.setupState
+      const originalGet = IDBObjectStore.prototype.get
+      IDBObjectStore.prototype.get = function (key) {
+        const request = originalGet.call(this, key)
+        if (key === 'guest:data') {
+          Object.defineProperty(request, 'onsuccess', {
+            configurable: true,
+            set(callback: (event: Event) => void) {
+              request.addEventListener('success', (event) => setTimeout(() => callback.call(request, event), 1200))
+            },
+          })
+        }
+        return request
+      }
+      const timer = setInterval(() => {
+        if (app.currentNamespace === 'guest') return
+        clearInterval(timer)
+        const raceWindow = window as Window & { __guestMergeReloaded?: boolean }
+        raceWindow.__guestMergeReloaded = true
+        void app.reload()
+      }, 1)
+    })
+    await mother.page.getByRole('button', { name: 'Create a family', exact: true }).click()
+    await expect.poll(() => mother.page.evaluate(() =>
+      (window as Window & { __guestMergeReloaded?: boolean }).__guestMergeReloaded)).toBe(true)
+    await expect(mother.page.getByRole('button', { name: 'Upload and merge', exact: true })).toBeVisible()
+    expect(JSON.stringify((await readStore(mother.page))['guest:data'])).toContain('Guest bottle before family')
+  })
+
   test('guest history stays local until consent and survives family sign-out', async ({ browser }) => {
     const mother = await parent(browser, 'mother')
     await addFeed(mother.page, 'Private guest bottle')
