@@ -1,5 +1,29 @@
 import { test, expect } from '@playwright/test'
 
+test('keeps the ICO fallback transparent like the SVG favicon', async ({ page }) => {
+  await page.goto('/')
+
+  const icons = await page.evaluate(async () => {
+    const colors = async (url: string) => {
+      const image = new Image()
+      image.src = url
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 48
+      const context = canvas.getContext('2d', { willReadFrequently: true })!
+      context.drawImage(image, 0, 0, 48, 48)
+      const pixel = (x: number, y: number) => Array.from(context.getImageData(x, y, 1, 1).data)
+      return { corner: pixel(0, 0), background: pixel(8, 8) }
+    }
+
+    return { svg: await colors('/favicon.svg'), ico: await colors('/favicon.ico') }
+  })
+
+  expect(icons.svg.corner[3]).toBe(0)
+  expect(icons.ico.corner[3]).toBe(0)
+  expect(icons.ico.background).toEqual(icons.svg.background)
+})
+
 test('shares the brand mark between the header and favicon across locales and viewport sizes', async ({ page }) => {
   await page.goto('/')
 
