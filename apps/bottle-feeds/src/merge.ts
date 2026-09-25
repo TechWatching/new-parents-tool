@@ -34,6 +34,26 @@ export function mergeAppData(local: AppData, remote: AppData): AppData {
   }
 }
 
+/** Only offer guest records that the selected family has not already absorbed. */
+export function unmergedGuestData(guest: AppData, family: AppData): AppData {
+  function remaining<T extends { id: string; updatedAt: string; deletedAt?: string }>(
+    records: T[], familyRecords: T[],
+  ): T[] {
+    const byId = new Map(familyRecords.map((record) => [record.id, record]))
+    return records.filter((record) => {
+      if (record.deletedAt) return false
+      const existing = byId.get(record.id)
+      if (!existing) return true
+      const difference = Date.parse(record.updatedAt) - Date.parse(existing.updatedAt)
+      return difference > 0 || (difference === 0 && JSON.stringify(record) !== JSON.stringify(existing))
+    })
+  }
+  return {
+    feeds: remaining(guest.feeds, family.feeds),
+    weights: remaining(guest.weights, family.weights),
+  }
+}
+
 /**
  * Validate imports in full, then merge by update time (import wins ties).
  * Missing legacy metadata is backfilled by the shared parser.
