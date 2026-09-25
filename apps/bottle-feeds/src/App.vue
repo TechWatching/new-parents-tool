@@ -76,6 +76,7 @@ const {
 } = useAppData()
 const { ready: offlineReady, updateAvailable, error: offlineError, applyUpdate } = useOfflineAvailability()
 const productionBuild = import.meta.env.PROD
+const logoUrl = `${import.meta.env.BASE_URL}favicon.svg`
 const now = ref(Date.now())
 let nowIntervalId: number | undefined
 
@@ -543,11 +544,14 @@ const syncLabel = computed(() => {
           class="flex items-center gap-2.5 text-2xl font-extrabold text-highlighted no-underline outline-none focus-visible:ring-3 focus-visible:ring-coral-500/30 focus-visible:rounded-lg max-[500px]:text-xl"
           href="#"
         >
-          <span
-            class="grid size-[34px] -rotate-[25deg] place-items-center rounded-full bg-coral-500 text-white"
-            aria-hidden="true"
-            >◒</span
-          >
+          <img
+            :src="logoUrl"
+            alt=""
+            width="34"
+            height="34"
+            class="size-[34px] shrink-0 rounded-[9px]"
+            data-testid="brand-mark"
+          />
           <span>{{ t.appName }}</span>
         </a>
         <p class="ml-[43px] mt-0.5 text-[13px] text-muted max-[500px]:hidden">{{ t.tagline }}</p>
