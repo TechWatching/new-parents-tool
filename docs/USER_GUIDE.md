@@ -9,6 +9,20 @@ offline** before relying on offline reopening.
 > data. Export your data regularly, or use optional cloud sync when it is
 > available.
 
+## Install on your phone
+
+Visit [Little Sips](https://techwatching.github.io/new-parents-tool/) in a
+regular browser tab while online. On Android, open Chrome's menu and choose
+**Install app** (or **Add to Home screen**, depending on the browser). On an
+iPhone, open the site in Safari and choose **Share → Add to Home Screen**.
+This installs a web app, not an app from the Play Store or App Store. The icon
+opens Little Sips in its own window on browsers that support standalone mode.
+
+Wait for **Ready to reopen offline** before depending on offline access. Local
+records belong to the browser profile on this device; installing the app does
+not transfer records from another phone, computer, or browser. Export and import
+a backup to transfer them, or use optional cloud sync.
+
 ## Start recording
 
 Use **Record a bottle** to enter the quantity in millilitres, date, 24-hour
