@@ -30,7 +30,7 @@
     "vue-router": "5.2.0"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.130",
+    "@iconify-json/lucide": "^1.2.138",
     "@playwright/test": "1.61.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
