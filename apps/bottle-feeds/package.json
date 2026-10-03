@@ -47,7 +47,7 @@
     "vite-plugin-vue-devtools": "^8.1.5",
     "vite-plus": "catalog:",
     "vue-eslint-parser": "^10.4.1",
-    "vue-tsc": "^3.3.7",
+    "vue-tsc": "^3.3.11",
     "workbox-core": "7.4.1",
     "workbox-precaching": "7.4.1",
     "workbox-routing": "7.4.1"
