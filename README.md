@@ -1,5 +1,7 @@
 # New Parents Tool
 
+[![AI Ready](https://img.shields.io/badge/AI--Ready-yes-brightgreen?style=flat)](https://github.com/johnpapa/ai-ready)
+
 A pnpm monorepo for simple, privacy-first tools that help new parents track baby health.
 
 ## Preview
@@ -37,18 +39,22 @@ From the repository root:
 ```sh
 vp run --recursive lint
 vp run --filter bottle-feeds test:unit -- --run
+vp run --filter bottle-feeds type-check
 vp run --recursive build
 ```
 
 ## Agent primitives
 
-Agent-facing primitives live in `.github`: always-attached rules in
-`.github/instructions` and skills in `.github/skills`. The
+Agent-facing conventions live in [`AGENTS.md`](AGENTS.md); Copilot's
+[`copilot-instructions.md`](.github/copilot-instructions.md) points to it.
+Scoped instructions and reusable skills remain in `.github/instructions` and
+`.github/skills`. The
 `browser-verification` skill requires every browser-observable bug or feature
 to be reproduced and verified with `playwright-cli`, with screenshot evidence
 published on the pull request or issue.
 
-They are designed with [genesis](https://github.com/danielmeppiel/genesis),
+The existing browser and design tooling is managed with
+[genesis](https://github.com/danielmeppiel/genesis),
 declared in `apm.yml` and installed with [apm](https://github.com/microsoft/apm):
 
 ```sh
@@ -59,3 +65,22 @@ This deploys genesis to `.agents/skills` (git-ignored, like `node_modules`).
 Copilot's cloud agent gets the same install from
 `.github/workflows/copilot-setup-steps.yml`, because its firewall blocks
 `api.github.com` for commands the agent runs itself but not for setup steps.
+
+## Contributing
+
+Contributions are welcome through pull requests. Fork the repository, create a
+feature branch from `main`, make a focused change, and open a pull request
+against `main`.
+
+Before submitting, run the checks listed under [Development](#development):
+
+```sh
+vp run --recursive lint
+vp run --filter bottle-feeds test:unit -- --run
+vp run --filter bottle-feeds type-check
+vp run --recursive build
+```
+
+For browser-visible changes, follow the `browser-verification` skill and include
+the required Playwright evidence. Do not include real baby health records,
+invitation links, access tokens, or credentials in issues or pull requests.
