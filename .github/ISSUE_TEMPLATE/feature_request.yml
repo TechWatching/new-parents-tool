@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest an improvement to Little Sips.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Describe the general need; do not include real baby health records, invitation links, access tokens, or credentials."
+  - type: input
+    id: need
+    attributes:
+      label: What need should this address?
+      description: Explain the problem or goal, rather than only naming a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: When would this help?
+      description: Describe the situation and who would benefit.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Share a possible approach or outcome.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Related area
+      options:
+        - Recording feeds or weights
+        - Trends, history, or PDF reports
+        - Offline access or local storage
+        - Optional family sharing
+        - Accessibility or localization
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Privacy, offline, or accessibility considerations
+      description: Note any constraints that should shape the solution.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I have not included real health records, invitation links, access tokens, or credentials.
+          required: true
