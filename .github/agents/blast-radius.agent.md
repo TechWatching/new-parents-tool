@@ -13,7 +13,7 @@ Flag anything in this diff that a revert would not undo:
 - Changes to the shape of an existing API response, or to a published contract
 - Anything that sends messages, charges money, or provisions resources
 - Anything that grants or widens permissions
-- Deletions of data, files, or infrastructure
+- Deletions of persistent state outside Git, such as production data or provisioned infrastructure
 
 For this repository, check changes under `supabase/migrations/` and changes to `.github/workflows/deploy-pages.yml` against the human-review boundary in `AGENTS.md`.
 

@@ -9,7 +9,7 @@ description: What to update when you change something in this repo, and what "do
 
 1. Add the app-owned types and method to `apps/bottle-feeds/src/backends/contracts.ts`.
 2. Implement the operation in `apps/bottle-feeds/src/backends/supabase/index.ts`; keep SDK creation and configuration behind `apps/bottle-feeds/src/backends/index.ts`.
-3. Update `apps/bottle-feeds/src/backends/supabase/__tests__/adapter.spec.ts` and `apps/bottle-feeds/src/__tests__/backend-boundary.spec.ts`; update `apps/bottle-feeds/e2e/helpers/browser-backend.ts` when an E2E flow uses it.
+3. Add operation coverage to `apps/bottle-feeds/src/backends/supabase/__tests__/adapter.spec.ts`; update `apps/bottle-feeds/e2e/helpers/browser-backend.ts` when an E2E flow uses it.
 4. For database behavior, add an ordered SQL migration under `supabase/migrations/` and extend `supabase/tests/`.
 5. Run `vp run --filter bottle-feeds test:unit -- --run`.
 
