@@ -34,4 +34,4 @@ jobs:
       # are exempt, so the primitives declared in apm.yml are installed here and
       # are already on disk when the session starts.
       - name: Install agent primitives
-        uses: microsoft/apm-action@v1.10.0
+        uses: microsoft/apm-action@v1.11.0
